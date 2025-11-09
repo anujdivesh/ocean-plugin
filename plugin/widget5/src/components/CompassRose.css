@@ -1,0 +1,85 @@
+/* Enhanced Professional Cartographic Compass Styles */
+
+.compass-container.enhanced {
+  position: absolute;
+  z-index: 1000;
+  pointer-events: none;
+  user-select: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
+}
+
+.compass-container.enhanced:hover {
+  opacity: 1 !important;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+}
+
+.compass-svg.enhanced {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.compass-container.enhanced:hover .compass-svg.enhanced {
+  transform: scale(1.03);
+}
+
+/* Enhanced fade-in animation */
+@keyframes compassAppearEnhanced {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(8px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 0.94;
+    transform: scale(1) translateY(0);
+    filter: blur(0px);
+  }
+}
+
+.compass-container.enhanced {
+  animation: compassAppearEnhanced 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.94;
+}
+
+.compass-container.enhanced:hover {
+  opacity: 1 !important;
+}
+
+/* Enhanced responsive behavior with position switching */
+@media (max-width: 1024px) {
+  .compass-container.enhanced {
+    transform: scale(0.92);
+    transform-origin: top right;
+  }
+}
+
+@media (max-width: 768px) {
+  .compass-container.enhanced {
+    transform: scale(0.85);
+    transform-origin: bottom left;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@media (max-width: 480px) {
+  .compass-container.enhanced {
+    transform: scale(0.75);
+    transform-origin: bottom left;
+    opacity: 0.88;
+  }
+}
+
+/* Rotation animation for map rotation support */
+@keyframes compassRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.compass-svg.enhanced[style*="rotate"] {
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced visibility on light backgrounds */
+.compass-container.enhanced {
+  backdrop-filter: blur(1px);
+}

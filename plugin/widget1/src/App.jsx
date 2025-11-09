@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import './App.css';
-import Header from './components/header';
+// LEGACY HEADER REMOVED - ModernHeader is now used in Home.jsx
+// import Header from './components/header';
 import TokenError from './components/TokenError';
 import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator';
 
 function App() {
+  // Authentication enabled for production
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorType, setErrorType] = useState(null);
@@ -14,6 +16,7 @@ function App() {
   const [validCountries, setValidCountries] = useState([]);
 
   useEffect(() => {
+    // Authentication enabled
     const initializeApp = async () => {
       console.log('Initializing app with token and country validation...');
       
@@ -30,16 +33,16 @@ function App() {
       try {
         const validationResult = await validateTokenOnLoad(
           () => {
-            // console.log('Authentication successful - app can load');
+            console.log('Authentication successful - app can load');
             setIsAuthenticated(true);
           },
           () => {
-            // console.log('Authentication failed - app will not load');
+            console.log('Authentication failed - app will not load');
             setIsAuthenticated(false);
             setErrorType('invalid_token');
           },
           () => {
-            // console.log('Country validation failed - page should not load');
+            console.log('Country validation failed - page should not load');
             // Country validation failed, so we should not show the app
             setIsAuthenticated(false);
             setErrorType('invalid_country');
@@ -97,14 +100,23 @@ function App() {
     return <TokenError errorType={errorType || 'invalid_token'} />;
   }
 
+  // Use PUBLIC_URL for production, but allow root access in development
+  const basename = process.env.NODE_ENV === 'production' ? process.env.PUBLIC_URL : '';
+
   return (
-    <Router basename={process.env.PUBLIC_URL}>
+    <Router 
+      basename={basename}
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
       <div style={{ 
         backgroundColor: 'var(--color-background)', 
         minHeight: '100vh',
         transition: 'background-color 0.3s ease'
       }}>
-        <Header />
+        {/* Legacy Header removed - ModernHeader now renders in Home.jsx */}
         <Routes>
           <Route path="/" element={<Home widgetData={widgetData} validCountries={validCountries} />} />
           {/* <Route path="/link1" element={<Link1 />} />

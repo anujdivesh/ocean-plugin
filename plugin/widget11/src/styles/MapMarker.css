@@ -1,0 +1,45 @@
+/* Styling for data source location popup */
+.leaflet-popup.data-source-popup .leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(5px);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 2px solid #ff6b35;
+}
+
+.leaflet-popup.data-source-popup .leaflet-popup-content {
+  margin: 8px 12px;
+  line-height: 1.4;
+  min-width: 140px;
+}
+
+.leaflet-popup.data-source-popup .leaflet-popup-content strong {
+  color: #ff6b35;
+  font-size: 14px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.leaflet-popup.data-source-popup .leaflet-popup-content small {
+  color: #666;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  line-height: 1.3;
+}
+
+.leaflet-popup.data-source-popup .leaflet-popup-tip {
+  background: #ff6b35;
+}
+
+/* Enhanced marker styling */
+.leaflet-interactive[stroke="#ff6b35"] {
+  filter: drop-shadow(0 2px 4px rgba(255, 107, 53, 0.4));
+  cursor: pointer;
+}
+
+/* Marker hover effects */
+.leaflet-interactive[stroke="#ff6b35"]:hover {
+  filter: drop-shadow(0 3px 6px rgba(255, 107, 53, 0.6));
+  transform: scale(1.1);
+  transition: all 0.2s ease;
+}

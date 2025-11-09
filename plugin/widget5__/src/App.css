@@ -1,0 +1,202 @@
+
+:root {
+    /* Light mode palette */
+    --color-primary: #2563eb;
+    --color-secondary: #64748b;
+    --color-accent: #f59e42;
+    --color-background: #f8fafc;
+    --color-surface: #ffffff;
+    --color-text: #1e293b;
+    --color-success: #22c55e;
+    --color-warning: #facc15;
+    --color-error: #ef4444;
+    --color-info: #0ea5e9;
+    --btn-secondary: #1c54b2;
+    --btn-secondary-hover: #174a8c;
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    --card-shadow-hover: 0 4px 16px rgba(0,0,0,0.18);
+  }
+  
+body.dark-mode {
+    /* Dark mode palette */
+    --color-primary: #60a5fa;
+    --color-secondary: #a1a1aa;
+    --color-accent: #fbbf24;
+    --color-background: #2e2f33;
+    --color-surface: #3f4854;
+    --color-text: #f1f5f9;
+    --color-border: #44454a;
+    --color-success: #4ade80;
+    --color-warning: #fde047;
+    --color-error: #f87171;
+    --color-info: #38bdf8;
+    --btn-secondary: #3f4854;
+    --btn-secondary-hover: #23242a;
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.32);
+    --card-shadow-hover: 0 4px 16px rgba(0,0,0,0.44);
+    background-color: var(--color-background) !important;
+    color: var(--color-text) !important;
+  }
+
+/* Navbar styling */
+.navbar {
+  transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-link {
+  transition: color 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+  color: var(--color-primary) !important;
+}
+
+/* Theme toggle styling */
+.form-check-input {
+  transition: all 0.3s ease;
+  cursor: pointer;
+  background-color: white !important;
+  border-color: #0065f8 !important;
+  border-width: 2px !important;
+}
+
+.form-check-input:checked {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.form-check-input:focus {
+  box-shadow: 0 0 0 0.25rem rgba(0, 101, 248, 0.25);
+}
+
+/* Dark mode override for toggle */
+body.dark-mode .form-check-input {
+  background-color: var(--color-secondary) !important;
+  border-color: var(--color-secondary) !important;
+}
+
+body.dark-mode .form-check-input:checked {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* Logo styling */
+.navbar-brand img {
+  transition: filter 0.3s ease;
+}
+
+/* Button styling */
+.btn {
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* Body transition for theme switching */
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Navbar responsive adjustments */
+@media (max-width: 991.98px) {
+  .navbar-nav {
+    margin-top: 1rem;
+  }
+  
+  .navbar-nav .nav-item {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* ===== THEME-AWARE COMPONENT CLASSES ===== */
+
+/* Button variants that automatically adapt to theme */
+.btn-theme-primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: white !important;
+}
+
+.btn-theme-secondary {
+  background-color: var(--color-secondary) !important;
+  border-color: var(--color-secondary) !important;
+  color: white !important;
+}
+
+.btn-theme-outline {
+  background-color: transparent !important;
+  border: 2px solid var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+.btn-theme-outline:hover {
+  background-color: var(--color-primary) !important;
+  color: white !important;
+}
+
+/* Card component that adapts to theme */
+.card-theme {
+  background-color: var(--color-surface) !important;
+  border-color: var(--color-border, #e2e8f0) !important;
+  box-shadow: var(--card-shadow) !important;
+  transition: all 0.3s ease;
+}
+
+.card-theme:hover {
+  box-shadow: var(--card-shadow-hover) !important;
+}
+
+/* Text classes that adapt to theme */
+.text-theme-primary {
+  color: var(--color-primary) !important;
+}
+
+.text-theme-secondary {
+  color: var(--color-secondary) !important;
+}
+
+.text-theme-body {
+  color: var(--color-text) !important;
+}
+
+/* Background classes that adapt to theme */
+.bg-theme-surface {
+  background-color: var(--color-surface) !important;
+}
+
+.bg-theme-background {
+  background-color: var(--color-background) !important;
+}
+
+/* Border classes that adapt to theme */
+.border-theme {
+  border-color: var(--color-border, #e2e8f0) !important;
+}
+
+/* Alert variants that adapt to theme */
+.alert-theme-info {
+  background-color: var(--color-info) !important;
+  border-color: var(--color-info) !important;
+  color: white !important;
+}
+
+.alert-theme-success {
+  background-color: var(--color-success) !important;
+  border-color: var(--color-success) !important;
+  color: white !important;
+}
+
+.alert-theme-warning {
+  background-color: var(--color-warning) !important;
+  border-color: var(--color-warning) !important;
+  color: #1e293b !important;
+}
+
+.alert-theme-error {
+  background-color: var(--color-error) !important;
+  border-color: var(--color-error) !important;
+  color: white !important;
+}

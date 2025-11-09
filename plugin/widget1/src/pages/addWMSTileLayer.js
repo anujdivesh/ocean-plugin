@@ -178,7 +178,8 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
             <a href="#" class="open-timeseries-link" style="display: block;">&nbsp;more...</a>
         `;
 
-        const popup = L.popup({ maxWidth: 800 })
+        // eslint-disable-next-line no-unused-vars
+        const popup = L.popup({ maxWidth: 800 }) // TODO: Use this or remove
             .setLatLng(latlng)
             .setContent(popupContent)
             .openOn(map);

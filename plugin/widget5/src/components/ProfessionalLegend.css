@@ -1,0 +1,158 @@
+/**
+ * Professional Legend System Styles
+ * Replaces hardcoded gradient approach with dynamic, adaptive system
+ */
+
+.professional-legend {
+  --legend-border-color: #e2e8f0;
+  --legend-background: #ffffff;
+  --legend-text-color: #333333;
+  --legend-text-secondary: #666666;
+  --legend-loading-bg: rgba(255, 255, 255, 0.8);
+}
+
+/* Dark mode support */
+[data-theme="dark"] .professional-legend,
+.dark .professional-legend {
+  --legend-border-color: #44454a;
+  --legend-background: #2d3748;
+  --legend-text-color: #f1f5f9;
+  --legend-text-secondary: #a0a0a0;
+  --legend-loading-bg: rgba(45, 55, 72, 0.8);
+}
+
+/* Main legend container */
+.professional-legend {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--legend-background);
+  border: 1px solid var(--legend-border-color);
+}
+
+/* Primary legend image */
+.professional-legend .legend-image {
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  background: var(--legend-background);
+}
+
+/* Loading state */
+.professional-legend .legend-loading {
+  background: var(--legend-loading-bg);
+  backdrop-filter: blur(4px);
+  color: var(--legend-text-color);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Fallback CSS gradient */
+.professional-legend .legend-fallback {
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  background: var(--legend-gradient, linear-gradient(to top, 
+    rgb(68, 1, 84) 0%, 
+    rgb(70, 50, 126) 20%, 
+    rgb(54, 92, 141) 40%, 
+    rgb(32, 144, 140) 60%, 
+    rgb(94, 201, 97) 80%, 
+    rgb(253, 231, 36) 100%));
+}
+
+/* Metadata display */
+.professional-legend .legend-metadata {
+  color: var(--legend-text-secondary);
+  background: rgba(var(--legend-background), 0.9);
+  border-top: 1px solid var(--legend-border-color);
+  padding: 8px;
+  margin-top: 0;
+}
+
+.professional-legend .legend-metadata strong {
+  color: var(--legend-text-color);
+  font-weight: 600;
+}
+
+/* Quality indicator */
+.professional-legend .legend-quality {
+  background: var(--legend-loading-bg);
+  color: var(--legend-text-secondary);
+  font-family: 'SF Mono', 'Monaco', monospace;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .professional-legend {
+    max-width: 200px;
+  }
+  
+  .professional-legend .legend-metadata {
+    font-size: 9px;
+    padding: 6px;
+  }
+}
+
+@media (max-width: 768px) {
+  .professional-legend {
+    max-width: 240px;
+  }
+}
+
+/* Animation enhancements */
+.professional-legend .legend-image {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.professional-legend .legend-quality {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Accessibility improvements */
+.professional-legend img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .professional-legend {
+    border-width: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .professional-legend .legend-quality {
+    background: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .professional-legend * {
+    transition: none;
+  }
+}
+
+/* Legacy compatibility - gradually phase out */
+.forecast-map-legend__image {
+  /* Maintain existing behavior for gradual migration */
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid var(--legend-border-color);
+}
+
+/* Enhanced gradient bar (replaces the 100-stop version) */
+.legend-gradient__bar {
+  background: var(--legend-gradient) !important;
+  border-radius: 4px;
+  border: 1px solid var(--legend-border-color);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+/* Remove the old hardcoded gradient */
+.legend-gradient__bar[style*="rgb(68, 1, 84)"] {
+  background: var(--legend-gradient) !important;
+}

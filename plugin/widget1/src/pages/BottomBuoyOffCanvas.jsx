@@ -288,7 +288,8 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
-  const [parentHeight, setParentHeight] = useState(undefined);
+  // eslint-disable-next-line no-unused-vars
+  const [parentHeight, setParentHeight] = useState(undefined); // TODO: Remove if truly unused
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Check for dark mode
@@ -412,8 +413,10 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
 
 
   // Prepare chart data and formatting for Sofarocean
-  let chartData = null;
-  let chartOptions = {};
+  // eslint-disable-next-line no-unused-vars
+  let chartData = null; // TODO: Remove if Chart.js rendering not implemented
+  // eslint-disable-next-line no-unused-vars
+  let chartOptions = {}; // TODO: Remove if Chart.js rendering not implemented
   let plotlyBuoyData = null;
   let plotlyBuoyLayout = null;
   if (activeTab === "buoy" && data && data.waves && data.waves.length > 0) {
@@ -525,7 +528,8 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
 
   // Prepare chart data for model
   let modelChartData = null;
-  let modelChartOptions = {};
+  // eslint-disable-next-line no-unused-vars
+  let modelChartOptions = {}; // TODO: Remove if Chart.js rendering not implemented
   let plotlyModelData = [];
   let plotlyModelLayout = null;
   let modelMissingVars = [];
@@ -533,7 +537,8 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
   if (activeTab === "model" && modelData && modelData.domain && modelData.domain.axes && modelData.domain.axes.t) {
     const variables = MODEL_VARIABLES;
  
-    const varMeta = extractModelVariables(modelData, variables);
+    // eslint-disable-next-line no-unused-vars
+    const varMeta = extractModelVariables(modelData, variables); // TODO: Use this data or remove
     modelMissingVars = variables.filter(v => !modelData.ranges || !modelData.ranges[v]);
     const labels = modelData.domain.axes.t.values.map(t =>
       t.length > 15 ? t.substring(0, 16).replace("T", " ") : t
@@ -729,6 +734,7 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
                 fontSize: 16,
                 transition: "border-bottom 0.1s"
               }}
+              role="tab"
               aria-selected={activeTab === tab.key}
               aria-controls={`tab-panel-${tab.key}`}
               tabIndex={activeTab === tab.key ? 0 : -1}
@@ -1051,6 +1057,7 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
               (() => {
                 // Check if all traces are empty
                 const modelTimes = modelData?.domain?.axes?.t?.values || [];
+                // eslint-disable-next-line no-unused-vars
                 const hasModel = modelData?.ranges?.hs_p1?.values?.length > 0;
                 const hasBuoy = data?.waves?.length > 0;
                 if (!hasModel && !hasBuoy) {

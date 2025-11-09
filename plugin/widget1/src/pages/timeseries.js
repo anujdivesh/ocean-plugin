@@ -28,7 +28,8 @@ function extractCoverageTimeseries(json, variable) {
 
 function Timeseries({ perVariableData }) {
   const [plotData, setPlotData] = useState([]);
-  const [labels, setLabels] = useState([]);
+  // eslint-disable-next-line no-unused-vars
+  const [labels, setLabels] = useState([]); // TODO: Use labels or remove
   const [error, setError] = useState("");
   const [parentHeight, setParentHeight] = useState(undefined);
   const [isDarkMode, setIsDarkMode] = useState(false);

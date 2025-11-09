@@ -1,0 +1,266 @@
+/* World-Class Collapsible Legend Styles */
+
+.legendContainer {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: rgba(25, 35, 45, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.2);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: min(400px, calc(100vw - 40px));
+  min-width: 280px;
+}
+
+.legendContainer:hover {
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Compact header - always visible */
+.legendHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: background-color 0.2s ease;
+  min-height: 48px; /* Touch-friendly */
+}
+
+.legendHeader:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.legendHeader:focus {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+.legendTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legendIcon {
+  font-size: 16px;
+}
+
+/* Toggle button */
+.toggleButton {
+  background: none;
+  border: none;
+  color: #c5d0e0;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.toggleButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.toggleButton:focus {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+.expandIcon {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 18px;
+}
+
+.expandIcon.expanded {
+  transform: rotate(180deg);
+}
+
+/* Collapsible content */
+.legendContent {
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.legendContent.collapsed {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.legendContent.expanded {
+  max-height: 500px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.legendContent.animating {
+  transition-duration: 0.3s;
+}
+
+/* Gradient bar */
+.gradientContainer {
+  padding: 16px;
+  padding-top: 0;
+}
+
+.gradientBar {
+  width: 100%;
+  height: 20px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.gradientBar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    #1e40af,
+    #3b82f6,
+    #06b6d4,
+    #10b981,
+    #84cc16,
+    #eab308,
+    #f59e0b,
+    #ef4444,
+    #dc2626
+  );
+  border-radius: inherit;
+}
+
+/* Value labels */
+.valueLabels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 11px;
+  color: #e5ebf0;  /* Improved from #cbd5e1 for better contrast */
+  font-weight: 500;
+}
+
+.valueLabel {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Descriptions */
+.descriptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Actual WMS legend image */
+.legendImage {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 8px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.descriptionItem {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  transition: background-color 0.2s ease;
+}
+
+.descriptionItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.descriptionLabel {
+  font-size: 10px;
+  color: #c5d0e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+
+.descriptionValue {
+  font-size: 12px;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .legendContainer {
+    bottom: 10px;
+    right: 10px;
+    max-width: calc(100vw - 20px);
+    min-width: 260px;
+  }
+  
+  .descriptions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .legendHeader {
+    padding: 10px 14px;
+  }
+  
+  .legendTitle {
+    font-size: 13px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .legendContainer {
+    background: rgba(0, 0, 0, 0.95);
+    border: 2px solid white;
+  }
+  
+  .legendTitle {
+    color: white;
+  }
+  
+  .toggleButton {
+    color: white;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .legendContainer,
+  .legendContent,
+  .expandIcon,
+  .toggleButton,
+  .legendHeader {
+    transition: none;
+  }
+}

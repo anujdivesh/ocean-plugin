@@ -1,0 +1,47 @@
+.island-selector-container {
+  position: relative;
+  z-index: 1000;
+}
+
+.island-dropdown {
+  display: inline-block;
+}
+
+.comparison-panel {
+  max-width: 400px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.island-profile {
+  max-width: 400px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.island-selector-container .dropdown-menu {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.island-selector-container .badge {
+  font-size: 0.75em;
+}

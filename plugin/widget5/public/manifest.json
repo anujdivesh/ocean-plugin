@@ -1,25 +1,25 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Cook Islands Wave Forecast",
+  "name": "Cook Islands Marine Weather Forecast",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "/widget5/favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "/widget5/logo192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo512.png",
+      "src": "/widget5/logo512.png",
       "type": "image/png",
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
+  "start_url": "/widget5",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#1e3c72",
+  "background_color": "#0a1628"
 }

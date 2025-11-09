@@ -1,0 +1,92 @@
+input[type="range"].custom-range-slider2 {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 5px; /* shorter track */
+    background: transparent;
+    outline: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Chrome, Safari, Opera, Edge Chromium: Track */
+  input[type="range"].custom-range-slider2::-webkit-slider-runnable-track {
+    height: 5px; /* shorter track */
+    border-radius: 2px;
+    background: linear-gradient(
+      to right,
+      #007bff 0%,
+      #007bff calc(var(--percent, 0) * 1%),
+      #e9ecef calc(var(--percent, 0) * 1%),
+      #e9ecef 100%
+    );
+  }
+  
+  /* Chrome, Safari, Opera, Edge Chromium: Thumb */
+  input[type="range"].custom-range-slider2::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 4px;
+    height: 16px;  /* shorter thumb */
+    background: #007bff;
+    border-radius: 0;
+    border: 2px solid white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    cursor: pointer;
+    margin-top: -6px; /* Center the thumb vertically on the track */
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Firefox: Track and Progress */
+  input[type="range"].custom-range-slider2::-moz-range-track {
+    height: 5px;
+    background: #e9ecef;
+    border-radius: 2px;
+  }
+  input[type="range"].custom-range-slider2::-moz-range-progress {
+    height: 5px;
+    background: #007bff;
+    border-radius: 2px;
+  }
+  
+  /* Firefox: Thumb */
+  input[type="range"].custom-range-slider2::-moz-range-thumb {
+    width: 4px;
+    height: 16px;
+    background: #007bff;
+    border-radius: 0;
+    border: 2px solid white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+  
+  /* IE/Edge: Track */
+  input[type="range"].custom-range-slider2::-ms-fill-lower {
+    background: #007bff;
+    border-radius: 2px;
+  }
+  input[type="range"].custom-range-slider2::-ms-fill-upper {
+    background: #e9ecef;
+    border-radius: 2px;
+  }
+  
+  /* IE/Edge: Thumb */
+  input[type="range"].custom-range-slider2::-ms-thumb {
+    width: 4px;
+    height: 16px;
+    background: #007bff;
+    border-radius: 0;
+    border: 2px solid white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+  input[type="range"].custom-range-slider2::-ms-tooltip {
+    display: none;
+  }
+  
+  /* Remove outline and unwanted background in IE/Edge */
+  input[type="range"].custom-range-slider2 {
+    background: transparent;
+  }
+  input[type="range"].custom-range-slider2:focus {
+    outline: none;
+  }

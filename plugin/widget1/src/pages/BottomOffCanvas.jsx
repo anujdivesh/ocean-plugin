@@ -1,8 +1,8 @@
 import React, { useRef, useState, useEffect } from "react";
 import Offcanvas from "react-bootstrap/Offcanvas";
+import "./BottomOffCanvas.css";
 import Tabular from "./tabular.js";
 import Timeseries from "./timeseries.js";
-import MapPreview from "./map.js";
 
 // ---- Variables & config shared between modules ----
 const variableDefs = [
@@ -71,8 +71,7 @@ const MAX_HEIGHT = 800;
 
 const tabLabels = [
   { key: "tabular", label: "Tabular" },
-  { key: "timeseries", label: "Timeseries" },
-  { key: "map", label: "Map" }
+  { key: "timeseries", label: "Timeseries" }
 ];
 
 function BottomOffCanvas({ show, onHide, data }) {
@@ -164,20 +163,34 @@ function BottomOffCanvas({ show, onHide, data }) {
       show={show}
       onHide={onHide}
       placement="bottom"
+      className="bottom-offcanvas"
       style={{
         height: height,
+        minHeight: height,
+        maxHeight: height,
         zIndex: 15000,
         background: isDarkMode ? "rgba(63, 72, 84, 0.98)" : "rgba(255,255,255,0.98)",
         color: isDarkMode ? "#f1f5f9" : "#1e293b",
         overflow: "visible",
         transition: "height 0.1s",
         borderTop: `1px solid ${isDarkMode ? "#44454a" : "#e2e8f0"}`,
+        // Override Bootstrap Offcanvas flex behavior
+        display: "block",
+        flex: "none",
+        flexGrow: 0,
+        flexShrink: 0,
+        flexBasis: "auto",
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
       }}
       backdrop={false}
       scroll={true}
     >
       {/* Drag Handle */}
       <div
+        className="drag-handle"
         style={{
           height: 12,
           cursor: "ns-resize",
@@ -187,6 +200,8 @@ function BottomOffCanvas({ show, onHide, data }) {
           textAlign: "center",
           userSelect: "none",
           margin: "-8px 0 0 0",
+          position: "relative",
+          zIndex: 1000,
         }}
         onMouseDown={onMouseDown}
         title="Drag to resize"
@@ -208,7 +223,7 @@ function BottomOffCanvas({ show, onHide, data }) {
         padding: "0 1rem 0 0.5rem" 
       }}>
         {/* Custom CSS Tabs */}
-        <div style={{ display: "flex", flex: 1, paddingTop: 10 }}>
+        <div style={{ display: "flex", flex: 1, paddingTop: 10 }} role="tablist">
           {tabLabels.map(tab => (
             <button
               key={tab.key}
@@ -225,10 +240,10 @@ function BottomOffCanvas({ show, onHide, data }) {
                 fontSize: 16,
                 transition: "border-bottom 0.1s"
               }}
+              role="tab"
               aria-selected={activeTab === tab.key}
               aria-controls={`tab-panel-${tab.key}`}
               tabIndex={activeTab === tab.key ? 0 : -1}
-              type="button"
             >
               {tab.label}
             </button>
@@ -259,7 +274,6 @@ function BottomOffCanvas({ show, onHide, data }) {
               : <>
                   {activeTab === "tabular" && <Tabular perVariableData={perVariableData} />}
                   {activeTab === "timeseries" && <Timeseries perVariableData={perVariableData} />}
-                  {activeTab === "map" && <MapPreview perVariableData={perVariableData} />}
                   
                 </>
         }

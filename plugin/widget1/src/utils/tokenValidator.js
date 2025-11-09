@@ -276,6 +276,7 @@ export const withTokenValidation = (Component, options = {}) => {
 
     React.useEffect(() => {
       const validateAndSetState = async () => {
+        // eslint-disable-next-line no-unused-vars
         const valid = await validateTokenOnLoad(
           () => setIsValid(true),
           () => setIsValid(false),
@@ -285,7 +286,8 @@ export const withTokenValidation = (Component, options = {}) => {
       };
 
       validateAndSetState();
-    }, [paramName]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // paramName is a prop from closure, not a dependency
 
     if (isLoading) {
       return (
@@ -316,7 +318,8 @@ export const withTokenValidation = (Component, options = {}) => {
   };
 };
 
-export default {
+// Named exports for tree-shaking
+const tokenValidatorModule = {
   extractTokenFromURL,
   extractCountriesFromURL,
   validateToken,
@@ -327,3 +330,5 @@ export default {
   validateTokenOnLoad,
   withTokenValidation
 };
+
+export default tokenValidatorModule;

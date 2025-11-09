@@ -1,0 +1,25 @@
+{
+  "short_name": "Tuvalu Forecast",
+  "name": "Tuvalu Marine Forecast",
+  "icons": [
+    {
+      "src": "/widget11/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/widget11/logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/widget11/logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/widget11",
+  "display": "standalone",
+  "theme_color": "#1e3c72",
+  "background_color": "#0a1628"
+}

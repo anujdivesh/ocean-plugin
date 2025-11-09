@@ -1,0 +1,13 @@
+/* Ensure the bottom offcanvas can be dynamically resized, even if a global
+   rule sets a fixed height with !important (e.g., 35vh). */
+.offcanvas.offcanvas-bottom.bottom-offcanvas {
+  /* Use Bootstrap's CSS variable to control height dynamically */
+  height: var(--bs-offcanvas-height) !important;
+  max-height: 100vh;
+}
+
+/* Optional: keep body from flex-growing unexpectedly during drag */
+.offcanvas.offcanvas-bottom.bottom-offcanvas .offcanvas-body {
+  /* Let content scroll inside without changing container height */
+  overflow-y: auto;
+}

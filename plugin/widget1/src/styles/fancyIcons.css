@@ -1,0 +1,84 @@
+/* Fancy Icon Styles */
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.rotate-90 {
+  transform: rotate(90deg);
+}
+
+.rotate-270 {
+  transform: rotate(270deg);
+}
+
+/* Marine theme glows */
+.ocean-glow {
+  filter: drop-shadow(0 0 8px rgba(0, 102, 204, 0.4));
+}
+
+.wave-glow {
+  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.5));
+}
+
+.wind-glow {
+  filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.4));
+}
+
+/* Custom hover effects for marine icons */
+.marine-icon:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Pulsing animation for active states */
+@keyframes marine-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+.marine-pulse {
+  animation: marine-pulse 2s ease-in-out infinite;
+}
+
+/* Gentle wave animation - contained */
+@keyframes gentle-wave {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-1px) rotate(0.5deg);
+  }
+  66% {
+    transform: translateY(1px) rotate(-0.5deg);
+  }
+}
+
+.gentle-wave {
+  animation: gentle-wave 3s ease-in-out infinite;
+}
+
+/* Containment styles for fancy icons */
+.fancy-icon-container {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  overflow: hidden;
+  max-width: fit-content;
+  max-height: fit-content;
+}
+
+/* Ensure animations don't cause layout shifts */
+.fancy-icon-wrapper {
+  contain: layout style paint;
+  isolation: isolate;
+}

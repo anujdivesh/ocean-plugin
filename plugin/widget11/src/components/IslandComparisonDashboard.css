@@ -1,0 +1,47 @@
+.island-comparison-dashboard {
+  animation: fadeIn 0.4s ease;
+}
+
+.island-comparison-dashboard .card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.island-comparison-dashboard .table {
+  font-size: 0.9rem;
+}
+
+.island-comparison-dashboard .table th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+}
+
+.island-comparison-dashboard .badge {
+  font-size: 0.85em;
+  padding: 0.4em 0.6em;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .island-comparison-dashboard .table {
+    font-size: 0.8rem;
+  }
+  
+  .island-comparison-dashboard .table th,
+  .island-comparison-dashboard .table td {
+    padding: 0.5rem;
+  }
+}

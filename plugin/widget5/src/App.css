@@ -200,3 +200,157 @@ body {
   border-color: var(--color-error) !important;
   color: white !important;
 }
+
+/* ===== ACCORDION DARK MODE STYLES ===== */
+
+/* Accordion container */
+body.dark-mode .accordion {
+  background-color: var(--color-surface) !important;
+  
+  border-radius: 8px !important;
+}
+
+/* Accordion items */
+body.dark-mode .accordion-item {
+  background-color: var(--color-surface) !important;
+ 
+  border-radius: 6px !important;
+  margin-bottom: 4px !important;
+}
+
+/* Accordion headers */
+body.dark-mode .accordion-button {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  
+  border-radius: 6px !important;
+  border-bottom: 2px solid var(--color-secondary) !important;
+}
+
+body.dark-mode .accordion-button:not(.collapsed) {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+ 
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+body.dark-mode .accordion-button:hover {
+  background-color: var(--color-background) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-primary) !important;
+}
+
+body.dark-mode .accordion-button:focus {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25) !important;
+}
+
+/* Accordion button collapsed state */
+body.dark-mode .accordion-button.collapsed {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border-bottom: 1px solid var(--color-secondary) !important;
+}
+
+/* Accordion body */
+body.dark-mode .accordion-body {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border: 1px solid var(--color-secondary) !important;
+  border-top: none !important;
+  border-radius: 0 0 6px 6px !important;
+  padding: 16px !important;
+}
+
+/* Accordion collapse */
+body.dark-mode .accordion-collapse {
+  border: 1px solid var(--color-secondary) !important;
+  border-top: none !important;
+  border-radius: 0 0 6px 6px !important;
+}
+
+/* Accordion button arrow icon */
+body.dark-mode .accordion-button::after {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23f1f5f9'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e") !important;
+}
+
+body.dark-mode .accordion-button:not(.collapsed)::after {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23f1f5f9'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e") !important;
+}
+
+/* Form controls in dark mode */
+body.dark-mode .form-control {
+  background-color: var(--color-background) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+body.dark-mode .form-control:focus {
+  background-color: var(--color-background) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-text) !important;
+  box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25) !important;
+}
+
+body.dark-mode .form-select {
+  background-color: var(--color-background) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+body.dark-mode .form-select:focus {
+  background-color: var(--color-background) !important;
+ 
+  color: var(--color-text) !important;
+  box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25) !important;
+}
+
+/* Range input in dark mode */
+body.dark-mode input[type="range"] {
+  background-color: var(--color-background) !important;
+}
+
+body.dark-mode input[type="range"]::-webkit-slider-thumb {
+  background-color: var(--color-primary) !important;
+}
+
+body.dark-mode input[type="range"]::-moz-range-thumb {
+  background-color: var(--color-primary) !important;
+}
+
+/* Button groups in dark mode */
+body.dark-mode .btn-group .btn {
+  background-color: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+body.dark-mode .btn-group .btn:hover {
+  background-color: var(--color-background) !important;
+  color: var(--color-text) !important;
+}
+
+body.dark-mode .btn-group .btn.active {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: white !important;
+}
+
+/* Badge in dark mode */
+body.dark-mode .badge {
+  background-color: var(--color-secondary) !important;
+  color: var(--color-text) !important;
+}
+
+/* Transition for smooth theme switching */
+.accordion,
+.accordion-item,
+.accordion-button,
+.accordion-body,
+.form-control,
+.form-select,
+.btn-group .btn {
+  transition: all 0.3s ease !important;
+}
