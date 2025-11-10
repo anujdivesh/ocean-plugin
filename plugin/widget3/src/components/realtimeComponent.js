@@ -22,8 +22,8 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
     const [stationData, setStationData] = useState({});
     const [chartData, setChartData] = useState({});
     const isLoadingChartsRef = useRef(false);
-    // Hour-based window for display/fetch tuning (1,2,6,12,24,48,72); default 1h
-    const [hourWindow, setHourWindow] = useState(1);
+    // Hour-based window for display/fetch tuning (12,18,24,48,72); default 12h
+    const [hourWindow, setHourWindow] = useState(12);
     const [liveMode, setLiveMode] = useState(false);
     // Station currently expanded in overlay (double-click)
     const [expandedStationId, setExpandedStationId] = useState(null);
@@ -657,19 +657,17 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                         <Form.Label htmlFor="hour-window-select" className="mb-0 me-2" style={{fontSize:'0.875rem'}}>Data Filter</Form.Label>
                         <Form.Select
                             id="hour-window-select"
-                            value={hourWindow ?? ''}
+                            value={hourWindow}
                             onChange={e => {
-                                const next = e.target.value ? Number(e.target.value) : null;
+                                const next = Number(e.target.value);
                                 setHourWindow(next);
                             }}
                             size="sm"
                             style={{width:130,height:30,fontSize:'0.75rem'}}
                             title="Select hour window"
                         >
-                            <option value="1">1 Hour</option>
-                            <option value="2">2 Hours</option>
-                            <option value="6">6 Hours</option>
                             <option value="12">12 Hours</option>
+                            <option value="18">18 Hours</option>
                             <option value="24">24 Hours</option>
                             <option value="48">48 Hours</option>
                             <option value="72">72 Hours</option>
