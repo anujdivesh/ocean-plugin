@@ -181,13 +181,14 @@ const WAVE_FORECAST_LAYERS = [
   },
   {
     label: "Inundation Depth",
-    value: "niue_inundation_placeholder",
-    wmsUrl: "",
-    dataset: "",
-    style: "",
-    colorscalerange: "",
-    isPlaceholder: true,
-    placeholderMessage: "Inundation modeling is not currently available for Niue. Contact the data team for more information."
+    value: "inundation",
+    wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/NIU/InundationNiue_latest.nc",
+    dataset: "niue_inundation",
+    style: "default-scalar/seq-Blues",
+    colorscalerange: "0,3",
+    numcolorbands: 50,
+    belowmincolor: "transparent",
+    abovemaxcolor: "extend",
   }
 ];
 

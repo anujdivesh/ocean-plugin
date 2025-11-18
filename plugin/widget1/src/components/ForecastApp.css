@@ -1290,7 +1290,8 @@
 }
 
 .data-info strong {
-  color: #90e0ef;
+  color: #00d4ff;
+  font-weight: 700;
 }
 
 .status-bar {

@@ -598,7 +598,7 @@ const ForecastApp = ({
                           const position = (index / (legendConfig.ticks.length - 1)) * 100;
                           return (
                             <div 
-                              key={`tick-${tick}`} 
+                              key={`legend-tick-${index}-${tick}`} 
                               className="marine-legend-tick"
                               style={{
                                 top: `${position}%`,

@@ -139,8 +139,8 @@ export const useMapRendering = ({
         {
           ...commonOptions,
           colorscalerange: layerConfig.colorscalerange || "",
-          abovemaxcolor: isWaveDirectionLayer ? "transparent" : "extend",
-          belowmincolor: "transparent",
+          abovemaxcolor: layerConfig.abovemaxcolor || (isWaveDirectionLayer ? "transparent" : "extend"),
+          belowmincolor: layerConfig.belowmincolor || "transparent",
           numcolorbands: layerConfig.numcolorbands || "250",
           // Use layer-specific opacity if defined, otherwise use global opacity
           opacity: layerConfig.opacity || wmsOpacity,
