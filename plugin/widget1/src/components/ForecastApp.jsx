@@ -228,8 +228,19 @@ const ForecastApp = ({
     if (varLower.includes('inun')) {
       // TRULY DYNAMIC DATA RANGE - Updates with actual inundation data
       if (!colorRange) {
-        console.warn('No color range data available for inundation layer');
-        return null; // No fallback - must have actual data
+        console.warn('No color range data available for inundation layer, using default');
+        // Use default range to allow rendering while data loads
+        const minVal = -0.05;
+        const maxVal = 3.0;
+        const ticks = [minVal, 0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal].map(v => Number(v.toFixed(2)));
+        
+        return {
+          gradient: 'linear-gradient(to top, rgb(247, 251, 255), rgb(222, 235, 247), rgb(198, 219, 239), rgb(158, 202, 225), rgb(107, 174, 214), rgb(66, 146, 198), rgb(33, 113, 181), rgb(8, 81, 156), rgb(8, 48, 107))',
+          min: minVal,
+          max: maxVal,
+          units: 'm',
+          ticks: ticks.slice(0, 5)
+        };
       }
       const minVal = colorRange.min;
       const maxVal = colorRange.max;
@@ -426,11 +437,8 @@ const ForecastApp = ({
     if (variable.includes('inun') || variable.includes('flood')) {
       // Parse actual WMS data range for dynamic metadata
       const colorRange = parseColorRange(selectedLegendLayer.colorscalerange);
-      if (!colorRange) {
-        console.warn('No color range data for inundation - using default');
-        return [];
-      }
-      return generateInundationMetadata(colorRange.max);
+      const maxVal = colorRange?.max ?? 3.0; // Default to 3m if no data available
+      return generateInundationMetadata(maxVal);
     }
 
     if (variable.includes('dirm') || variable.includes('direction')) {

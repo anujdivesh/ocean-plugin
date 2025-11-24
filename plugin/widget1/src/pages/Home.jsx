@@ -187,7 +187,7 @@ const WAVE_FORECAST_LAYERS = [
     wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/NIU/InundationNiue_latest.nc",
     dataset: "niue_inundation",
     style: "default-scalar/seq-Blues",
-    colorscalerange: "", // Will be fetched dynamically from WMS GetCapabilities
+    colorscalerange: "-0.05,3", // Default range, will be updated dynamically from actual data
     numcolorbands: 50,
     belowmincolor: "transparent",
     abovemaxcolor: "extend",
