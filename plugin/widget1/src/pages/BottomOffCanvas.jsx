@@ -266,7 +266,13 @@ function BottomOffCanvas({ show, onHide, data }) {
           ×
         </button>
       </div>
-      <Offcanvas.Body style={{ paddingTop: 16 }}>
+      <Offcanvas.Body style={{ 
+        paddingTop: 16,
+        height: `${height - 60}px`,
+        maxHeight: `${height - 60}px`,
+        overflow: 'auto',
+        position: 'relative'
+      }}>
         {loading
           ? <div style={{ textAlign: "center", padding: "2rem" }}>Loading data...</div>
           : fetchError

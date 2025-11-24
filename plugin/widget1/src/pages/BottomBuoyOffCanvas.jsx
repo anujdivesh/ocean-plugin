@@ -1056,7 +1056,6 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
             {hasLoadedData.buoy && hasLoadedData.model && (
               (() => {
                 // Check if all traces are empty
-                const modelTimes = modelData?.domain?.axes?.t?.values || [];
                 // eslint-disable-next-line no-unused-vars
                 const hasModel = modelData?.ranges?.hs_p1?.values?.length > 0;
                 const hasBuoy = data?.waves?.length > 0;

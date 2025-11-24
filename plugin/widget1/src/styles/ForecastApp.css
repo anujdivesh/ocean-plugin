@@ -163,36 +163,37 @@
 }
 
 .marine-legend-value {
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--legend-text);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-  background: rgba(12, 74, 110, 0.4);
-  padding: 2px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  background: rgba(12, 74, 110, 0.7);
+  padding: 3px 6px;
   border-radius: 3px;
   white-space: nowrap;
 }
 
 .marine-legend-tick {
   position: absolute;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 600;
-  color: var(--legend-text);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-  background: rgba(12, 74, 110, 0.3);
-  padding: 1px 3px;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  background: rgba(12, 74, 110, 0.6);
+  padding: 2px 4px;
   border-radius: 2px;
   white-space: nowrap;
   text-align: right;
 }
 
 .marine-legend-units {
-  font-size: 8px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 9px;
+  font-weight: 600;
+  color: #ffffff;
   text-align: center;
   letter-spacing: 0.3px;
   margin-top: 4px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 /* ==============================================
@@ -201,10 +202,10 @@
 
 .control-group {
   margin-bottom: 2rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(12, 74, 110, 0.25);
   border-radius: 12px;
   padding: 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(8px);
 }
 
@@ -234,11 +235,11 @@
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(12, 74, 110, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.25);
   border-radius: 10px;
-  color: white;
-  font-weight: 500;
+  color: #ffffff;
+  font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -262,19 +263,19 @@
 }
 
 .var-btn.placeholder {
-  background: linear-gradient(135deg, rgba(120, 120, 120, 0.15) 0%, rgba(80, 80, 80, 0.15) 100%);
-  border-color: rgba(120, 120, 120, 0.3);
-  color: rgba(255, 255, 255, 0.6);
+  background: linear-gradient(135deg, rgba(120, 120, 120, 0.3) 0%, rgba(80, 80, 80, 0.3) 100%);
+  border-color: rgba(120, 120, 120, 0.4);
+  color: rgba(255, 255, 255, 0.85);
   cursor: help;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .var-btn.placeholder:hover {
-  background: linear-gradient(135deg, rgba(120, 120, 120, 0.25) 0%, rgba(80, 80, 80, 0.25) 100%);
-  border-color: rgba(120, 120, 120, 0.5);
-  color: rgba(255, 255, 255, 0.8);
+  background: linear-gradient(135deg, rgba(120, 120, 120, 0.4) 0%, rgba(80, 80, 80, 0.4) 100%);
+  border-color: rgba(120, 120, 120, 0.6);
+  color: rgba(255, 255, 255, 0.95);
   transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(120, 120, 120, 0.2);
+  box-shadow: 0 4px 15px rgba(120, 120, 120, 0.3);
 }
 
 /* Time Control */

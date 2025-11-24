@@ -66,9 +66,10 @@ const ModernHeader = () => {
           </h1>
           <p style={{
             margin: 0,
-            color: 'rgba(255,255,255,0.8)',
+            color: '#ffffff',
             fontSize: '0.9rem',
-            fontWeight: '300'
+            fontWeight: '400',
+            textShadow: '0 1px 2px rgba(0,0,0,0.5)'
           }}>
             Marine Forecasting • Pacific Community (SPC) Data
           </p>
@@ -91,10 +92,10 @@ const ModernHeader = () => {
             boxShadow: '0 0 6px rgba(16, 185, 129, 0.6)',
             animation: 'pulse 2s infinite'
           }}></div>
-          <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>Live</span>
+          <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.95)', fontWeight: '600' }}>Live</span>
           <span style={{ 
             fontSize: '0.8rem', 
-            color: 'rgba(255,255,255,0.5)',
+            color: 'rgba(255,255,255,0.85)',
             marginLeft: '10px'
           }}>
             {formatDateTime(currentTime)}

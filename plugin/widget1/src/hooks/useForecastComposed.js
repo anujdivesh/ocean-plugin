@@ -4,6 +4,7 @@ import { useUIState } from './useUIState';
 import { useLayerManagement } from './useLayerManagement';
 import { useMapRendering } from './useMapRendering';
 import { useLegendManagement } from './useLegendManagement';
+import { useMapInteraction } from './useMapInteraction';
 
 /**
  * Main forecast hook that composes specialized hooks
@@ -75,6 +76,15 @@ export const useForecast = (config) => {
     selectedWaveForecast,
     dynamicLayers,
     staticLayers: STATIC_LAYERS
+  });
+
+  // 7. Map Interaction (click handling, feature info)
+  useMapInteraction({
+    mapInstance,
+    currentSliderDate,
+    setBottomCanvasData,
+    setShowBottomCanvas,
+    debugMode: false
   });
 
   // Return the composed API (same interface as before)

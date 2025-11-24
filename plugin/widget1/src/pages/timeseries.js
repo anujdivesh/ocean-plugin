@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Plot from 'react-plotly.js';
 
 const fixedColors = [
@@ -28,11 +28,11 @@ function extractCoverageTimeseries(json, variable) {
 
 function Timeseries({ perVariableData }) {
   const [plotData, setPlotData] = useState([]);
-  // eslint-disable-next-line no-unused-vars
-  const [labels, setLabels] = useState([]); // TODO: Use labels or remove
   const [error, setError] = useState("");
-  const [parentHeight, setParentHeight] = useState(undefined);
+  const [parentHeight, setParentHeight] = useState(400);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const containerRef = useRef(null);
+  const parentHeightRef = useRef(400); // Track current height without causing re-renders
 
   // Check for dark mode
   useEffect(() => {
@@ -51,32 +51,54 @@ function Timeseries({ perVariableData }) {
   }, []);
 
   useEffect(() => {
-    const el = document.querySelector('.offcanvas-body');
-    if (el) {
-      setParentHeight(el.clientHeight - 36);
-    }
+    // Use container ref instead of searching DOM
+    const updateHeight = () => {
+      const el = containerRef.current?.parentElement;
+      if (el) {
+        const height = el.clientHeight - 36;
+        // Only update if height is valid and significantly different
+        // Use ref to avoid stale closure and dependency array issues
+        if (height > 0 && isFinite(height) && Math.abs(height - parentHeightRef.current) > 5) {
+          parentHeightRef.current = height;
+          setParentHeight(height);
+        }
+      }
+    };
+    
+    // Initial measurement
+    updateHeight();
+    
+    let resizeTimeout;
+    const el = containerRef.current?.parentElement;
     const observer = el
-      ? new ResizeObserver(() => setParentHeight(el.clientHeight - 36))
+      ? new ResizeObserver(() => {
+          // Debounce resize updates to prevent loop
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(updateHeight, 150);
+        })
       : null;
     if (observer && el) observer.observe(el);
-    return () => observer && observer.disconnect();
-  }, [perVariableData]);
+    return () => {
+      clearTimeout(resizeTimeout);
+      observer && observer.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency - only set up once to avoid resize loop
 
   useEffect(() => {
     let isMounted = true;
     if (!perVariableData) {
       setPlotData([]);
-      setLabels([]);
       setError("No timeseries data available.");
       return;
     }
 
+    // Same variables as Widget 5
     const layers = [
       { key: "hs", label: "Significant Wave Height", colorIdx: 0, yaxis: 'y1', type: 'scatter', mode: 'lines+markers' },
       { key: "tpeak", label: "Peak Wave Period", colorIdx: 1, yaxis: 'y2', type: 'scatter', mode: 'lines+markers' },
       { key: "dirp", label: "Mean Wave Direction", colorIdx: 2, yaxis: 'y3', type: 'scatter', mode: 'markers' },
     ];
-    let newLabels = [];
     const traces = [];
     for (let idx = 0; idx < layers.length; idx++) {
       const { key, label, colorIdx, yaxis, type, mode } = layers[idx];
@@ -84,25 +106,34 @@ function Timeseries({ perVariableData }) {
       const tsJson = perVariableData[key];
       const ts = extractCoverageTimeseries(tsJson, key);
       if (ts && ts.times && ts.values) {
-        if (newLabels.length === 0) {
-          newLabels = ts.times.map(v =>
+        // Filter out invalid values (null, undefined, NaN, Infinity)
+        const validIndices = ts.values
+          .map((v, i) => (v != null && isFinite(v) ? i : -1))
+          .filter(i => i !== -1);
+        
+        if (validIndices.length > 0) {
+          const filteredTimes = validIndices.map(i => ts.times[i]);
+          const filteredValues = validIndices.map(i => ts.values[i]);
+          
+          // Format times for this specific trace
+          const formattedLabels = filteredTimes.map(v =>
             typeof v === "string" && v.length > 15 ? v.substring(0, 16).replace("T", " ") : v
           );
+          
+          traces.push({
+            x: formattedLabels,
+            y: filteredValues,
+            name: label,
+            type,
+            mode,
+            marker: { color },
+            line: { color },
+            yaxis,
+          });
         }
-        traces.push({
-          x: newLabels,
-          y: ts.values,
-          name: label,
-          type,
-          mode,
-          marker: { color },
-          line: { color },
-          yaxis,
-        });
       }
     }
     if (!isMounted) return;
-    setLabels(newLabels);
     setPlotData(traces);
     if (traces.length === 0) setError("No timeseries data returned.");
     else setError("");
@@ -115,9 +146,14 @@ function Timeseries({ perVariableData }) {
   if (error) return <div style={{ color: "red" }}>{error}</div>;
   if (plotData.length === 0) return <div>No timeseries data.</div>;
 
+  // Ensure valid height to prevent Infinity errors in Plotly
+  const validHeight = parentHeight && isFinite(parentHeight) && parentHeight > 0 
+    ? parentHeight 
+    : 400;
+
   const layout = {
     autosize: true,
-    height: parentHeight || 400,
+    height: validHeight,
     margin: { t: 40, l: 60, r: 60, b: 60 },
     paper_bgcolor: isDarkMode ? '#2e2f33' : '#ffffff',
     plot_bgcolor: isDarkMode ? '#2e2f33' : '#ffffff',
@@ -153,28 +189,29 @@ function Timeseries({ perVariableData }) {
       title: { 
         text: 'Period (s)', 
         font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        standoff: 30,
-        x: 1.15
+        standoff: 15
       },
       overlaying: 'y',
       side: 'right',
       showgrid: false,
       tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
+      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0',
+      anchor: 'free',
+      position: 0.95
     },
     yaxis3: {
       title: { 
         text: 'Direction (°)', 
         font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        standoff: 10,
-        x: 1.25
+        standoff: 15
       },
       overlaying: 'y',
       side: 'right',
-      position: 1,
       showgrid: false,
       tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
+      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0',
+      anchor: 'free',
+      position: 1.0
     },
     showlegend: true,
   };
@@ -187,11 +224,19 @@ function Timeseries({ perVariableData }) {
   });
 
   return (
-    <div style={{ width: "100%", height: parentHeight ? `${parentHeight}px` : "100%" }}>
+    <div 
+      ref={containerRef}
+      style={{ 
+        width: "100%", 
+        height: validHeight,
+        overflow: 'hidden',
+        position: 'relative'
+      }}
+    >
       <Plot
         data={plotData}
         layout={layout}
-        useResizeHandler={true}
+        useResizeHandler={false}
         style={{ width: '100%', height: '100%' }}
         config={{ responsive: true }}
       />

@@ -14,7 +14,11 @@
 .bottom-offcanvas .offcanvas-body {
   flex: none !important;
   flex-grow: 0 !important;
+  flex-shrink: 0 !important;
   overflow-y: auto;
+  overflow-x: hidden;
+  /* Prevent content from affecting parent size */
+  contain: size layout style;
 }
 
 /* Ensure drag handle is clearly visible and interactive */
