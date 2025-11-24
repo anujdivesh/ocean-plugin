@@ -61,7 +61,9 @@ const extractDataRange = async (wmsUrl, dataset, variable) => {
       'tpeak': { min: 3.0, max: 18.0 }, // Peak period typically 3-18s
       'niue_forecast/tpeak': { min: 3.0, max: 18.0 },
       'hs': { min: 0.5, max: 6.0 },     // Wave height 0.5-6m
-      'niue_forecast/hs': { min: 0.5, max: 6.0 }
+      'niue_forecast/hs': { min: 0.5, max: 6.0 },
+      'niue_inundation': { min: -0.05, max: 3.0 }, // Inundation depth (dynamically updated from actual data)
+      'inundation': { min: -0.05, max: 3.0 }
     };
     
     return estimatedRanges[variable] || null;
@@ -185,7 +187,7 @@ const WAVE_FORECAST_LAYERS = [
     wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/NIU/InundationNiue_latest.nc",
     dataset: "niue_inundation",
     style: "default-scalar/seq-Blues",
-    colorscalerange: "0,3",
+    colorscalerange: "", // Will be fetched dynamically from WMS GetCapabilities
     numcolorbands: 50,
     belowmincolor: "transparent",
     abovemaxcolor: "extend",

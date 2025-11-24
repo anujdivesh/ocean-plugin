@@ -82,14 +82,51 @@ const PEAK_PERIOD_METADATA = [
   { min: 13, max: 14, label: 'Extended Peak', value: '13–14 s', description: 'Extended long-period peaks', color: '#F0F921' }
 ];
 
-const INUNDATION_METADATA = [
-  { min: -0.05, max: 0, label: 'Dry Ground', value: '≤ 0.0 m', description: 'No surface water present', color: '#f7fbff' },
-  { min: 0, max: 0.15, label: 'Minor Ponding', value: '0–0.15 m', description: 'Shallow nuisance water on low-lying surfaces', color: '#deebf7' },
-  { min: 0.15, max: 0.4, label: 'Shallow Flooding', value: '0.15–0.40 m', description: 'Curb-deep flooding across roads and properties', color: '#c6dbef' },
-  { min: 0.4, max: 0.8, label: 'Significant Flooding', value: '0.40–0.80 m', description: 'Knee-to-waist depth inundation impacting structures', color: '#6baed6' },
-  { min: 0.8, max: 1.2, label: 'Deep Flooding', value: '0.80–1.20 m', description: 'Substantial inundation with unsafe currents', color: '#3182bd' },
-  { min: 1.2, max: 1.6, label: 'Extreme Flooding', value: '≥ 1.20 m', description: 'Life-threatening inundation requiring evacuation', color: '#08519c' }
-];
+// Dynamic inundation metadata generator - adapts to actual data range
+const generateInundationMetadata = (maxValue) => {
+  const categories = [
+    { threshold: 0, label: 'Dry Ground', description: 'No surface water present', color: '#f7fbff' },
+    { threshold: 0.15, label: 'Minor Ponding', description: 'Shallow nuisance water on low-lying surfaces', color: '#deebf7' },
+    { threshold: 0.4, label: 'Shallow Flooding', description: 'Curb-deep flooding across roads and properties', color: '#c6dbef' },
+    { threshold: 0.8, label: 'Significant Flooding', description: 'Knee-to-waist depth inundation impacting structures', color: '#6baed6' },
+    { threshold: 1.2, label: 'Deep Flooding', description: 'Substantial inundation with unsafe currents', color: '#3182bd' },
+    { threshold: 1.6, label: 'Extreme Flooding', description: 'Life-threatening inundation requiring evacuation', color: '#08519c' }
+  ];
+  
+  const metadata = [];
+  let prevThreshold = -0.05; // Start from dry ground
+  
+  for (let i = 0; i < categories.length; i++) {
+    const cat = categories[i];
+    const nextThreshold = i < categories.length - 1 ? categories[i + 1].threshold : maxValue;
+    
+    // Only add category if it's within the data range
+    if (prevThreshold < maxValue) {
+      const max = Math.min(nextThreshold, maxValue);
+      const valueStr = i === 0 
+        ? `≤ ${cat.threshold.toFixed(2)} m`
+        : max >= maxValue && i === categories.length - 1
+        ? `≥ ${cat.threshold.toFixed(2)} m`
+        : `${cat.threshold.toFixed(2)}–${max.toFixed(2)} m`;
+      
+      metadata.push({
+        min: prevThreshold,
+        max: max,
+        label: cat.label,
+        value: valueStr,
+        description: cat.description,
+        color: cat.color
+      });
+      
+      prevThreshold = nextThreshold;
+      
+      // Stop if we've reached the max value
+      if (max >= maxValue) break;
+    }
+  }
+  
+  return metadata;
+};
 
 const DIRECTION_METADATA = [
   { value: 'N (↑)', label: 'North', description: 'Flowing toward the north', color: 'rgba(255, 255, 255, 0.3)' },
@@ -189,9 +226,13 @@ const ForecastApp = ({
     }
     
     if (varLower.includes('inun')) {
-      // DYNAMIC DATA RANGE - Updates with actual inundation data
-      const minVal = colorRange?.min ?? -0.05;
-      const maxVal = colorRange?.max ?? 1.63;
+      // TRULY DYNAMIC DATA RANGE - Updates with actual inundation data
+      if (!colorRange) {
+        console.warn('No color range data available for inundation layer');
+        return null; // No fallback - must have actual data
+      }
+      const minVal = colorRange.min;
+      const maxVal = colorRange.max;
       const ticks = [minVal, 0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal].map(v => Number(v.toFixed(2)));
       
       return {
@@ -383,7 +424,13 @@ const ForecastApp = ({
     }
 
     if (variable.includes('inun') || variable.includes('flood')) {
-      return INUNDATION_METADATA.map(range => ({ ...range }));
+      // Parse actual WMS data range for dynamic metadata
+      const colorRange = parseColorRange(selectedLegendLayer.colorscalerange);
+      if (!colorRange) {
+        console.warn('No color range data for inundation - using default');
+        return [];
+      }
+      return generateInundationMetadata(colorRange.max);
     }
 
     if (variable.includes('dirm') || variable.includes('direction')) {
