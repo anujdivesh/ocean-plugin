@@ -24,7 +24,7 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
     const isLoadingChartsRef = useRef(false);
     // Hour-based window for display/fetch tuning (12,18,24,48,72); default 12h
     const [hourWindow, setHourWindow] = useState(12);
-    const [liveMode, setLiveMode] = useState(false);
+    const [liveMode, setLiveMode] = useState(true);
     // Station currently expanded in overlay (double-click)
     const [expandedStationId, setExpandedStationId] = useState(null);
     const appliedInitialLiveModeRef = useRef(false);
@@ -32,7 +32,7 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
     // themeKey increments when body class (light/dark) changes so charts fully re-render with new colors
     const [themeKey, setThemeKey] = useState(0);
     const refreshIntervalRef = useRef(null);
-    const REFRESH_INTERVAL = 1800000;
+    const REFRESH_INTERVAL = 300000;
     const controlsRef = useRef(null);
     // Keep last known sampling interval per station without triggering renders
     const sampleMinutesRef = useRef({});
