@@ -20,6 +20,46 @@ import '../styles/fancyIcons.css';
 
 const EPSILON = 1e-6;
 
+// Rarotonga bounds for zoom when selecting inundation layer (outside component for performance)
+const RAROTONGA_BOUNDS = {
+  southWest: [-21.28, -159.85],
+  northEast: [-21.17, -159.70]
+};
+
+/**
+ * Generate sequential Blues colors (matching inundation layer)
+ * Color stops: #f7fbff -> #deebf7 -> #c6dbef -> #9ecae1 -> #6baed6 -> #4292c6 -> #2171b5 -> #08519c -> #08306b
+ */
+const generateBluesColor = (value, min, max) => {
+  const normalized = Math.max(0, Math.min(1, (value - min) / (max - min)));
+  // Sequential Blues color interpolation (matches seq-Blues palette on WMS server)
+  if (normalized <= 0.125) {
+    const t = normalized / 0.125;
+    return `rgb(${Math.round(247 + (222-247)*t)}, ${Math.round(251 + (235-251)*t)}, ${Math.round(255 + (247-255)*t)})`;
+  } else if (normalized <= 0.25) {
+    const t = (normalized - 0.125) / 0.125;
+    return `rgb(${Math.round(222 + (198-222)*t)}, ${Math.round(235 + (219-235)*t)}, ${Math.round(247 + (239-247)*t)})`;
+  } else if (normalized <= 0.375) {
+    const t = (normalized - 0.25) / 0.125;
+    return `rgb(${Math.round(198 + (158-198)*t)}, ${Math.round(219 + (202-219)*t)}, ${Math.round(239 + (225-239)*t)})`;
+  } else if (normalized <= 0.5) {
+    const t = (normalized - 0.375) / 0.125;
+    return `rgb(${Math.round(158 + (107-158)*t)}, ${Math.round(202 + (174-202)*t)}, ${Math.round(225 + (214-225)*t)})`;
+  } else if (normalized <= 0.625) {
+    const t = (normalized - 0.5) / 0.125;
+    return `rgb(${Math.round(107 + (66-107)*t)}, ${Math.round(174 + (146-174)*t)}, ${Math.round(214 + (198-214)*t)})`;
+  } else if (normalized <= 0.75) {
+    const t = (normalized - 0.625) / 0.125;
+    return `rgb(${Math.round(66 + (33-66)*t)}, ${Math.round(146 + (113-146)*t)}, ${Math.round(198 + (181-198)*t)})`;
+  } else if (normalized <= 0.875) {
+    const t = (normalized - 0.75) / 0.125;
+    return `rgb(${Math.round(33 + (8-33)*t)}, ${Math.round(113 + (81-113)*t)}, ${Math.round(181 + (156-181)*t)})`;
+  } else {
+    const t = (normalized - 0.875) / 0.125;
+    return `rgb(${Math.round(8 + (8-8)*t)}, ${Math.round(81 + (48-81)*t)}, ${Math.round(156 + (107-156)*t)})`;
+  }
+};
+
 /**
  * Determines the appropriate icon for a layer based on its properties
  * Matches the icons used in the variable buttons for consistency
@@ -299,39 +339,8 @@ const ForecastApp = ({
         ? selectedLegendLayer.activeBeaufortMax
         : dataMax;
       
-      // UPDATED: Generate sequential Blues colors (matching inundation layer)
-      const generateBluesColor = (value, min, max) => {
-        const normalized = Math.max(0, Math.min(1, (value - min) / (max - min)));
-        // Sequential Blues color interpolation (matches seq-Blues palette on WMS server)
-        // Color stops: #f7fbff -> #deebf7 -> #c6dbef -> #9ecae1 -> #6baed6 -> #4292c6 -> #2171b5 -> #08519c -> #08306b
-        if (normalized <= 0.125) {
-          const t = normalized / 0.125;
-          return `rgb(${Math.round(247 + (222-247)*t)}, ${Math.round(251 + (235-251)*t)}, ${Math.round(255 + (247-255)*t)})`;
-        } else if (normalized <= 0.25) {
-          const t = (normalized - 0.125) / 0.125;
-          return `rgb(${Math.round(222 + (198-222)*t)}, ${Math.round(235 + (219-235)*t)}, ${Math.round(247 + (239-247)*t)})`;
-        } else if (normalized <= 0.375) {
-          const t = (normalized - 0.25) / 0.125;
-          return `rgb(${Math.round(198 + (158-198)*t)}, ${Math.round(219 + (202-219)*t)}, ${Math.round(239 + (225-239)*t)})`;
-        } else if (normalized <= 0.5) {
-          const t = (normalized - 0.375) / 0.125;
-          return `rgb(${Math.round(158 + (107-158)*t)}, ${Math.round(202 + (174-202)*t)}, ${Math.round(225 + (214-225)*t)})`;
-        } else if (normalized <= 0.625) {
-          const t = (normalized - 0.5) / 0.125;
-          return `rgb(${Math.round(107 + (66-107)*t)}, ${Math.round(174 + (146-174)*t)}, ${Math.round(214 + (198-214)*t)})`;
-        } else if (normalized <= 0.75) {
-          const t = (normalized - 0.625) / 0.125;
-          return `rgb(${Math.round(66 + (33-66)*t)}, ${Math.round(146 + (113-146)*t)}, ${Math.round(198 + (181-198)*t)})`;
-        } else if (normalized <= 0.875) {
-          const t = (normalized - 0.75) / 0.125;
-          return `rgb(${Math.round(33 + (8-33)*t)}, ${Math.round(113 + (81-113)*t)}, ${Math.round(181 + (156-181)*t)})`;
-        } else {
-          const t = (normalized - 0.875) / 0.125;
-          return `rgb(${Math.round(8 + (8-8)*t)}, ${Math.round(81 + (48-81)*t)}, ${Math.round(156 + (107-156)*t)})`;
-        }
-      };
-      
       // Create appropriate number of color stops based on data range
+      // Uses generateBluesColor from top-level scope
       const numStops = Math.max(2, Math.min(5, Math.ceil(effectiveMax * 2))); // Adaptive number of stops
       const colorStops = [];
       
@@ -539,12 +548,6 @@ const ForecastApp = ({
 
   // Effect to handle initial composite layer selection.
 
-
-  // Rarotonga bounds for zoom when selecting inundation layer
-  const RAROTONGA_BOUNDS = {
-    southWest: [-21.28, -159.85],
-    northEast: [-21.17, -159.70]
-  };
 
   const handleVariableChange = (layerValue) => {
     setSelectedWaveForecast(layerValue);

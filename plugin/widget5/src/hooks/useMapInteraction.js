@@ -17,6 +17,36 @@ import MapMarkerService from '../services/MapMarkerService';
 // Zoom threshold for showing popup instead of bottom canvas
 const INUNDATION_POPUP_ZOOM_THRESHOLD = 12;
 
+/**
+ * Create popup content for inundation layer
+ * @param {string} value - The inundation depth value
+ * @returns {string} HTML content for the popup
+ */
+const createInundationPopupContent = (value) => {
+  const hasValidValue = value !== 'No Data' && value !== 'Loading...' && value !== 'Error fetching data';
+  const unit = hasValidValue ? ' m' : '';
+  
+  return `
+    <div class="inundation-popup">
+      <div class="inundation-popup-title">Inundation Depth</div>
+      <div class="inundation-popup-value">${value}${unit}</div>
+    </div>
+  `;
+};
+
+/**
+ * Create error popup content for inundation layer
+ * @returns {string} HTML content for the error popup
+ */
+const createInundationErrorPopupContent = () => {
+  return `
+    <div class="inundation-popup">
+      <div class="inundation-popup-title">Inundation Depth</div>
+      <div class="inundation-popup-value inundation-popup-error">Error loading data</div>
+    </div>
+  `;
+};
+
 export const useMapInteraction = ({
   mapInstance,
   currentSliderDate,
@@ -82,17 +112,9 @@ export const useMapInteraction = ({
         const value = result.data?.featureInfo || result.featureInfo || 'No Data';
         const latlng = clickEvent.latlng;
         
-        // Create a popup with the inundation value
-        const popupContent = `
-          <div style="padding: 8px; min-width: 120px;">
-            <strong style="color: #2196f3;">Inundation Depth</strong><br/>
-            <span style="font-size: 1.2em; font-weight: bold;">${value}${value !== 'No Data' && value !== 'Loading...' && value !== 'Error fetching data' ? ' m' : ''}</span>
-          </div>
-        `;
-        
         L.popup()
           .setLatLng(latlng)
-          .setContent(popupContent)
+          .setContent(createInundationPopupContent(value))
           .openOn(map);
         
         console.log('🌊 Showing inundation popup:', value, 'at zoom:', currentZoom);
@@ -117,7 +139,7 @@ export const useMapInteraction = ({
       if (shouldShowPopup) {
         L.popup()
           .setLatLng(clickEvent.latlng)
-          .setContent('<div style="padding: 8px;"><strong>Inundation Depth</strong><br/>Error loading data</div>')
+          .setContent(createInundationErrorPopupContent())
           .openOn(map);
         return;
       }

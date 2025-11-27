@@ -1986,3 +1986,49 @@
   color: #70d8ff;
   margin-left: 1rem;
 }
+
+/* ============================================
+   Inundation Popup Styles
+   ============================================ */
+
+.inundation-popup {
+  padding: 10px 14px;
+  min-width: 140px;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.inundation-popup-title {
+  color: #2196f3;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.inundation-popup-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.inundation-popup-error {
+  color: #e74c3c;
+  font-size: 0.9rem;
+}
+
+/* Dark mode support */
+.dark-mode .inundation-popup-value {
+  color: #f1f5f9;
+}
+
+/* Leaflet popup overrides for inundation */
+.leaflet-popup-content-wrapper {
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.leaflet-popup-content {
+  margin: 0;
+}
+
