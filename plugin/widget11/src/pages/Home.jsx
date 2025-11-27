@@ -11,6 +11,8 @@ import LegendCleanup from "../components/LegendCleanup";
 import TuvaluConfig from "../config/TuvaluConfig";
 import IslandSelector from "../components/IslandSelector";
 import IslandComparisonDashboard from "../components/IslandComparisonDashboard";
+import InundationControl from "../components/InundationControl";
+import useInundationPoints from "../hooks/useInundationPoints";
 import logger from "../utils/logger";
 import IslandWaveStats from "../utils/IslandWaveStats";
 import vectorArrowOptimizer from "../services/VectorArrowOptimizer";
@@ -319,6 +321,12 @@ function TuvaluForecast() {
     minIndex,
   } = useForecast(tuvaluConfig);
 
+  // Initialize inundation points service in Home.jsx for inline layout
+  const inundationPoints = useInundationPoints(mapInstance, {
+    debugMode: true,
+    defaultVisible: false
+  });
+
   // Debug: Track state changes
   useEffect(() => {
     logger.debug('HOME', 'BottomCanvas state changed', {
@@ -327,8 +335,25 @@ function TuvaluForecast() {
     });
   }, [showBottomCanvas, bottomCanvasData]);
 
-  // Handle island selection
+  // Handle island selection - now handles both null (Tuvalu whole domain) and specific islands
   const handleIslandChange = (island) => {
+    if (!island) {
+      // Tuvalu whole domain selected - clear selected island to use national scale
+      logger.info('ISLAND', 'Tuvalu whole domain selected');
+      setSelectedIsland(null);
+      
+      // Zoom to whole Tuvalu bounds
+      const map = mapInstance?.current;
+      if (map && typeof map.fitBounds === 'function') {
+        try {
+          map.fitBounds(bounds);
+        } catch (error) {
+          logger.error('MAP', 'Failed to fit bounds for Tuvalu', { error });
+        }
+      }
+      return;
+    }
+    
     logger.island(island.name, 'Island selected');
     setSelectedIsland(island);
     
@@ -629,7 +654,7 @@ function TuvaluForecast() {
     <div style={widgetContainerStyle}>
       <ModernHeader />
       
-      {/* World-Class Multi-Island Controls */}
+      {/* World-Class Multi-Island Controls - Island Selector + Inundation Control Stacked */}
       <div style={{
         position: 'absolute',
         top: '80px',
@@ -639,7 +664,10 @@ function TuvaluForecast() {
         padding: '15px',
         borderRadius: '8px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-        maxWidth: '400px'
+        maxWidth: '400px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
       }}>
         <IslandSelector 
           onIslandChange={handleIslandChange}
@@ -647,6 +675,17 @@ function TuvaluForecast() {
           currentIsland={selectedIsland?.name}
           persistIslandSelection={persistIslandSelection}
           onPersistToggle={setPersistIslandSelection}
+        />
+        
+        {/* Inundation Control - Stacked inline below Island Selector */}
+        <InundationControl
+          loadPoints={inundationPoints.loadPoints}
+          isVisible={inundationPoints.isVisible}
+          onToggle={inundationPoints.toggleVisibility}
+          stats={inundationPoints.stats}
+          isLoading={inundationPoints.isLoading}
+          error={inundationPoints.error}
+          position="inline"
         />
       </div>
 

@@ -213,6 +213,15 @@
   left: 10px;
 }
 
+/* Inline position (stacked below Island Selector) */
+.inundation-control-inline {
+  position: relative;
+  top: auto;
+  right: auto;
+  left: auto;
+  bottom: auto;
+}
+
 /* Toggle button */
 .inundation-toggle {
   padding: 8px 12px;

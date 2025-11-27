@@ -249,8 +249,19 @@ class InundationPointsService {
     const inundationValue = point.max_inundation || point.inundation;
     const riskLevel = this.getRiskLevel(hazardLevel || inundationValue || 0);
     
-    // Determine location name
-    const locationName = point.station_name || point.location || point.name || `Point ${point.index || ''}`;
+    // Determine location name - avoid showing "Point" when no index/name available
+    // Extract atoll name from image URL if available (e.g., "Nanumaga" from "Nanumaga_t_3_forecast.png")
+    let locationName = point.station_name || point.location || point.name;
+    if (!locationName && point.primary_image_url) {
+      const match = point.primary_image_url.match(/\/([A-Za-z]+)_t_\d+_forecast\.png/);
+      if (match) {
+        locationName = match[1];
+      }
+    }
+    // Fallback to "Inundation Point" instead of "Point " + empty index
+    if (!locationName) {
+      locationName = 'Inundation Point';
+    }
     
     let content = `
       <div class="inundation-popup">
@@ -288,11 +299,12 @@ class InundationPointsService {
     }
     
     if (imageUrl) {
+      // Make image bigger for easier viewing (increased from 400px to 600px max-width)
       content += `
         <div style="margin-top: 12px;">
           <img src="${imageUrl}" 
                alt="Inundation Forecast" 
-               style="width: 100%; max-width: 400px; height: auto; border-radius: 4px; cursor: pointer;"
+               style="width: 100%; max-width: 600px; height: auto; border-radius: 4px; cursor: pointer;"
                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
           />
           <div style="display: none; padding: 10px; background: #ffebee; border-radius: 4px; color: #c62828;">
@@ -312,7 +324,17 @@ class InundationPointsService {
    */
   createMultiPointPopupContent(points) {
     const firstPoint = points[0];
-    const locationName = firstPoint.station_name || firstPoint.location || firstPoint.name || 'Location';
+    // Determine location name - extract from image URL if not available directly
+    let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name;
+    if (!locationName && firstPoint.primary_image_url) {
+      const match = firstPoint.primary_image_url.match(/\/([A-Za-z]+)_t_\d+_forecast\.png/);
+      if (match) {
+        locationName = match[1];
+      }
+    }
+    if (!locationName) {
+      locationName = 'Inundation Points';
+    }
     
     let content = `
       <div class="inundation-popup">
@@ -331,7 +353,7 @@ class InundationPointsService {
       content += `
         <div style="margin-bottom: 12px; padding: 10px; background: #f5f5f5; border-radius: 4px; border-left: 4px solid ${riskLevel.color};">
           <div style="margin-bottom: 6px;">
-            <strong>Point ${index + 1}:</strong> 
+            <strong>Forecast ${index + 1}:</strong> 
             <span style="color: ${riskLevel.color}; font-weight: bold;">${hazardLevel || riskLevel.label}</span>
           </div>
       `;
@@ -497,7 +519,17 @@ class InundationPointsService {
         
         // Create marker with the highest risk level
         const firstPoint = points[0];
-        const locationName = firstPoint.station_name || firstPoint.location || firstPoint.name || `Point ${firstPoint.index || ''}`;
+        // Extract location name from image URL if not available directly
+        let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name;
+        if (!locationName && firstPoint.primary_image_url) {
+          const match = firstPoint.primary_image_url.match(/\/([A-Za-z]+)_t_\d+_forecast\.png/);
+          if (match) {
+            locationName = match[1];
+          }
+        }
+        if (!locationName) {
+          locationName = 'Inundation Point';
+        }
         
         const marker = L.marker([lat, lng], {
           icon: this.createPointIcon(highestRiskLevel),
@@ -510,8 +542,9 @@ class InundationPointsService {
           ? this.createMultiPointPopupContent(points)
           : this.createPopupContent(firstPoint);
           
+        // Increased maxWidth to 650 to accommodate larger images
         marker.bindPopup(popupContent, {
-          maxWidth: 450,
+          maxWidth: 650,
           className: 'inundation-popup-container'
         });
         

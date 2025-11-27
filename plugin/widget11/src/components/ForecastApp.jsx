@@ -127,12 +127,14 @@ WAVE_FORECAST_LAYERS,
   setShowBottomCanvas,
   isUpdatingVisualization,
   currentSliderDateStr,
-  minIndex
+  minIndex,
+  // Inundation control is now passed from parent (inline with IslandSelector)
+  hideInundationControl = true
 }) => {
   const [metadataVisible, setMetadataVisible] = useState(false); // Metadata panel state
   const [detailedMetadataVisible, setDetailedMetadataVisible] = useState(false); // Detailed metadata state
   
-  // Initialize inundation points service
+  // Initialize inundation points service - only if not provided externally
   const inundationPoints = useInundationPoints(mapInstance, {
     debugMode: true,
     defaultVisible: false
@@ -592,16 +594,18 @@ WAVE_FORECAST_LAYERS,
             mapRotation={0} 
           />
           
-          {/* Inundation Points Control */}
-          <InundationControl
-            loadPoints={inundationPoints.loadPoints}
-            isVisible={inundationPoints.isVisible}
-            onToggle={inundationPoints.toggleVisibility}
-            stats={inundationPoints.stats}
-            isLoading={inundationPoints.isLoading}
-            error={inundationPoints.error}
-            position="topright"
-          />
+          {/* Inundation Points Control - only render if not hidden (moved to Home.jsx for inline layout) */}
+          {!hideInundationControl && (
+            <InundationControl
+              loadPoints={inundationPoints.loadPoints}
+              isVisible={inundationPoints.isVisible}
+              onToggle={inundationPoints.toggleVisibility}
+              stats={inundationPoints.stats}
+              isLoading={inundationPoints.isLoading}
+              error={inundationPoints.error}
+              position="topright"
+            />
+          )}
           
           {selectedLegendLayer && (
             <div className="marine-legend">

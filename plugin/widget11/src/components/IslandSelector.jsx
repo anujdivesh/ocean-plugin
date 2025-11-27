@@ -1,15 +1,26 @@
 /**
  * Island Selector Component
  * 
- * Provides island selection UI
+ * Provides island selection UI with "Tuvalu" whole domain option
  */
 
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Dropdown, Badge, Card } from 'react-bootstrap';
 import multiIslandManager from '../services/MultiIslandManager';
+import TuvaluConfig from '../config/TuvaluConfig';
 import logger from '../utils/logger';
 import './IslandSelector.css';
+
+// Special "Tuvalu" option for whole domain view
+const TUVALU_WHOLE_DOMAIN = {
+  name: 'Tuvalu',
+  lat: -8.0, // Center of Tuvalu
+  lon: 178.0,
+  dataset: 'tuvalu_forecast',
+  wmsUrl: TuvaluConfig.WMS_BASE_URL, // Tuvalu.nc for whole domain
+  isWholeDomain: true
+};
 
 const IslandSelector = ({
   onIslandChange,
@@ -25,18 +36,34 @@ const IslandSelector = ({
     setIslands(allIslands);
     
     if (currentIsland) {
-      const island = islandManager.getIslandByName(currentIsland);
-      setSelectedIsland(island);
+      if (currentIsland === 'Tuvalu') {
+        setSelectedIsland(TUVALU_WHOLE_DOMAIN);
+      } else {
+        const island = islandManager.getIslandByName(currentIsland);
+        setSelectedIsland(island);
+      }
     }
   }, [currentIsland, islandManager]);
 
   const handleIslandSelect = (island) => {
-    islandManager.setCurrentIsland(island.name);
+    if (!island.isWholeDomain) {
+      islandManager.setCurrentIsland(island.name);
+    }
     setSelectedIsland(island);
-    logger.island(island.name, 'Selected');
+    logger.island(island.name, island.isWholeDomain ? 'Selected whole domain' : 'Selected');
     
     if (onIslandChange) {
       onIslandChange(island);
+    }
+  };
+  
+  const handleTuvaluSelect = () => {
+    setSelectedIsland(TUVALU_WHOLE_DOMAIN);
+    logger.info('ISLAND', 'Tuvalu whole domain selected');
+    
+    if (onIslandChange) {
+      // Pass null or special marker to indicate whole domain view
+      onIslandChange(null); // null means show whole Tuvalu domain
     }
   };
 
@@ -59,15 +86,31 @@ const IslandSelector = ({
         <Dropdown.Toggle variant="primary" id="island-selector">
           🏝️ {selectedIsland ? selectedIsland.name : 'Select Island'}
           {selectedIsland?.isCapital && <Badge bg="warning" className="ms-2">Capital</Badge>}
+          {selectedIsland?.isWholeDomain && <Badge bg="info" className="ms-2">All Islands</Badge>}
         </Dropdown.Toggle>
 
         <Dropdown.Menu>
+          {/* Tuvalu whole domain option at the top */}
+          <Dropdown.Header>Tuvalu Domain</Dropdown.Header>
+          <Dropdown.Item
+            onClick={handleTuvaluSelect}
+            active={selectedIsland?.isWholeDomain === true}
+          >
+            <div className="d-flex justify-content-between align-items-center">
+              <span>
+                🌊 Tuvalu
+                <Badge bg="info" size="sm" className="ms-2">Whole Domain</Badge>
+              </span>
+            </div>
+          </Dropdown.Item>
+          
+          <Dropdown.Divider />
           <Dropdown.Header>Select Atoll</Dropdown.Header>
           {islands.map((island) => (
             <Dropdown.Item
               key={island.name}
               onClick={() => handleIslandSelect(island)}
-              active={selectedIsland?.name === island.name}
+              active={selectedIsland?.name === island.name && !selectedIsland?.isWholeDomain}
             >
               <div className="d-flex justify-content-between align-items-center">
                 <span>
@@ -105,11 +148,21 @@ const IslandSelector = ({
               <strong>{selectedIsland.name} Profile</strong>
             </Card.Header>
             <Card.Body>
-              <p><strong>Coordinates:</strong> {selectedIsland.lat.toFixed(4)}°S, {selectedIsland.lon.toFixed(4)}°E</p>
-              <p><strong>Region:</strong> {getRegionName(selectedIsland.lat)}</p>
-              <p><strong>Dataset:</strong> {selectedIsland.dataset}</p>
-              {selectedIsland.isCapital && (
-                <Badge bg="warning">Capital of Tuvalu</Badge>
+              {selectedIsland.isWholeDomain ? (
+                <>
+                  <p><strong>Coverage:</strong> All 9 Tuvalu Atolls</p>
+                  <p><strong>Dataset:</strong> Tuvalu.nc (Full Domain)</p>
+                  <Badge bg="info">National Scale View</Badge>
+                </>
+              ) : (
+                <>
+                  <p><strong>Coordinates:</strong> {selectedIsland.lat.toFixed(4)}°S, {selectedIsland.lon.toFixed(4)}°E</p>
+                  <p><strong>Region:</strong> {getRegionName(selectedIsland.lat)}</p>
+                  <p><strong>Dataset:</strong> {selectedIsland.dataset}</p>
+                  {selectedIsland.isCapital && (
+                    <Badge bg="warning">Capital of Tuvalu</Badge>
+                  )}
+                </>
               )}
             </Card.Body>
           </Card>
