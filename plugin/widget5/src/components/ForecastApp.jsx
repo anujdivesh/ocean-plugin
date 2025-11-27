@@ -142,6 +142,7 @@ const ForecastApp = ({
     
     if (varLower.includes('hs')) {
       // DYNAMIC DATA RANGE - Updates with actual wave height data
+      // UPDATED: Using sequential Blues gradient (similar to inundation)
       const minVal = colorRange?.min ?? 0;
       const maxVal = Number.isFinite(dynamicMax) ? dynamicMax : (colorRange?.max ?? 4);
       const tickCount = 5;
@@ -150,7 +151,8 @@ const ForecastApp = ({
       );
       
       return {
-        gradient: 'linear-gradient(to top, rgb(68, 1, 84), rgb(59, 82, 139), rgb(33, 145, 140), rgb(94, 201, 98), rgb(253, 231, 37))',
+        // Sequential Blues gradient matching inundation layer
+        gradient: 'linear-gradient(to top, rgb(247, 251, 255), rgb(222, 235, 247), rgb(198, 219, 239), rgb(158, 202, 225), rgb(107, 174, 214), rgb(66, 146, 198), rgb(33, 113, 181), rgb(8, 81, 156), rgb(8, 48, 107))',
         min: minVal,
         max: maxVal,
         units: 'm',
@@ -297,22 +299,35 @@ const ForecastApp = ({
         ? selectedLegendLayer.activeBeaufortMax
         : dataMax;
       
-      // Generate actual Viridis colors based on real data range
-      const generateViridisColor = (value, min, max) => {
+      // UPDATED: Generate sequential Blues colors (matching inundation layer)
+      const generateBluesColor = (value, min, max) => {
         const normalized = Math.max(0, Math.min(1, (value - min) / (max - min)));
-        // Viridis color interpolation (accurate to WMS server)
-        if (normalized <= 0.25) {
-          const t = normalized / 0.25;
-          return `rgb(${Math.round(68 + (59-68)*t)}, ${Math.round(1 + (82-1)*t)}, ${Math.round(84 + (139-84)*t)})`;
+        // Sequential Blues color interpolation (matches seq-Blues palette on WMS server)
+        // Color stops: #f7fbff -> #deebf7 -> #c6dbef -> #9ecae1 -> #6baed6 -> #4292c6 -> #2171b5 -> #08519c -> #08306b
+        if (normalized <= 0.125) {
+          const t = normalized / 0.125;
+          return `rgb(${Math.round(247 + (222-247)*t)}, ${Math.round(251 + (235-251)*t)}, ${Math.round(255 + (247-255)*t)})`;
+        } else if (normalized <= 0.25) {
+          const t = (normalized - 0.125) / 0.125;
+          return `rgb(${Math.round(222 + (198-222)*t)}, ${Math.round(235 + (219-235)*t)}, ${Math.round(247 + (239-247)*t)})`;
+        } else if (normalized <= 0.375) {
+          const t = (normalized - 0.25) / 0.125;
+          return `rgb(${Math.round(198 + (158-198)*t)}, ${Math.round(219 + (202-219)*t)}, ${Math.round(239 + (225-239)*t)})`;
         } else if (normalized <= 0.5) {
-          const t = (normalized - 0.25) / 0.25;
-          return `rgb(${Math.round(59 + (31-59)*t)}, ${Math.round(82 + (158-82)*t)}, ${Math.round(139 + (137-139)*t)})`;
+          const t = (normalized - 0.375) / 0.125;
+          return `rgb(${Math.round(158 + (107-158)*t)}, ${Math.round(202 + (174-202)*t)}, ${Math.round(225 + (214-225)*t)})`;
+        } else if (normalized <= 0.625) {
+          const t = (normalized - 0.5) / 0.125;
+          return `rgb(${Math.round(107 + (66-107)*t)}, ${Math.round(174 + (146-174)*t)}, ${Math.round(214 + (198-214)*t)})`;
         } else if (normalized <= 0.75) {
-          const t = (normalized - 0.5) / 0.25;
-          return `rgb(${Math.round(31 + (176-31)*t)}, ${Math.round(158 + (202-158)*t)}, ${Math.round(137 + (99-137)*t)})`;
+          const t = (normalized - 0.625) / 0.125;
+          return `rgb(${Math.round(66 + (33-66)*t)}, ${Math.round(146 + (113-146)*t)}, ${Math.round(198 + (181-198)*t)})`;
+        } else if (normalized <= 0.875) {
+          const t = (normalized - 0.75) / 0.125;
+          return `rgb(${Math.round(33 + (8-33)*t)}, ${Math.round(113 + (81-113)*t)}, ${Math.round(181 + (156-181)*t)})`;
         } else {
-          const t = (normalized - 0.75) / 0.25;
-          return `rgb(${Math.round(176 + (253-176)*t)}, ${Math.round(202 + (231-202)*t)}, ${Math.round(99 + (37-99)*t)})`;
+          const t = (normalized - 0.875) / 0.125;
+          return `rgb(${Math.round(8 + (8-8)*t)}, ${Math.round(81 + (48-81)*t)}, ${Math.round(156 + (107-156)*t)})`;
         }
       };
       
@@ -324,7 +339,7 @@ const ForecastApp = ({
         const value = dataMin + (effectiveMax - dataMin) * (i / (numStops - 1));
         colorStops.push({
           value: value,
-          color: generateViridisColor(value, dataMin, effectiveMax)
+          color: generateBluesColor(value, dataMin, effectiveMax)
         });
       }
 
@@ -525,9 +540,32 @@ const ForecastApp = ({
   // Effect to handle initial composite layer selection.
 
 
+  // Rarotonga bounds for zoom when selecting inundation layer
+  const RAROTONGA_BOUNDS = {
+    southWest: [-21.28, -159.85],
+    northEast: [-21.17, -159.70]
+  };
+
   const handleVariableChange = (layerValue) => {
     setSelectedWaveForecast(layerValue);
     setActiveLayers(prev => ({ ...prev, waveForecast: true }));
+    
+    // Zoom to Rarotonga when selecting inundation layer
+    const isInundationLayer = layerValue.includes('inun') || layerValue.includes('raro_inun');
+    if (isInundationLayer && mapInstance?.current) {
+      const map = mapInstance.current;
+      if (typeof map.fitBounds === 'function') {
+        // Zoom to Rarotonga island bounds
+        map.fitBounds([
+          RAROTONGA_BOUNDS.southWest,
+          RAROTONGA_BOUNDS.northEast
+        ], {
+          padding: [20, 20],
+          maxZoom: 14
+        });
+        console.log('🏝️ Zoomed to Rarotonga for inundation layer');
+      }
+    }
   };
 
   const handlePlayToggle = () => {
@@ -552,11 +590,13 @@ const ForecastApp = ({
   };
 
   // Clean map interaction using service-based architecture
+  // Enhanced: passes selectedWaveForecast to show popup for inundation layer
   useMapInteraction({
     mapInstance,
     currentSliderDate,
     setBottomCanvasData,
     setShowBottomCanvas,
+    selectedWaveForecast, // Pass to enable popup for inundation layer
     debugMode: true // Enable debug logging
   });
 

@@ -3,18 +3,26 @@
  * 
  * Orchestrates MapInteractionService and BottomCanvasManager
  * to provide clean map click handling with proper separation of concerns.
+ * 
+ * Enhanced for Cook Islands dashboard:
+ * - Shows popup instead of bottom canvas for inundation layer when zoomed in
  */
 
 import { useEffect, useCallback, useRef } from 'react';
+import L from 'leaflet';
 import MapInteractionService from '../services/MapInteractionService';
 import BottomCanvasManager from '../services/BottomCanvasManager';
 import MapMarkerService from '../services/MapMarkerService';
+
+// Zoom threshold for showing popup instead of bottom canvas
+const INUNDATION_POPUP_ZOOM_THRESHOLD = 12;
 
 export const useMapInteraction = ({
   mapInstance,
   currentSliderDate,
   setBottomCanvasData,
   setShowBottomCanvas,
+  selectedWaveForecast = '',
   debugMode = false
 }) => {
   // Create stable service instances using useRef
@@ -44,9 +52,14 @@ export const useMapInteraction = ({
     const map = mapInstance?.current;
     if (!map) return;
     
+    // Check if inundation layer is active and we're zoomed in
+    const isInundationLayer = selectedWaveForecast.includes('inun') || selectedWaveForecast.includes('raro_inun');
+    const currentZoom = map.getZoom();
+    const shouldShowPopup = isInundationLayer && currentZoom >= INUNDATION_POPUP_ZOOM_THRESHOLD;
+    
     try {
-      // Add temporary marker at click location
-      if (clickEvent.latlng) {
+      // Add temporary marker at click location (but not for inundation popup mode)
+      if (clickEvent.latlng && !shouldShowPopup) {
         // Ensure marker service is initialized with the map before use
         if (!servicesRef.current.markerService.mapInstance) {
           servicesRef.current.markerService.initialize(map);
@@ -64,7 +77,29 @@ export const useMapInteraction = ({
         currentSliderDate
       );
       
-      // Handle loading state for WMS interactions
+      // For inundation layer when zoomed in, show popup instead of bottom canvas
+      if (shouldShowPopup) {
+        const value = result.data?.featureInfo || result.featureInfo || 'No Data';
+        const latlng = clickEvent.latlng;
+        
+        // Create a popup with the inundation value
+        const popupContent = `
+          <div style="padding: 8px; min-width: 120px;">
+            <strong style="color: #2196f3;">Inundation Depth</strong><br/>
+            <span style="font-size: 1.2em; font-weight: bold;">${value}${value !== 'No Data' && value !== 'Loading...' && value !== 'Error fetching data' ? ' m' : ''}</span>
+          </div>
+        `;
+        
+        L.popup()
+          .setLatLng(latlng)
+          .setContent(popupContent)
+          .openOn(map);
+        
+        console.log('🌊 Showing inundation popup:', value, 'at zoom:', currentZoom);
+        return;
+      }
+      
+      // Handle loading state for WMS interactions (normal behavior)
       if (result.loadingData) {
         await servicesRef.current.canvasManager.handleAsyncData(
           result.loadingData,
@@ -77,13 +112,23 @@ export const useMapInteraction = ({
       
     } catch (error) {
       console.error('Map interaction failed:', error);
+      
+      // For inundation layer errors when zoomed in, still show popup
+      if (shouldShowPopup) {
+        L.popup()
+          .setLatLng(clickEvent.latlng)
+          .setContent('<div style="padding: 8px;"><strong>Inundation Depth</strong><br/>Error loading data</div>')
+          .openOn(map);
+        return;
+      }
+      
       servicesRef.current.canvasManager.showErrorState({
         featureInfo: "Map interaction failed",
         error: error.message,
         status: "error"
       });
     }
-  }, [mapInstance, currentSliderDate]);
+  }, [mapInstance, currentSliderDate, selectedWaveForecast]);
   
   // Initialize services when map is available
   useEffect(() => {

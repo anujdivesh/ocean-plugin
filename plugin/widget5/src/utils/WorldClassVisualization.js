@@ -43,6 +43,9 @@ class WorldClassVisualization {
       "br-bg": "br-bg",           // Brown-Blue-Green divergent
       "pi-yl-gn": "pi-yl-gn",     // Pink-Yellow-Green divergent
       
+      // Sequential palettes for Cook Islands
+      "seq-Blues": "seq-Blues",   // Sequential Blues (used for wave height and inundation)
+      
       // Oceanographic specialist palettes
       ocean: "psu-jet",           // Traditional oceanographic
       thermal: "psu-plasma",      // Temperature-like data
@@ -55,44 +58,45 @@ class WorldClassVisualization {
       winds: "spectral",          // Updated to Spectral for wave-related data
       
       // Wave-specific palettes (oceanographic standards)
-      waveHeight: "psu-viridis",   // Perceptually uniform for wave height
-      wavePeriod: "spectral",      // ENHANCED: Spectral divergent for superior period visualization
-      waveDirection: "spectral"    // Directional data
+      waveHeight: "seq-Blues",    // UPDATED: Sequential Blues for wave height (matches inundation)
+      wavePeriod: "spectral",     // ENHANCED: Spectral divergent for superior period visualization
+      waveDirection: "spectral"   // Directional data
   };
 
   // Advanced styling configurations
   static advancedConfigs = {
       significantWaveHeight: {
         // Multi-threshold configuration for different sea states
+        // UPDATED: Using seq-Blues palette (similar to inundation) for visual consistency
         calm: {
           range: "0.17,1.66",      // Updated to actual Cook Islands data range
-          palette: "psu-viridis",  // Perceptually uniform Viridis palette
+          palette: "seq-Blues",    // UPDATED: Sequential Blues palette (matches inundation)
           bands: 50,
           opacity: 0.7,
           description: "Cook Islands wave conditions"
         },
         moderate: {
           range: "0.17,1.66",      // Updated to actual Cook Islands data range
-          palette: "psu-viridis",  // Perceptually uniform Viridis palette
+          palette: "seq-Blues",    // UPDATED: Sequential Blues palette (matches inundation)
           bands: 100,
           opacity: 0.8,
           description: "Cook Islands wave height - current conditions"
         },
         rough: {
           range: "0.17,1.66",      // Cook Islands actual range (not typically rough)
-          palette: "psu-viridis",   // Perceptually uniform Viridis palette
+          palette: "seq-Blues",    // UPDATED: Sequential Blues palette (matches inundation)
           bands: 150,
           description: "Cook Islands wave height - full range"
         },
         dangerous: {
           range: "0,15",
-          palette: "psu-inferno",
+          palette: "seq-Blues",    // UPDATED: Sequential Blues palette for consistency
           bands: 200,
           description: "Dangerous seas - gale warning"
         },
         extreme: {
           range: "0,25",
-          palette: "psu-jet",
+          palette: "seq-Blues",    // UPDATED: Sequential Blues palette for consistency
           bands: 250,
           description: "Extreme seas - storm warning"
         }
@@ -216,7 +220,7 @@ class WorldClassVisualization {
       } else if (variable === 'tm02') {
         selectedPalette = "spectral"; // Use spectral for mean periods
       } else if (variable === 'hs') {
-        selectedPalette = "viridis"; // Use viridis for wave height
+        selectedPalette = "seq-Blues"; // UPDATED: Use seq-Blues for wave height (matches inundation)
       } else {
         selectedPalette = "plasma"; // Default for other variables
       }
@@ -335,6 +339,9 @@ class WorldClassVisualization {
       'psu-inferno': 'inferno',
       'inferno': 'inferno',
       
+      // Sequential palettes for Cook Islands
+      'seq-Blues': 'blues',        // Sequential Blues (matches inundation)
+      
       // ENHANCED: Divergent palettes for superior wave period visualization
       'div-Spectral': 'spectral',   // Full divergent spectrum
       'div-RdYlBu': 'rdylbu',      // Red-Yellow-Blue
@@ -345,7 +352,7 @@ class WorldClassVisualization {
       
       // Fallbacks for compatibility
       'jet': 'jet',
-      'default': 'spectral'         // Default to spectral for better visualization
+      'default': 'blues'            // UPDATED: Default to blues for Cook Islands
     };
     
     return safeColors[palette] || safeColors['default'];
