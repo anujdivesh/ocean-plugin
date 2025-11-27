@@ -110,7 +110,8 @@ export const useMapInteraction = ({
         const value = result.data?.featureInfo || result.featureInfo || 'No Data';
         const latlng = clickEvent.latlng;
         
-        L.popup()
+        // Create popup with specific class for styling
+        L.popup({ className: 'inundation-leaflet-popup' })
           .setLatLng(latlng)
           .setContent(createInundationPopupContent(value))
           .openOn(map);
@@ -135,7 +136,7 @@ export const useMapInteraction = ({
       
       // For inundation layer errors when zoomed in, still show popup
       if (shouldShowPopup) {
-        L.popup()
+        L.popup({ className: 'inundation-leaflet-popup' })
           .setLatLng(clickEvent.latlng)
           .setContent(createInundationErrorPopupContent())
           .openOn(map);

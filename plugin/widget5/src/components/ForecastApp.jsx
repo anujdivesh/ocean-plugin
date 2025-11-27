@@ -46,7 +46,9 @@ const generateBluesColor = (value, min, max) => {
   for (let i = 0; i < BLUES_COLOR_STOPS.length; i++) {
     const stop = BLUES_COLOR_STOPS[i];
     if (normalized <= stop.threshold || i === BLUES_COLOR_STOPS.length - 1) {
-      const t = (normalized - prevThreshold) / (stop.threshold - prevThreshold);
+      // Guard against division by zero when thresholds are equal
+      const range = stop.threshold - prevThreshold;
+      const t = range > 0 ? (normalized - prevThreshold) / range : 0;
       const r = Math.round(stop.start[0] + (stop.end[0] - stop.start[0]) * t);
       const g = Math.round(stop.start[1] + (stop.end[1] - stop.start[1]) * t);
       const b = Math.round(stop.start[2] + (stop.end[2] - stop.start[2]) * t);

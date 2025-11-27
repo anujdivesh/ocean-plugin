@@ -35,6 +35,7 @@ export const LAYER_BOUNDS = {
 
 /**
  * Get bounds for a layer if available
+ * Uses exact matching first, then checks for parent key matching
  * @param {string} layerValue - The layer value
  * @returns {Object|null} Bounds object with southWest and northEast, or null
  */
@@ -46,9 +47,9 @@ export const getLayerBounds = (layerValue) => {
     return LAYER_BOUNDS[layerValue];
   }
   
-  // Check for partial match (e.g., raro_inun matches raro_inun/Band1)
+  // Check if the layer value starts with a known parent key (e.g., 'raro_inun/Band1' starts with 'raro_inun')
   for (const key of Object.keys(LAYER_BOUNDS)) {
-    if (layerValue.includes(key) || key.includes(layerValue)) {
+    if (layerValue.startsWith(key + '/') || layerValue.startsWith(key)) {
       return LAYER_BOUNDS[key];
     }
   }
