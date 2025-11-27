@@ -4,6 +4,7 @@ import '../styles/MapMarker.css';
 import useMapInteraction from '../hooks/useMapInteraction';
 import { UI_CONFIG } from '../config/UIConfig';
 import { MARINE_CONFIG } from '../config/marineVariables';
+import { getLayerBounds } from '../config/layerConfig';
 import CompassRose from './CompassRose';
 import { 
   ControlGroup, 
@@ -20,44 +21,41 @@ import '../styles/fancyIcons.css';
 
 const EPSILON = 1e-6;
 
-// Rarotonga bounds for zoom when selecting inundation layer (outside component for performance)
-const RAROTONGA_BOUNDS = {
-  southWest: [-21.28, -159.85],
-  northEast: [-21.17, -159.70]
-};
+// Data-driven sequential Blues color interpolation (matches seq-Blues palette on WMS server)
+// Color stops: #f7fbff -> #deebf7 -> #c6dbef -> #9ecae1 -> #6baed6 -> #4292c6 -> #2171b5 -> #08519c -> #08306b
+const BLUES_COLOR_STOPS = [
+  { threshold: 0.125, start: [247, 251, 255], end: [222, 235, 247] },
+  { threshold: 0.25,  start: [222, 235, 247], end: [198, 219, 239] },
+  { threshold: 0.375, start: [198, 219, 239], end: [158, 202, 225] },
+  { threshold: 0.5,   start: [158, 202, 225], end: [107, 174, 214] },
+  { threshold: 0.625, start: [107, 174, 214], end: [66, 146, 198] },
+  { threshold: 0.75,  start: [66, 146, 198],  end: [33, 113, 181] },
+  { threshold: 0.875, start: [33, 113, 181],  end: [8, 81, 156] },
+  { threshold: 1.0,   start: [8, 81, 156],   end: [8, 48, 107] }
+];
 
 /**
  * Generate sequential Blues colors (matching inundation layer)
- * Color stops: #f7fbff -> #deebf7 -> #c6dbef -> #9ecae1 -> #6baed6 -> #4292c6 -> #2171b5 -> #08519c -> #08306b
+ * Uses data-driven approach with color stop arrays for maintainability
  */
 const generateBluesColor = (value, min, max) => {
   const normalized = Math.max(0, Math.min(1, (value - min) / (max - min)));
-  // Sequential Blues color interpolation (matches seq-Blues palette on WMS server)
-  if (normalized <= 0.125) {
-    const t = normalized / 0.125;
-    return `rgb(${Math.round(247 + (222-247)*t)}, ${Math.round(251 + (235-251)*t)}, ${Math.round(255 + (247-255)*t)})`;
-  } else if (normalized <= 0.25) {
-    const t = (normalized - 0.125) / 0.125;
-    return `rgb(${Math.round(222 + (198-222)*t)}, ${Math.round(235 + (219-235)*t)}, ${Math.round(247 + (239-247)*t)})`;
-  } else if (normalized <= 0.375) {
-    const t = (normalized - 0.25) / 0.125;
-    return `rgb(${Math.round(198 + (158-198)*t)}, ${Math.round(219 + (202-219)*t)}, ${Math.round(239 + (225-239)*t)})`;
-  } else if (normalized <= 0.5) {
-    const t = (normalized - 0.375) / 0.125;
-    return `rgb(${Math.round(158 + (107-158)*t)}, ${Math.round(202 + (174-202)*t)}, ${Math.round(225 + (214-225)*t)})`;
-  } else if (normalized <= 0.625) {
-    const t = (normalized - 0.5) / 0.125;
-    return `rgb(${Math.round(107 + (66-107)*t)}, ${Math.round(174 + (146-174)*t)}, ${Math.round(214 + (198-214)*t)})`;
-  } else if (normalized <= 0.75) {
-    const t = (normalized - 0.625) / 0.125;
-    return `rgb(${Math.round(66 + (33-66)*t)}, ${Math.round(146 + (113-146)*t)}, ${Math.round(198 + (181-198)*t)})`;
-  } else if (normalized <= 0.875) {
-    const t = (normalized - 0.75) / 0.125;
-    return `rgb(${Math.round(33 + (8-33)*t)}, ${Math.round(113 + (81-113)*t)}, ${Math.round(181 + (156-181)*t)})`;
-  } else {
-    const t = (normalized - 0.875) / 0.125;
-    return `rgb(${Math.round(8 + (8-8)*t)}, ${Math.round(81 + (48-81)*t)}, ${Math.round(156 + (107-156)*t)})`;
+  
+  // Find the correct color stop interval
+  let prevThreshold = 0;
+  for (let i = 0; i < BLUES_COLOR_STOPS.length; i++) {
+    const stop = BLUES_COLOR_STOPS[i];
+    if (normalized <= stop.threshold || i === BLUES_COLOR_STOPS.length - 1) {
+      const t = (normalized - prevThreshold) / (stop.threshold - prevThreshold);
+      const r = Math.round(stop.start[0] + (stop.end[0] - stop.start[0]) * t);
+      const g = Math.round(stop.start[1] + (stop.end[1] - stop.start[1]) * t);
+      const b = Math.round(stop.start[2] + (stop.end[2] - stop.start[2]) * t);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+    prevThreshold = stop.threshold;
   }
+  // Fallback (should not reach here)
+  return `rgb(8, 48, 107)`;
 };
 
 /**
@@ -553,20 +551,19 @@ const ForecastApp = ({
     setSelectedWaveForecast(layerValue);
     setActiveLayers(prev => ({ ...prev, waveForecast: true }));
     
-    // Zoom to Rarotonga when selecting inundation layer
-    const isInundationLayer = layerValue.includes('inun') || layerValue.includes('raro_inun');
-    if (isInundationLayer && mapInstance?.current) {
+    // Auto-zoom to layer bounds when selecting layers with defined bounds
+    const layerBounds = getLayerBounds(layerValue);
+    if (layerBounds && mapInstance?.current) {
       const map = mapInstance.current;
       if (typeof map.fitBounds === 'function') {
-        // Zoom to Rarotonga island bounds
         map.fitBounds([
-          RAROTONGA_BOUNDS.southWest,
-          RAROTONGA_BOUNDS.northEast
+          layerBounds.southWest,
+          layerBounds.northEast
         ], {
           padding: [20, 20],
           maxZoom: 14
         });
-        console.log('🏝️ Zoomed to Rarotonga for inundation layer');
+        console.log('🏝️ Zoomed to layer bounds for:', layerValue);
       }
     }
   };

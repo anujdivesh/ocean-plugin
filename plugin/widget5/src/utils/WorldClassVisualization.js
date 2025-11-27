@@ -352,7 +352,7 @@ class WorldClassVisualization {
       
       // Fallbacks for compatibility
       'jet': 'jet',
-      'default': 'blues'            // UPDATED: Default to blues for Cook Islands
+      'default': 'spectral'         // Default to spectral globally (unchanged)
     };
     
     return safeColors[palette] || safeColors['default'];

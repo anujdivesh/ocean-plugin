@@ -13,9 +13,7 @@ import L from 'leaflet';
 import MapInteractionService from '../services/MapInteractionService';
 import BottomCanvasManager from '../services/BottomCanvasManager';
 import MapMarkerService from '../services/MapMarkerService';
-
-// Zoom threshold for showing popup instead of bottom canvas
-const INUNDATION_POPUP_ZOOM_THRESHOLD = 12;
+import { isInundationLayer, INUNDATION_POPUP_ZOOM_THRESHOLD } from '../config/layerConfig';
 
 /**
  * Create popup content for inundation layer
@@ -83,9 +81,9 @@ export const useMapInteraction = ({
     if (!map) return;
     
     // Check if inundation layer is active and we're zoomed in
-    const isInundationLayer = selectedWaveForecast.includes('inun') || selectedWaveForecast.includes('raro_inun');
+    const isInundation = isInundationLayer(selectedWaveForecast);
     const currentZoom = map.getZoom();
-    const shouldShowPopup = isInundationLayer && currentZoom >= INUNDATION_POPUP_ZOOM_THRESHOLD;
+    const shouldShowPopup = isInundation && currentZoom >= INUNDATION_POPUP_ZOOM_THRESHOLD;
     
     try {
       // Add temporary marker at click location (but not for inundation popup mode)
