@@ -335,9 +335,9 @@ function TuvaluForecast() {
     });
   }, [showBottomCanvas, bottomCanvasData]);
 
-  // Handle island selection - now handles both null (Tuvalu whole domain) and specific islands
+  // Handle island selection - now handles both whole domain (isWholeDomain=true) and specific islands
   const handleIslandChange = (island) => {
-    if (!island) {
+    if (island?.isWholeDomain) {
       // Tuvalu whole domain selected - clear selected island to use national scale
       logger.info('ISLAND', 'Tuvalu whole domain selected');
       setSelectedIsland(null);

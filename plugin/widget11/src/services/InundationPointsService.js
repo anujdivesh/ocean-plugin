@@ -12,6 +12,9 @@
 import L from 'leaflet';
 
 class InundationPointsService {
+  // Pattern to extract atoll name from image URL (e.g., "Nanumaga" from "Nanumaga_t_3_forecast.png")
+  static ATOLL_NAME_PATTERN = /\/([A-Za-z]+)_t_\d+_forecast\.png/;
+
   constructor(options = {}) {
     this.debugMode = options.debugMode || false;
     this.mapInstance = null;
@@ -41,6 +44,17 @@ class InundationPointsService {
     this.cacheExpiry = 5 * 60 * 1000; // 5 minutes
     
     this.log('InundationPointsService initialized');
+  }
+  
+  /**
+   * Extract atoll name from image URL
+   * @param {string} url - The image URL (e.g., "http://...Nanumaga_t_3_forecast.png")
+   * @returns {string|null} - The atoll name or null if not found
+   */
+  extractAtollNameFromUrl(url) {
+    if (!url) return null;
+    const match = url.match(InundationPointsService.ATOLL_NAME_PATTERN);
+    return match ? match[1] : null;
   }
   
   /**
@@ -250,14 +264,9 @@ class InundationPointsService {
     const riskLevel = this.getRiskLevel(hazardLevel || inundationValue || 0);
     
     // Determine location name - avoid showing "Point" when no index/name available
-    // Extract atoll name from image URL if available (e.g., "Nanumaga" from "Nanumaga_t_3_forecast.png")
-    let locationName = point.station_name || point.location || point.name;
-    if (!locationName && point.primary_image_url) {
-      const match = point.primary_image_url.match(/\/([A-Za-z]+)_t_\d+_forecast\.png/);
-      if (match) {
-        locationName = match[1];
-      }
-    }
+    // Extract atoll name from image URL if available
+    let locationName = point.station_name || point.location || point.name 
+      || this.extractAtollNameFromUrl(point.primary_image_url);
     // Fallback to "Inundation Point" instead of "Point " + empty index
     if (!locationName) {
       locationName = 'Inundation Point';
@@ -325,13 +334,8 @@ class InundationPointsService {
   createMultiPointPopupContent(points) {
     const firstPoint = points[0];
     // Determine location name - extract from image URL if not available directly
-    let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name;
-    if (!locationName && firstPoint.primary_image_url) {
-      const match = firstPoint.primary_image_url.match(/\/([A-Za-z]+)_t_\d+_forecast\.png/);
-      if (match) {
-        locationName = match[1];
-      }
-    }
+    let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name
+      || this.extractAtollNameFromUrl(firstPoint.primary_image_url);
     if (!locationName) {
       locationName = 'Inundation Points';
     }
@@ -520,13 +524,8 @@ class InundationPointsService {
         // Create marker with the highest risk level
         const firstPoint = points[0];
         // Extract location name from image URL if not available directly
-        let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name;
-        if (!locationName && firstPoint.primary_image_url) {
-          const match = firstPoint.primary_image_url.match(/\/([A-Za-z]+)_t_\d+_forecast\.png/);
-          if (match) {
-            locationName = match[1];
-          }
-        }
+        let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name
+          || this.extractAtollNameFromUrl(firstPoint.primary_image_url);
         if (!locationName) {
           locationName = 'Inundation Point';
         }

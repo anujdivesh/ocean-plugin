@@ -3,11 +3,9 @@ import './ForecastApp.css';
 import '../styles/MapMarker.css';
 import '../styles/InundationPoints.css';
 import useMapInteraction from '../hooks/useMapInteraction';
-import useInundationPoints from '../hooks/useInundationPoints';
 import { UI_CONFIG } from '../config/UIConfig';
 import { MARINE_CONFIG } from '../config/marineVariables';
 import CompassRose from './CompassRose';
-import InundationControl from './InundationControl';
 import { 
   ControlGroup, 
   VariableButtons, 
@@ -127,18 +125,10 @@ WAVE_FORECAST_LAYERS,
   setShowBottomCanvas,
   isUpdatingVisualization,
   currentSliderDateStr,
-  minIndex,
-  // Inundation control is now passed from parent (inline with IslandSelector)
-  hideInundationControl = true
+  minIndex
 }) => {
   const [metadataVisible, setMetadataVisible] = useState(false); // Metadata panel state
   const [detailedMetadataVisible, setDetailedMetadataVisible] = useState(false); // Detailed metadata state
-  
-  // Initialize inundation points service - only if not provided externally
-  const inundationPoints = useInundationPoints(mapInstance, {
-    debugMode: true,
-    defaultVisible: false
-  });
   
   const selectedLayer = useMemo(() => {
     return ALL_LAYERS.find(l => l.value === selectedWaveForecast) || null;
@@ -594,18 +584,7 @@ WAVE_FORECAST_LAYERS,
             mapRotation={0} 
           />
           
-          {/* Inundation Points Control - only render if not hidden (moved to Home.jsx for inline layout) */}
-          {!hideInundationControl && (
-            <InundationControl
-              loadPoints={inundationPoints.loadPoints}
-              isVisible={inundationPoints.isVisible}
-              onToggle={inundationPoints.toggleVisibility}
-              stats={inundationPoints.stats}
-              isLoading={inundationPoints.isLoading}
-              error={inundationPoints.error}
-              position="topright"
-            />
-          )}
+          {/* Inundation Points Control is now rendered in Home.jsx for inline layout with IslandSelector */}
           
           {selectedLegendLayer && (
             <div className="marine-legend">

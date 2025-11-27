@@ -62,8 +62,8 @@ const IslandSelector = ({
     logger.info('ISLAND', 'Tuvalu whole domain selected');
     
     if (onIslandChange) {
-      // Pass null or special marker to indicate whole domain view
-      onIslandChange(null); // null means show whole Tuvalu domain
+      // Pass the TUVALU_WHOLE_DOMAIN object for consistent state handling
+      onIslandChange(TUVALU_WHOLE_DOMAIN);
     }
   };
 
