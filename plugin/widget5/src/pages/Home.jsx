@@ -66,9 +66,9 @@ const variableConfigMap = {
     abovemaxcolor: "extend"
   }),
   inun: () => ({
-    style: "default-scalar/seq-Blues",
-    colorscalerange: "-0.05,1.63",
-    numcolorbands: 220,
+    style: "default-scalar/x-Sst",
+    colorscalerange: "0,2",
+    numcolorbands: 20,
     belowmincolor: "transparent",
     abovemaxcolor: "extend"
   }),
@@ -138,11 +138,11 @@ function CookIslandsForecast() {
     return [
       {
         label: "Rarotonga Inundation",
-        value: "raro_inun/Band1",
+        value: "H_max",
         ...getWorldClassConfig('raro_inun'),
         id: 200,
-        dataset: 'raro_inun',
-        wmsUrl: "https://gem-ncwms-hpc.spc.int/ncWMS/wms",
+        dataset: 'H_max',
+        wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_reproj.nc",
         legendUrl: getRarotongaInundationLegendUrl(),
         description: "Modeled inundation depth for Rarotonga (0–1.63 m above ground)",
         isStatic: true // Flag to identify static layers
