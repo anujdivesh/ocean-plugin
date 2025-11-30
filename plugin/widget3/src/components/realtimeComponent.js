@@ -8,11 +8,95 @@ import 'chartjs-adapter-date-fns';
 import Lottie from 'lottie-react';
 import animationData from './live.json';
 import './Dashboard.css';
-ChartJS.register(LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, Filler, CategoryScale);
+
+// Custom htmlLegend plugin to render legends with proper line dash patterns
+const htmlLegendPlugin = {
+    id: 'htmlLegend',
+    afterUpdate(chart, args, options) {
+        const ul = getOrCreateLegendList(chart, options.containerID);
+
+        // Remove old legend items
+        while (ul.firstChild) {
+            ul.firstChild.remove();
+        }
+
+        // Reuse the built-in legendItems generator
+        const items = chart.options.plugins.legend.labels.generateLabels(chart);
+
+        items.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.style.alignItems = 'center';
+            li.style.cursor = 'pointer';
+            li.style.display = 'flex';
+            li.style.marginLeft = '10px';
+
+            li.onclick = () => {
+                chart.setDatasetVisibility(item.datasetIndex, !chart.isDatasetVisible(item.datasetIndex));
+                chart.update();
+            };
+
+            // Color box with line (solid or dashed)
+            const boxSpan = document.createElement('span');
+            boxSpan.style.background = item.fillStyle;
+            boxSpan.style.borderColor = item.strokeStyle;
+            boxSpan.style.borderWidth = item.lineWidth + 'px';
+            boxSpan.style.display = 'inline-block';
+            boxSpan.style.height = '2px';
+            boxSpan.style.marginRight = '10px';
+            boxSpan.style.width = '40px';
+            
+            if (item.lineDash && item.lineDash.length > 0) {
+                // Create dashed line using border-style
+                boxSpan.style.borderTop = '2px dashed ' + item.strokeStyle;
+                boxSpan.style.height = '0px';
+            } else {
+                // Solid line
+                boxSpan.style.backgroundColor = item.strokeStyle;
+            }
+
+            const textContainer = document.createElement('p');
+            textContainer.style.color = item.fontColor;
+            textContainer.style.margin = '0';
+            textContainer.style.padding = '0';
+            textContainer.style.textDecoration = item.hidden ? 'line-through' : '';
+
+            const text = document.createTextNode(item.text);
+            textContainer.appendChild(text);
+
+            li.appendChild(boxSpan);
+            li.appendChild(textContainer);
+            ul.appendChild(li);
+        });
+    }
+};
+
+const getOrCreateLegendList = (chart, id) => {
+    const legendContainer = document.getElementById(id);
+    let listContainer = legendContainer.querySelector('ul');
+
+    if (!listContainer) {
+        listContainer = document.createElement('ul');
+        listContainer.style.display = 'flex';
+        listContainer.style.flexDirection = 'row';
+        listContainer.style.flexWrap = 'wrap';
+        listContainer.style.margin = '0';
+        listContainer.style.padding = '0';
+
+        legendContainer.appendChild(listContainer);
+    }
+
+    return listContainer;
+};
+
+ChartJS.register(LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, Filler, CategoryScale, htmlLegendPlugin);
 
 const fixedColors = [
-    'rgb(255, 87, 51)', 'rgb(153, 102, 255)', 'rgb(255, 206, 86)',
-    'rgb(54, 162, 235)', 'rgb(255, 99, 132)', 'rgb(75, 192, 192)'
+    '#FF5733', // Bright Orange-Red
+    '#33FFB5', // Bright Mint
+    '#FFD633', // Bright Yellow
+    '#3399FF', // Bright Blue
+    '#FF33F5', // Bright Magenta
+    '#33FF57'  // Bright Green
 ];
 // Dynamic flag loader now uses country_short fetched in searchComponent; fallback handled via onError
 
@@ -27,6 +111,8 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
     const [liveMode, setLiveMode] = useState(false);
     // Station currently expanded in overlay (double-click)
     const [expandedStationId, setExpandedStationId] = useState(null);
+    const [offcanvasHeight, setOffcanvasHeight] = useState(400);
+    const isDraggingRef = useRef(false);
     const appliedInitialLiveModeRef = useRef(false);
     const [shareStatus, setShareStatus] = useState('');
     // themeKey increments when body class (light/dark) changes so charts fully re-render with new colors
@@ -352,6 +438,29 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
     };
     const handleCloseExpand = useCallback(() => setExpandedStationId(null), []);
 
+    const onMouseDown = useCallback((e) => {
+        e.preventDefault();
+        isDraggingRef.current = true;
+        const startY = e.clientY;
+        const startHeight = offcanvasHeight;
+
+        const onMouseMove = (moveEvent) => {
+            if (!isDraggingRef.current) return;
+            const deltaY = startY - moveEvent.clientY;
+            const newHeight = Math.min(Math.max(200, startHeight + deltaY), window.innerHeight - 100);
+            setOffcanvasHeight(newHeight);
+        };
+
+        const onMouseUp = () => {
+            isDraggingRef.current = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    }, [offcanvasHeight]);
+
     // Close on ESC
     useEffect(() => {
         if (!expandedStationId) return;
@@ -505,29 +614,57 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
         const isScatter = (d.chartType === 'scatter');
         const data = {
             labels: d.labels,
-            datasets: d.datasets.map((ds,i)=> ({
-                label: ds.label,
-                data: d.labels.map((time, idx) => ({ x: time, y: ds.values[idx] })),
-                // For scatter we want solid filled circles; for line keep semi-transparent area color
-                borderColor: fixedColors[i%fixedColors.length],
-                backgroundColor: isScatter ? fixedColors[i%fixedColors.length] : (fixedColors[i%fixedColors.length] + '33'),
-                pointBackgroundColor: isScatter ? fixedColors[i%fixedColors.length] : fixedColors[i%fixedColors.length],
-                pointBorderWidth: isScatter ? 1 : 0,
-                tension: isScatter ? 0 : 0.3,
-                // If scatter, hide connecting lines and show points; else show line and hide points
-                showLine: !isScatter,
-                pointRadius: isScatter ? 3 : 0,
-                pointHitRadius: isScatter ? 8 : 6,
-                pointHoverRadius: isScatter ? 5 : 4,
-                yAxisID: i === 0 ? 'y' : (i === 1 ? 'y1' : 'y2')
-            }))
+            datasets: d.datasets.map((ds,i)=> {
+                const color = fixedColors[i%fixedColors.length];
+                const isDashed = i > 0; // First dataset is solid, others are dashed
+                return {
+                    label: ds.label,
+                    data: d.labels.map((time, idx) => ({ x: time, y: ds.values[idx] })),
+                    // For scatter we want solid filled circles; for dashed lines use NO background fill
+                    borderColor: color,
+                    backgroundColor: isScatter ? color : (isDashed ? 'transparent' : color + '15'),
+                    pointBackgroundColor: color,
+                    pointBorderColor: color,
+                    pointBorderWidth: isScatter ? 1 : 0,
+                    borderWidth: 2,
+                    borderDash: isDashed ? [5, 5] : [],
+                    tension: isScatter ? 0 : 0.3,
+                    // If scatter, hide connecting lines and show points; else show line and hide points
+                    showLine: !isScatter,
+                    pointRadius: isScatter ? 3 : 0,
+                    pointHitRadius: isScatter ? 8 : 6,
+                    pointHoverRadius: isScatter ? 5 : 4,
+                    fill: isDashed ? false : true,
+                    yAxisID: i === 0 ? 'y' : (i === 1 ? 'y1' : 'y2')
+                };
+            })
         };
     const options = {
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'nearest', intersect: false },
             plugins: {
-                legend: { position: 'top', labels: { color: textColor, boxWidth: 18, boxHeight: 12, padding: 10 } },
+                legend: { 
+                    display: false,
+                    labels: {
+                        generateLabels: (chart) => {
+                            const datasets = chart.data.datasets;
+                            return datasets.map((dataset, i) => ({
+                                text: dataset.label,
+                                fillStyle: 'transparent',
+                                strokeStyle: dataset.borderColor,
+                                lineWidth: 2,
+                                lineDash: dataset.borderDash || [],
+                                hidden: !chart.isDatasetVisible(i),
+                                datasetIndex: i,
+                                fontColor: textColor
+                            }));
+                        }
+                    }
+                },
+                htmlLegend: {
+                    containerID: `legend-container-${id}`
+                },
                 tooltip: { 
                     enabled: true,
                     callbacks: {
@@ -592,6 +729,7 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
             }
         };
     return <div style={{width:'100%',height:'100%',background:chartBg,borderRadius:4,position:'relative',minHeight:0}}>
+            <div id={`legend-container-${id}`} style={{padding:'10px 10px 5px 10px', color: textColor}}></div>
             <Line key={`line-${id}-${themeKey}`} data={data} options={options} style={{width:'100%',height:'100%'}} />
         </div>;
     };
@@ -625,21 +763,21 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
     };
 
     return (
-    <div className="dashboard-view d-flex flex-column" style={{height:'calc(100vh - 56px)',overflow:'hidden',background:'var(--color-background)',color:'var(--color-text)'}}>
-            {/* Inline styles for overlay (could be moved to Dashboard.css) */}
+    <>
+    <div className="dashboard-view d-flex flex-column" style={{height:'calc(100vh - 56px)',overflow:'hidden',background:'var(--color-background)',color:'var(--color-text)',position:'relative',zIndex: expandedStationId ? 1 : 'auto'}}>
+            {/* Inline styles for bottom offcanvas */}
             <style>{`
-                .rtm-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.66); backdrop-filter: blur(6px); z-index: 1050; display: flex; align-items: center; justify-content: center; padding: 2rem; animation: rtmFade .25s ease; }
-                @keyframes rtmFade { from { opacity: 0;} to { opacity: 1;} }
-                .rtm-overlay-card { width: min(1400px, 95vw); height: min(85vh, 900px); background: var(--color-surface); color: var(--color-text); border-radius: 18px; box-shadow: 0 10px 40px -5px rgba(0,0,0,.55), 0 0 0 1px var(--color-border,#334155); display:flex; flex-direction:column; position:relative; animation: rtmPop .35s cubic-bezier(.34,1.56,.64,1); overflow:hidden; }
-                @keyframes rtmPop { 0% { transform: scale(.92) translateY(12px); opacity:0;} 100% { transform: scale(1) translateY(0); opacity:1;} }
-                .rtm-overlay-header { padding: .85rem 1.1rem; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--color-border,#334155); background: linear-gradient(135deg,var(--color-surface) 0%, rgba(255,255,255,0.02) 100%); }
-                .rtm-overlay-title { font-weight:600; font-size:1rem; letter-spacing:.5px; display:flex; align-items:center; gap:.5rem; }
-                .rtm-overlay-close { background: transparent; border: 1px solid var(--color-border,#475569); color: var(--color-text); width: 34px; height: 34px; border-radius: 8px; font-size: 1.25rem; line-height: 1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all .18s ease; }
-                .rtm-overlay-close:hover { background: var(--color-chart-bg,#1e293b); transform: rotate(90deg); }
-                .rtm-overlay-body { flex:1; padding: .75rem .9rem 1rem; display:flex; }
-                .rtm-overlay-body > div { flex:1; }
-                .rtm-overlay-footer { padding: .4rem .9rem .65rem; border-top:1px solid var(--color-border,#334155); font-size:.7rem; text-align:right; opacity:.65; }
-                @media (max-width: 900px) { .rtm-overlay-card { height: 90vh; width: 100vw; border-radius:14px; padding:0; } .rtm-overlay { padding: .75rem; } }
+                .rtm-offcanvas { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-surface,#1e293b); color: var(--color-text); box-shadow: 0 -4px 20px rgba(0,0,0,.3); z-index: 12000; transition: transform .3s ease; border-top: 1px solid var(--color-border,#334155); }
+                .rtm-offcanvas.show { transform: translateY(0); }
+                .rtm-offcanvas.hide { transform: translateY(100%); }
+                .rtm-drag-handle { height: 12px; cursor: ns-resize; background: var(--color-border,#475569); border-top-left-radius: 8px; border-top-right-radius: 8px; text-align: center; user-select: none; margin: -8px 0 0 0; display: flex; align-items: center; justify-content: center; }
+                .rtm-drag-handle:hover { background: var(--color-border,#64748b); }
+                .rtm-drag-handle-bar { width: 40px; height: 4px; background: var(--color-text,#94a3b8); border-radius: 2px; opacity: 0.5; }
+                .rtm-offcanvas-header { padding: .75rem 1rem; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--color-border,#334155); background: var(--color-surface); }
+                .rtm-offcanvas-title { font-weight:600; font-size:1rem; display:flex; align-items:center; gap:.5rem; }
+                .rtm-offcanvas-close { background: transparent; border: 1px solid var(--color-border,#475569); color: var(--color-text); width: 32px; height: 32px; border-radius: 6px; font-size: 1.25rem; line-height: 1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all .18s ease; }
+                .rtm-offcanvas-close:hover { background: var(--color-chart-bg,#1e293b); transform: rotate(90deg); }
+                .rtm-offcanvas-body { padding: 1rem; overflow: auto; }
             `}</style>
             <div ref={controlsRef} className="dashboard-controls" style={{padding:'0.5rem 1rem',background:'var(--color-surface)',borderBottom:'1px solid var(--color-border, #dee2e6)',flexShrink:0}}>
                 <div className="d-flex align-items-center gap-3">
@@ -743,24 +881,28 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                     })}
                 </Row>
             </Container>
+            </div>
             {expandedStationId && (
-                <div className="rtm-overlay" onClick={e => { if (e.target.classList.contains('rtm-overlay')) handleCloseExpand(); }}>
-                    <div className="rtm-overlay-card">
-                        <div className="rtm-overlay-header">
-                            <div className="rtm-overlay-title">
-                                {getStationDetails(expandedStationId)?.label || expandedStationId}
-                            </div>
-                            <button type="button" className="rtm-overlay-close" onClick={handleCloseExpand} aria-label="Close expanded chart">×</button>
+                <div className={`rtm-offcanvas ${expandedStationId ? 'show' : 'hide'}`} style={{ height: offcanvasHeight }}>
+                    <div 
+                        className="rtm-drag-handle" 
+                        onMouseDown={onMouseDown}
+                        title="Drag to resize"
+                    >
+                        <div className="rtm-drag-handle-bar"></div>
+                    </div>
+                    <div className="rtm-offcanvas-header">
+                        <div className="rtm-offcanvas-title">
+                            <FaWaveSquare className="me-2" />
+                            {getStationDetails(expandedStationId)?.label || expandedStationId}
                         </div>
-                        <div className="rtm-overlay-body">
-                            {renderChart(expandedStationId)}
-                        </div>
-                        <div className="rtm-overlay-footer">
-                            <small>Double-click charts to expand. Press Esc or click outside to close.</small>
-                        </div>
+                        <button type="button" className="rtm-offcanvas-close" onClick={handleCloseExpand} aria-label="Close expanded chart">×</button>
+                    </div>
+                    <div className="rtm-offcanvas-body" style={{ height: `calc(${offcanvasHeight}px - 80px)` }}>
+                        {renderChart(expandedStationId)}
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 }
