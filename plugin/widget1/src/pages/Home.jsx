@@ -314,15 +314,6 @@ function Home({ widgetData, validCountries }) {
   const STATIC_LAYERS = useMemo(() => [], []);
   const ALL_LAYERS = useMemo(() => ([...enhancedLayers, ...STATIC_LAYERS]), [enhancedLayers, STATIC_LAYERS]);
 
-  // Compose forecast state using shared hooks
-  // Buoy functionality
-  const openBuoyCanvas = (buoyId) => {
-    console.log("openBuoyCanvas called with:", buoyId);
-    setSelectedBuoyId(buoyId);
-    setShowBuoyCanvas(true);
-    console.log("State after setting:", { showBuoyCanvas: true, selectedBuoyId: buoyId });
-  };
-
   const config = useMemo(
     () => ({
       WAVE_FORECAST_LAYERS,
@@ -347,7 +338,6 @@ function Home({ widgetData, validCountries }) {
       ],
       bounds: niueBounds,
       addWMSTileLayer,
-      openBuoyCanvas,
     }), [STATIC_LAYERS, ALL_LAYERS, niueBounds]
   );
 
@@ -374,6 +364,22 @@ function Home({ widgetData, validCountries }) {
     showBottomCanvas, setShowBottomCanvas,
     bottomCanvasData, setBottomCanvasData,
   } = useForecast(config);
+
+  // Buoy functionality
+  const openBuoyCanvas = (buoyId) => {
+    console.log("openBuoyCanvas called with:", buoyId);
+    setShowBottomCanvas(false);
+    setSelectedBuoyId(buoyId);
+    setShowBuoyCanvas(true);
+    console.log("State after setting:", { showBuoyCanvas: true, selectedBuoyId: buoyId });
+  };
+
+  // Ensure only one canvas is open at a time
+  useEffect(() => {
+    if (showBottomCanvas) {
+      setShowBuoyCanvas(false);
+    }
+  }, [showBottomCanvas]);
 
   // Buoy marker icons
   const blueIcon = new L.Icon({
