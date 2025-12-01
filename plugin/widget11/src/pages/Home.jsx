@@ -662,7 +662,7 @@ function TuvaluForecast() {
         position: 'absolute',
         top: '80px',
         left: '20px',
-        zIndex: 1000,
+        zIndex: 'var(--z-sidebar, 10)',  /* Use sidebar z-index to avoid blocking map overlays */
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
         padding: '15px',
         borderRadius: '8px',
@@ -698,7 +698,7 @@ function TuvaluForecast() {
           position: 'absolute',
           top: '20px',
           right: '20px',
-          zIndex: 997,
+          zIndex: 'var(--z-sidebar, 10)',  /* Use sidebar z-index to avoid blocking map overlays */
           backgroundColor: 'var(--color-surface)',
           borderRadius: '8px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
@@ -782,7 +782,7 @@ function TuvaluForecast() {
           position: 'absolute',
           top: '20px',
           right: '20px',
-          zIndex: 997,
+          zIndex: 'var(--z-sidebar, 10)',  /* Use sidebar z-index to avoid blocking map overlays */
           backgroundColor: 'var(--color-surface)',
           borderRadius: '8px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
@@ -821,7 +821,7 @@ function TuvaluForecast() {
           position: 'absolute',
           top: '80px',
           right: '20px',
-          zIndex: 999,
+          zIndex: 'var(--z-sidebar, 10)',  /* Use sidebar z-index to avoid blocking map overlays */
           maxWidth: '800px',
           maxHeight: 'calc(100vh - 100px)',
           overflow: 'auto'
