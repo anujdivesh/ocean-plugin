@@ -342,6 +342,7 @@ function TuvaluForecast() {
       // Tuvalu whole domain selected - clear selected island to use national scale
       logger.info('ISLAND', 'Tuvalu whole domain selected');
       setSelectedIsland(null);
+      setAutoDetectedIsland(null); // Clear auto-detection to ensure national-scale layers are used
       
       // Zoom to whole Tuvalu bounds
       const map = mapInstance?.current;
