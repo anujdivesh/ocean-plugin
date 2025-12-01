@@ -44,12 +44,14 @@
 }
 
 .island-selector-container .dropdown-menu {
-  max-height: 400px;
+  max-height: 400px;  /* Island selector needs taller dropdown than global default */
   overflow-y: auto;
   z-index: var(--z-sidebar-dropdown, 1050);  /* Higher than sidebar content */
 }
 
-/* Responsive dropdown height */
+/* Note: Responsive dropdown height for island-selector uses higher values than
+   the global z-index-system.css defaults because the island list is longer.
+   These values intentionally differ from the global settings. */
 @media (max-width: 768px) {
   .island-selector-container .dropdown-menu {
     max-height: 280px;

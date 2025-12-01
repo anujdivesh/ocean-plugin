@@ -322,9 +322,10 @@ function TuvaluForecast() {
     minIndex,
   } = useForecast(tuvaluConfig);
 
-  // Initialize inundation points service in Home.jsx for inline layout
+  // Initialize inundation points service in Home.jsx for inline layout.
+  // Set debugMode based on environment: enabled in development, disabled in production.
   const inundationPoints = useInundationPoints(mapInstance, {
-    debugMode: true,
+    debugMode: process.env.NODE_ENV === 'development',
     defaultVisible: false
   });
 

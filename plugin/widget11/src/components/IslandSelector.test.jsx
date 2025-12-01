@@ -589,9 +589,10 @@ describe('IslandSelector', () => {
       // Open dropdown
       await user.click(screen.getByRole('button', { name: /Select Island/i }));
       
-      // Look for Tuvalu option
+      // Look for Tuvalu Domain header and Tuvalu option (there are multiple matches)
       await waitFor(() => {
-        expect(screen.getByText(/Tuvalu/)).toBeInTheDocument();
+        const tuvaluElements = screen.getAllByText(/Tuvalu/);
+        expect(tuvaluElements.length).toBeGreaterThan(0);
       });
     });
 
@@ -616,22 +617,25 @@ describe('IslandSelector', () => {
       // Open dropdown
       await user.click(screen.getByRole('button', { name: /Select Island/i }));
       
-      // Click on Tuvalu option
-      await waitFor(async () => {
-        const tuvaluOption = screen.getByText(/Tuvalu/).closest('[class*="dropdown-item"]');
-        if (tuvaluOption) {
-          await user.click(tuvaluOption);
-        }
+      // Wait for dropdown to open and find the Tuvalu option (contains "🌊 Tuvalu")
+      await waitFor(() => {
+        expect(screen.getByText(/Whole Domain/i)).toBeInTheDocument();
       });
       
-      // Verify callback was called
+      // Click on Tuvalu domain option - find by the badge text since it's unique
+      const wholeDomainBadge = screen.getByText(/Whole Domain/i);
+      const tuvaluOption = wholeDomainBadge.closest('[class*="dropdown-item"]');
+      await user.click(tuvaluOption);
+      
+      // Verify callback was called with correct parameters
       await waitFor(() => {
-        if (onIslandChange.mock.calls.length > 0) {
-          const calledWith = onIslandChange.mock.calls[0][0];
-          expect(calledWith).toHaveProperty('isWholeDomain', true);
-          expect(calledWith).toHaveProperty('name', 'Tuvalu');
-        }
+        expect(onIslandChange).toHaveBeenCalled();
       });
+      
+      // Verify the callback was called with the correct object
+      const calledWith = onIslandChange.mock.calls[0][0];
+      expect(calledWith).toHaveProperty('isWholeDomain', true);
+      expect(calledWith).toHaveProperty('name', 'Tuvalu');
     });
 
     test('should display "All Islands" badge when Tuvalu is selected', async () => {
@@ -650,21 +654,14 @@ describe('IslandSelector', () => {
       // Open dropdown and show profiles
       await user.click(screen.getByRole('button', { name: /Tuvalu/i }));
       
-      await waitFor(async () => {
-        const showProfilesOption = screen.queryByText(/Show Island Profiles/i);
-        if (showProfilesOption) {
-          await user.click(showProfilesOption);
-        }
-      });
+      // Click on "Show Island Profiles" option if available
+      const showProfilesOption = await screen.findByText(/Show Island Profiles/i);
+      await user.click(showProfilesOption);
 
-      // Should show "All 9 Tuvalu Atolls" text
-      await waitFor(() => {
-        const profileText = screen.queryByText(/All 9 Tuvalu Atolls/i);
-        // Profile section may or may not appear depending on state
-        if (profileText) {
-          expect(profileText).toBeInTheDocument();
-        }
-      });
+      // Verify the whole domain profile information is displayed
+      // Note: Profile visibility is controlled by showProfiles state toggle
+      const profileText = await screen.findByText(/All 9 Tuvalu Atolls/i);
+      expect(profileText).toBeInTheDocument();
     });
   });
 });

@@ -46,6 +46,7 @@ const IslandSelector = ({
   }, [currentIsland, islandManager]);
 
   const handleIslandSelect = (island) => {
+    // Only set current island in manager for individual islands, not whole domain
     if (!island.isWholeDomain) {
       islandManager.setCurrentIsland(island.name);
     }
@@ -57,14 +58,9 @@ const IslandSelector = ({
     }
   };
   
+  // Refactored to reuse handleIslandSelect logic
   const handleTuvaluSelect = () => {
-    setSelectedIsland(TUVALU_WHOLE_DOMAIN);
-    logger.info('ISLAND', 'Tuvalu whole domain selected');
-    
-    if (onIslandChange) {
-      // Pass the TUVALU_WHOLE_DOMAIN object for consistent state handling
-      onIslandChange(TUVALU_WHOLE_DOMAIN);
-    }
+    handleIslandSelect(TUVALU_WHOLE_DOMAIN);
   };
 
   const getRegionColor = (lat) => {

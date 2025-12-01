@@ -315,12 +315,8 @@
   cursor: not-allowed;
 }
 
-/* Ensure Bootstrap dropdowns scroll properly */
-.dropdown-menu {
-  max-height: 280px;
-  overflow-y: auto;
-  z-index: var(--z-sidebar-dropdown);  /* Ensure dropdowns appear above sidebar content */
-}
+/* Note: Dropdown menu styles are defined globally in z-index-system.css.
+   Removed duplicate .dropdown-menu selector to maintain single source of truth. */
 
 /* Stats toggle button */
 .inundation-stats-toggle {
@@ -377,10 +373,7 @@
     width: 100%;
   }
   
-  /* Ensure dropdowns don't overflow on small screens */
-  .dropdown-menu {
-    max-height: 200px;  /* Shorter on mobile */
-  }
+  /* Note: .dropdown-menu responsive styles are defined globally in z-index-system.css */
   
   .inundation-atoll-selector select {
     max-height: 200px;
@@ -393,9 +386,7 @@
     padding: 8px;
   }
   
-  .dropdown-menu {
-    max-height: 160px;
-  }
+  /* Note: .dropdown-menu responsive styles are defined globally in z-index-system.css */
 }
 
 /* Dark mode support */

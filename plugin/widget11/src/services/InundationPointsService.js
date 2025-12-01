@@ -76,8 +76,11 @@ class InundationPointsService {
       document.body.appendChild(modal);
     }
     
-    // Clear existing content and create new image using DOM methods (safe from XSS)
-    modal.innerHTML = '';
+    // Remove existing image if present, then create new image using DOM methods (safe from XSS)
+    const existingImg = modal.querySelector('img');
+    if (existingImg) {
+      existingImg.remove();
+    }
     const img = document.createElement('img');
     img.src = imageSrc;
     img.style.cssText = 'max-width: 95vw; max-height: 95vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);';
