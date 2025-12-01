@@ -764,14 +764,17 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
     };
 
     combinationChartOptions = createCommonOptions('Model vs Buoy: All Variables');
+    if (buoyWaves.length > 0) {
+      combinationChartOptions.scales.x.min = buoyWaves[0].timestamp;
+    }
   }
 
   let tabLabels = [];
 
   if (buoyId === "SPOT-31091C") {
     tabLabels = [
-      // { key: "model", label: "Model" },
-      { key: "combination", label: "Buoy vs Model" }
+      { key: "combination", label: "Buoy vs Model" },
+      { key: "buoy", label: "Wave buoy" }
     ];
   } else {
     tabLabels = [
