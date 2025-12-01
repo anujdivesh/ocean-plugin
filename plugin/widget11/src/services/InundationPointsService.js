@@ -58,6 +58,34 @@ class InundationPointsService {
   }
   
   /**
+   * Show image in fullscreen modal
+   * Uses DOM methods to avoid XSS vulnerabilities from string concatenation
+   * @param {string} imageSrc - The source URL of the image to display
+   */
+  static showImageModal(imageSrc) {
+    // Validate and sanitize the image URL
+    if (!imageSrc || typeof imageSrc !== 'string') return;
+    
+    // Check if modal already exists, if not create it
+    let modal = document.getElementById('inundation-image-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'inundation-image-modal';
+      modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: var(--z-modals, 2000); display: flex; align-items: center; justify-content: center; cursor: zoom-out;';
+      modal.onclick = () => modal.remove();
+      document.body.appendChild(modal);
+    }
+    
+    // Clear existing content and create new image using DOM methods (safe from XSS)
+    modal.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = imageSrc;
+    img.style.cssText = 'max-width: 95vw; max-height: 95vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);';
+    img.alt = 'Inundation Forecast - Expanded View';
+    modal.appendChild(img);
+  }
+  
+  /**
    * Initialize service with map instance
    */
   initialize(map) {
@@ -326,17 +354,7 @@ class InundationPointsService {
                  alt="Inundation Forecast" 
                  class="inundation-forecast-img"
                  style="width: 100%; max-width: 600px; height: auto; border-radius: 4px; cursor: zoom-in; transition: opacity 0.2s;"
-                 onclick="
-                   const modal = document.getElementById('inundation-image-modal') || (() => {
-                     const m = document.createElement('div');
-                     m.id = 'inundation-image-modal';
-                     m.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 999999; display: flex; align-items: center; justify-content: center; cursor: zoom-out;';
-                     m.onclick = () => m.remove();
-                     document.body.appendChild(m);
-                     return m;
-                   })();
-                   modal.innerHTML = '<img src=\\'' + this.src + '\\' style=\\'max-width: 95vw; max-height: 95vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);\\' />';
-                 "
+                 onclick="InundationPointsService.showImageModal(this.src)"
                  onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
             />
             <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; pointer-events: none;">
@@ -415,17 +433,7 @@ class InundationPointsService {
             <img src="${imageUrl}" 
                  alt="Inundation Forecast ${index + 1}" 
                  style="width: 100%; max-width: 400px; height: auto; border-radius: 4px; cursor: zoom-in; margin-bottom: 4px;"
-                 onclick="
-                   const modal = document.getElementById('inundation-image-modal') || (() => {
-                     const m = document.createElement('div');
-                     m.id = 'inundation-image-modal';
-                     m.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 999999; display: flex; align-items: center; justify-content: center; cursor: zoom-out;';
-                     m.onclick = () => m.remove();
-                     document.body.appendChild(m);
-                     return m;
-                   })();
-                   modal.innerHTML = '<img src=\\'' + this.src + '\\' style=\\'max-width: 95vw; max-height: 95vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);\\' />';
-                 "
+                 onclick="InundationPointsService.showImageModal(this.src)"
                  onerror="this.style.display='none';"
             />
             <div style="font-size: 11px; color: #666; text-align: center;">🔍 Click image to expand</div>
@@ -745,6 +753,12 @@ class InundationPointsService {
       console.log('[InundationPointsService]', ...args);
     }
   }
+}
+
+// Make the class available globally for onclick handlers in dynamically generated HTML
+// This is necessary because inline onclick handlers cannot access ES module exports
+if (typeof window !== 'undefined') {
+  window.InundationPointsService = InundationPointsService;
 }
 
 export default InundationPointsService;

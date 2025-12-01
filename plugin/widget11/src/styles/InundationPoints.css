@@ -1,16 +1,7 @@
 /* Inundation Points Styling */
 
-/* ========================================
-   World-Class Z-Index System
-   ======================================== */
-:root {
-  --z-base: 1;
-  --z-sidebar: 10;
-  --z-sidebar-dropdown: 1050;  /* Bootstrap dropdown compatibility */
-  --z-map-overlay: 1000;
-  --z-modals: 2000;
-  --z-tooltips: 3000;
-}
+/* Note: Z-index CSS custom properties are defined in z-index-system.css
+   which is imported globally in App.jsx. No need to duplicate here. */
 
 /* Custom marker icons */
 .inundation-point-icon {

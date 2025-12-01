@@ -22,6 +22,9 @@ export const WMSColorPalettes = {
   OCCAM: 'default-scalar/occam',
   YLGNBU: 'default-scalar/seq-YlGnBu',
   
+  // SST-style jet color palette (matching CK model)
+  X_SST: 'default-scalar/x-Sst',
+  
   // Default fallback
   DEFAULT: 'default-scalar/default'
 };
@@ -64,11 +67,11 @@ export const WMSStylePresets = {
   },
   
   INUNDATION: {
-    style: WMSColorPalettes.BLUES,
+    style: WMSColorPalettes.X_SST,
     numcolorbands: 220,
     belowmincolor: 'transparent',
     abovemaxcolor: 'extend',
-    description: 'Sequential blues palette for inundation depth visualisation'
+    description: 'x-Sst (jet) palette for inundation depth visualisation, matching CK model style'
   },
   
   WAVE_ENERGY: {

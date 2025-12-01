@@ -12,7 +12,9 @@ import logger from './utils/logger';
 // import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator'; // DISABLED for development
 
 function App() {
-  // Authentication DISABLED for development/testing
+  // SECURITY WARNING: Authentication is DISABLED for development/testing only.
+  // DO NOT deploy to production without re-enabling authentication.
+  // TODO: Add environment check: process.env.NODE_ENV === 'production' should require auth
   // const [isAuthenticated, setIsAuthenticated] = useState(false);
   // const [isLoading, setIsLoading] = useState(true);
   // const [errorType, setErrorType] = useState(null);
@@ -20,7 +22,7 @@ function App() {
   const [validCountries] = useState(['TUV']); // Tuvalu by default
 
   useEffect(() => {
-    // Authentication DISABLED
+    // Authentication DISABLED for development
     const initializeApp = async () => {
       logger.info('APP', 'Initializing Tuvalu Multi-Island Widget (authentication disabled)...');
       

@@ -80,7 +80,8 @@ const variableConfigMap = {
     abovemaxcolor: "extend"
   }),
   inun: () => ({
-    style: "default-scalar/seq-Blues",
+    // Use x-Sst (jet) color palette for inundation maps, similar to CK model
+    style: "default-scalar/x-Sst",
     colorscalerange: "-0.05,1.63",
     numcolorbands: 220,
     belowmincolor: "transparent",

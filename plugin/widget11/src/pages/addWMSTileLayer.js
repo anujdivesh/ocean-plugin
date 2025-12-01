@@ -62,9 +62,9 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
             finalOptions.colorscalerange = '-0.05,1.63';
             console.log('Setting Tuvalu inundation color scale range: -0.05-1.63m');
         }
-        // Ensure proper style for inundation visualization
+        // Use x-Sst (jet) color palette for inundation visualization, similar to CK model
         if (!finalOptions.styles) {
-            finalOptions.styles = 'default-scalar/seq-Blues';
+            finalOptions.styles = 'default-scalar/x-Sst';
         }
     }    // Clean up undefined values to prevent them from appearing in WMS requests
     Object.keys(finalOptions).forEach(key => {
