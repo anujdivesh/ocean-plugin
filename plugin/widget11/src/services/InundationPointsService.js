@@ -263,13 +263,23 @@ class InundationPointsService {
     const inundationValue = point.max_inundation || point.inundation;
     const riskLevel = this.getRiskLevel(hazardLevel || inundationValue || 0);
     
-    // Determine location name - avoid showing "Point" when no index/name available
+    // Determine location name - avoid showing "unknown" or "Point" when no proper name available
     // Extract atoll name from image URL if available
-    let locationName = point.station_name || point.location || point.name 
-      || this.extractAtollNameFromUrl(point.primary_image_url);
-    // Fallback to "Inundation Point" instead of "Point " + empty index
+    let locationName = point.station_name || point.location || point.name;
+    
+    // Filter out "unknown" strings (case insensitive)
+    if (locationName && locationName.toLowerCase() === 'unknown') {
+      locationName = null;
+    }
+    
+    // Try to extract from URL if no valid name
     if (!locationName) {
-      locationName = 'Inundation Point';
+      locationName = this.extractAtollNameFromUrl(point.primary_image_url);
+    }
+    
+    // Final fallback to "Inundation Forecast Point"
+    if (!locationName) {
+      locationName = 'Inundation Forecast Point';
     }
     
     let content = `
@@ -308,14 +318,31 @@ class InundationPointsService {
     }
     
     if (imageUrl) {
-      // Make image bigger for easier viewing (increased from 400px to 600px max-width)
+      // Expandable image - click to view full size in modal
       content += `
         <div style="margin-top: 12px;">
-          <img src="${imageUrl}" 
-               alt="Inundation Forecast" 
-               style="width: 100%; max-width: 600px; height: auto; border-radius: 4px; cursor: pointer;"
-               onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
-          />
+          <div style="position: relative;">
+            <img src="${imageUrl}" 
+                 alt="Inundation Forecast" 
+                 class="inundation-forecast-img"
+                 style="width: 100%; max-width: 600px; height: auto; border-radius: 4px; cursor: zoom-in; transition: opacity 0.2s;"
+                 onclick="
+                   const modal = document.getElementById('inundation-image-modal') || (() => {
+                     const m = document.createElement('div');
+                     m.id = 'inundation-image-modal';
+                     m.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 999999; display: flex; align-items: center; justify-content: center; cursor: zoom-out;';
+                     m.onclick = () => m.remove();
+                     document.body.appendChild(m);
+                     return m;
+                   })();
+                   modal.innerHTML = '<img src=\\'' + this.src + '\\' style=\\'max-width: 95vw; max-height: 95vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);\\' />';
+                 "
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+            />
+            <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; pointer-events: none;">
+              🔍 Click to expand
+            </div>
+          </div>
           <div style="display: none; padding: 10px; background: #ffebee; border-radius: 4px; color: #c62828;">
             Image not available
           </div>
@@ -333,11 +360,22 @@ class InundationPointsService {
    */
   createMultiPointPopupContent(points) {
     const firstPoint = points[0];
-    // Determine location name - extract from image URL if not available directly
-    let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name
-      || this.extractAtollNameFromUrl(firstPoint.primary_image_url);
+    // Determine location name - avoid showing "unknown"
+    let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name;
+    
+    // Filter out "unknown" strings (case insensitive)
+    if (locationName && locationName.toLowerCase() === 'unknown') {
+      locationName = null;
+    }
+    
+    // Try to extract from URL if no valid name
     if (!locationName) {
-      locationName = 'Inundation Points';
+      locationName = this.extractAtollNameFromUrl(firstPoint.primary_image_url);
+    }
+    
+    // Final fallback
+    if (!locationName) {
+      locationName = 'Inundation Forecast Points';
     }
     
     let content = `
@@ -374,9 +412,23 @@ class InundationPointsService {
         const imageUrl = `${this.imageBaseUrl}${filename}`;
         content += `
           <div style="margin-top: 8px;">
-            <a href="${imageUrl}" target="_blank" style="color: #1976D2; text-decoration: none; font-size: 12px;">
-              📊 View Forecast Image
-            </a>
+            <img src="${imageUrl}" 
+                 alt="Inundation Forecast ${index + 1}" 
+                 style="width: 100%; max-width: 400px; height: auto; border-radius: 4px; cursor: zoom-in; margin-bottom: 4px;"
+                 onclick="
+                   const modal = document.getElementById('inundation-image-modal') || (() => {
+                     const m = document.createElement('div');
+                     m.id = 'inundation-image-modal';
+                     m.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 999999; display: flex; align-items: center; justify-content: center; cursor: zoom-out;';
+                     m.onclick = () => m.remove();
+                     document.body.appendChild(m);
+                     return m;
+                   })();
+                   modal.innerHTML = '<img src=\\'' + this.src + '\\' style=\\'max-width: 95vw; max-height: 95vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);\\' />';
+                 "
+                 onerror="this.style.display='none';"
+            />
+            <div style="font-size: 11px; color: #666; text-align: center;">🔍 Click image to expand</div>
           </div>
         `;
       }
@@ -523,11 +575,22 @@ class InundationPointsService {
         
         // Create marker with the highest risk level
         const firstPoint = points[0];
-        // Extract location name from image URL if not available directly
-        let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name
-          || this.extractAtollNameFromUrl(firstPoint.primary_image_url);
+        // Extract location name - avoid showing "unknown"
+        let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name;
+        
+        // Filter out "unknown" strings (case insensitive)
+        if (locationName && locationName.toLowerCase() === 'unknown') {
+          locationName = null;
+        }
+        
+        // Try to extract from URL if no valid name
         if (!locationName) {
-          locationName = 'Inundation Point';
+          locationName = this.extractAtollNameFromUrl(firstPoint.primary_image_url);
+        }
+        
+        // Final fallback
+        if (!locationName) {
+          locationName = 'Inundation Forecast Point';
         }
         
         const marker = L.marker([lat, lng], {

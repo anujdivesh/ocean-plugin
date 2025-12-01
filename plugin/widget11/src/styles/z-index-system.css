@@ -1,0 +1,83 @@
+/**
+ * World-Class Z-Index System
+ * 
+ * This file defines a centralized z-index hierarchy for the entire application.
+ * All components should reference these CSS variables instead of using magic numbers.
+ * 
+ * HIERARCHY (from lowest to highest):
+ * --z-base (1)              → Default layer, base content
+ * --z-sidebar (10)          → Sidebar panels, inline controls
+ * --z-map-overlay (1000)    → Floating controls over the map
+ * --z-sidebar-dropdown (1050) → Dropdowns from sidebar (Bootstrap compatibility)
+ * --z-modals (2000)         → Modal dialogs, lightboxes
+ * --z-tooltips (3000)       → Tooltips, popovers (highest)
+ * 
+ * USAGE GUIDELINES:
+ * 
+ * 1. Sidebar content (Island Selector, Inundation Controls inline):
+ *    z-index: var(--z-sidebar);
+ * 
+ * 2. Dropdown menus from sidebar elements:
+ *    z-index: var(--z-sidebar-dropdown);
+ * 
+ * 3. Map overlay controls (floating controls on map):
+ *    z-index: var(--z-map-overlay);
+ * 
+ * 4. Modal popups (image viewer, dialogs):
+ *    z-index: var(--z-modals);
+ * 
+ * 5. Tooltips and temporary overlays:
+ *    z-index: var(--z-tooltips);
+ * 
+ * WHY THIS WORKS:
+ * - Prevents overlap issues between sidebar and dropdowns
+ * - Maintains Bootstrap compatibility (dropdowns at 1050)
+ * - Provides clear layer hierarchy for future components
+ * - Easy to debug: just check the CSS variable name
+ * 
+ * DEBUGGING:
+ * If you see overlap issues:
+ * 1. Check which layer each element should be in
+ * 2. Verify the element uses the correct CSS variable
+ * 3. Use browser dev tools to inspect computed z-index values
+ */
+
+:root {
+  /* Base layer - default content */
+  --z-base: 1;
+  
+  /* Sidebar layer - inline controls and panels */
+  --z-sidebar: 10;
+  
+  /* Map overlay layer - floating controls */
+  --z-map-overlay: 1000;
+  
+  /* Dropdown layer - Bootstrap dropdown compatibility */
+  --z-sidebar-dropdown: 1050;
+  
+  /* Modal layer - full-screen overlays */
+  --z-modals: 2000;
+  
+  /* Tooltip layer - highest temporary overlays */
+  --z-tooltips: 3000;
+}
+
+/* Global dropdown styling for consistency */
+.dropdown-menu {
+  z-index: var(--z-sidebar-dropdown);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .dropdown-menu {
+    max-height: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dropdown-menu {
+    max-height: 160px;
+  }
+}

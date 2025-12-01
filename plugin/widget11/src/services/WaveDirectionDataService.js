@@ -238,4 +238,5 @@ class WaveDirectionDataService {
 }
 
 // Export singleton
-export default new WaveDirectionDataService();
+const waveDirectionDataService = new WaveDirectionDataService();
+export default waveDirectionDataService;

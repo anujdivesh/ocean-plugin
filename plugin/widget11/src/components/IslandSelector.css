@@ -1,10 +1,16 @@
+/* Use CSS variables from InundationPoints.css for consistent z-index system */
 .island-selector-container {
   position: relative;
-  z-index: 1000;
+  z-index: var(--z-sidebar, 10);  /* Lower than dropdowns */
 }
 
 .island-dropdown {
   display: inline-block;
+}
+
+/* Ensure island dropdown menu appears above other sidebar content */
+.island-selector-container .dropdown-toggle {
+  z-index: var(--z-sidebar, 10);
 }
 
 .comparison-panel {
@@ -40,6 +46,20 @@
 .island-selector-container .dropdown-menu {
   max-height: 400px;
   overflow-y: auto;
+  z-index: var(--z-sidebar-dropdown, 1050);  /* Higher than sidebar content */
+}
+
+/* Responsive dropdown height */
+@media (max-width: 768px) {
+  .island-selector-container .dropdown-menu {
+    max-height: 280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .island-selector-container .dropdown-menu {
+    max-height: 200px;
+  }
 }
 
 .island-selector-container .badge {

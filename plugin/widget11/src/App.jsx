@@ -1,31 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
+import './styles/z-index-system.css'; // World-class z-index system (must load first)
 import './App.css';
 import Header from './components/header';
 import ErrorBoundary from './components/ErrorBoundary';
 import './utils/NotificationManager'; // Initialize notification system
 import { initConsoleErrorSuppressor } from './utils/ConsoleErrorSuppressor';
 import logger from './utils/logger';
-import TokenError from './components/TokenError';
-import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator';
+// import TokenError from './components/TokenError'; // DISABLED for development
+// import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator'; // DISABLED for development
 
 function App() {
-  // Authentication enabled for production
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorType, setErrorType] = useState(null);
-  const [widgetData, setWidgetData] = useState(null);
-  const [validCountries, setValidCountries] = useState(['TUV']); // Tuvalu by default
+  // Authentication DISABLED for development/testing
+  // const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // const [isLoading, setIsLoading] = useState(true);
+  // const [errorType, setErrorType] = useState(null);
+  const [widgetData] = useState(null);
+  const [validCountries] = useState(['TUV']); // Tuvalu by default
 
   useEffect(() => {
-    // Authentication enabled
+    // Authentication DISABLED
     const initializeApp = async () => {
-      logger.info('APP', 'Initializing Tuvalu Multi-Island Widget with token and country validation...');
+      logger.info('APP', 'Initializing Tuvalu Multi-Island Widget (authentication disabled)...');
       
       // Initialize console error suppressor for known WMS server issues
       initConsoleErrorSuppressor();
       
+      /* AUTHENTICATION COMMENTED OUT
       // Check if token exists in URL first
       const token = extractTokenFromURL('token');
       
@@ -70,11 +72,13 @@ function App() {
         setErrorType('network_error');
         setIsLoading(false);
       }
+      */
     };
 
     initializeApp();
   }, []);
 
+  /* AUTHENTICATION LOADING STATE COMMENTED OUT
   // Show loading state while validating token
   if (isLoading) {
     return (
@@ -105,6 +109,7 @@ function App() {
   if (!isAuthenticated || errorType) {
     return <TokenError errorType={errorType || 'invalid_token'} />;
   }
+  */
 
   return (
     <ErrorBoundary userMessage="The Tuvalu Marine Forecast application encountered an unexpected error. Please try refreshing the page.">
