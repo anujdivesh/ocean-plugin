@@ -110,6 +110,9 @@ export const useMapInteraction = ({
         const value = result.data?.featureInfo || result.featureInfo || 'No Data';
         const latlng = clickEvent.latlng;
         
+        // Hide bottom canvas if it was previously open to avoid stale data lingering
+        servicesRef.current.canvasManager.hide();
+        
         // Create popup with specific class for styling
         L.popup({ className: 'inundation-leaflet-popup' })
           .setLatLng(latlng)
@@ -136,6 +139,9 @@ export const useMapInteraction = ({
       
       // For inundation layer errors when zoomed in, still show popup
       if (shouldShowPopup) {
+        // Hide bottom canvas if it was previously open to avoid stale data lingering
+        servicesRef.current.canvasManager.hide();
+        
         L.popup({ className: 'inundation-leaflet-popup' })
           .setLatLng(clickEvent.latlng)
           .setContent(createInundationErrorPopupContent())
