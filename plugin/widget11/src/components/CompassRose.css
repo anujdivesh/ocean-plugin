@@ -2,7 +2,7 @@
 
 .compass-container.enhanced {
   position: absolute;
-  z-index: 1000;
+  z-index: var(--z-map-overlay, 1000);
   pointer-events: none;
   -webkit-user-select: none;
   -moz-user-select: none;

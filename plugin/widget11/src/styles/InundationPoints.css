@@ -12,7 +12,7 @@
 
 .inundation-point-icon:hover {
   transform: scale(1.2);
-  z-index: 1000 !important;
+  z-index: var(--z-map-overlay, 1000) !important;
 }
 
 /* Popup container */
