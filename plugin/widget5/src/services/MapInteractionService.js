@@ -27,13 +27,13 @@ class MapInteractionService {
    * @param {Date} currentTime - Current time for WMS requests
    * @returns {Promise<Object>} Interaction data
    */
-  async handleMapClick(clickEvent, map, currentTime) {
+  async handleMapClick(clickEvent, map, currentTime, options = {}) {
     this._log('Map clicked at:', clickEvent.latlng);
     
     const coordinateData = this._extractCoordinateData(clickEvent, map, currentTime);
     
     // Try WMS layer interaction first
-    const wmsResult = await this._tryWMSInteraction(clickEvent, map, coordinateData);
+    const wmsResult = await this._tryWMSInteraction(clickEvent, map, coordinateData, options);
     if (wmsResult.handled) {
       return wmsResult.data;
     }
@@ -70,7 +70,7 @@ class MapInteractionService {
    * Try to interact with WMS layers
    * @private
    */
-  async _tryWMSInteraction(clickEvent, map, coordinateData) {
+  async _tryWMSInteraction(clickEvent, map, coordinateData, options = {}) {
     const wmsLayers = this._findWMSLayers(map);
     
     if (wmsLayers.length === 0) {
@@ -91,8 +91,8 @@ class MapInteractionService {
         status: "loading"
       };
       
-      // Get actual feature info
-      const featureData = await activeLayer.getFeatureInfo(clickEvent.latlng);
+      // Get actual feature info, passing through options
+      const featureData = await activeLayer.getFeatureInfo(clickEvent.latlng, options);
       
       return {
         handled: true,

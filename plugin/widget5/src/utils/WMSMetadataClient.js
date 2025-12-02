@@ -112,7 +112,8 @@ export async function fetchLayerMinMax(wmsUrl, layerName, time, bounds) {
     'cook_forecast/tm02': { min: 0, max: 20 },          // Wave period range
     'cook_forecast/tpeak': { min: 9, max: 14 },         // Peak period optimized range
     'cook_forecast/dirm': { min: 0, max: 360 },         // Direction range
-    'raro_inun/Band1': { min: -0.04149, max: 1.632 }    // Rarotonga inundation depth
+    'H_max': { min: -0.04149, max: 1.632 },    // Rarotonga inundation depth (THREDDS)
+    'raro_inun/Band1': { min: -0.04149, max: 1.632 }    // Rarotonga inundation depth (legacy)
   };
 
   if (knownRanges[layerName]) {

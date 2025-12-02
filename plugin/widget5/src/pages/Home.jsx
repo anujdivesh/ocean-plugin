@@ -35,11 +35,11 @@ const getWorldClassLegendUrl = (variable, range, unit) => {
 };
 
 const getRarotongaInundationLegendUrl = () => {
-  const baseUrl = "https://gem-ncwms-hpc.spc.int/ncWMS/wms";
+  const baseUrl = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_reproj.nc";
   const { width, height } = getResponsiveLegendDimensions();
   const params = new URLSearchParams({
     REQUEST: 'GetLegendGraphic',
-    LAYER: 'raro_inun/Band1',
+    LAYER: 'H_max',
     PALETTE: 'seq-Blues',
     COLORBARONLY: 'true',
     WIDTH: width,
@@ -66,7 +66,7 @@ const variableConfigMap = {
     abovemaxcolor: "extend"
   }),
   inun: () => ({
-    style: "default-scalar/seq-Blues",
+    style: "default-scalar/x-Sst",
     colorscalerange: "-0.05,1.63",
     numcolorbands: 220,
     belowmincolor: "transparent",
@@ -138,11 +138,10 @@ function CookIslandsForecast() {
     return [
       {
         label: "Rarotonga Inundation",
-        value: "raro_inun/Band1",
-        ...getWorldClassConfig('raro_inun'),
+        value: "H_max",
+        ...getWorldClassConfig('inun'),
         id: 200,
-        dataset: 'raro_inun',
-        wmsUrl: "https://gem-ncwms-hpc.spc.int/ncWMS/wms",
+        wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_reproj.nc",
         legendUrl: getRarotongaInundationLegendUrl(),
         description: "Modeled inundation depth for Rarotonga (0–1.63 m above ground)",
         isStatic: true // Flag to identify static layers

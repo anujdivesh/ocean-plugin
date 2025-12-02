@@ -9,7 +9,6 @@ import TokenError from './components/TokenError';
 import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator';
 
 function App() {
-  // Authentication enabled for production
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorType, setErrorType] = useState(null);
@@ -17,7 +16,6 @@ function App() {
   const [validCountries, setValidCountries] = useState(['COK']); // Cook Islands by default
 
   useEffect(() => {
-    // Authentication enabled
     const initializeApp = async () => {
       console.log('Initializing app with token and country validation...');
       
@@ -73,7 +71,6 @@ function App() {
     initializeApp();
   }, []);
 
-  // Show loading state while validating token
   if (isLoading) {
     return (
       <div style={{

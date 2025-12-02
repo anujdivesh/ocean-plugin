@@ -1986,3 +1986,66 @@
   color: #70d8ff;
   margin-left: 1rem;
 }
+
+/* ============================================
+   Inundation Popup Styles
+   ============================================ */
+
+.inundation-popup {
+  padding: 10px 14px;
+  min-width: 140px;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.inundation-popup-title {
+  color: #2196f3;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.inundation-popup-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.inundation-popup-error {
+  color: #e74c3c;
+  font-size: 0.9rem;
+}
+
+/* Dark mode support */
+.dark-mode .inundation-popup-value {
+  color: #f1f5f9;
+}
+
+/* Inundation-specific popup overrides - using class-based targeting for browser compatibility */
+.inundation-leaflet-popup .leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(33, 150, 243, 0.2) !important;
+}
+
+.inundation-leaflet-popup .leaflet-popup-content {
+  margin: 0 !important;
+  color: #1a1a2e !important;
+}
+
+.inundation-leaflet-popup .leaflet-popup-tip {
+  background: #ffffff !important;
+}
+
+/* Dark mode support for inundation popups */
+.dark-mode .inundation-leaflet-popup .leaflet-popup-content-wrapper {
+  background: #2d3748 !important;
+  border-color: rgba(33, 150, 243, 0.4) !important;
+}
+
+.dark-mode .inundation-leaflet-popup .leaflet-popup-tip {
+  background: #2d3748 !important;
+}
+
