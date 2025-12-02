@@ -5,6 +5,7 @@
 
 // Inundation layer identifiers - exact match to avoid false positives
 export const INUNDATION_LAYER_IDS = [
+  'H_max',          // THREDDS inundation layer
   'raro_inun/Band1',
   'raro_inun'
 ];
@@ -22,7 +23,12 @@ export const isInundationLayer = (layerValue) => {
 
 // Layer bounds for auto-zoom functionality
 export const LAYER_BOUNDS = {
-  // Rarotonga inundation layer bounds
+  // Rarotonga inundation layer bounds (THREDDS - actual data extent from GetCapabilities)
+  'H_max': {
+    southWest: [-21.281671213355985, -159.83717346191406],
+    northEast: [-21.19118441998148, -159.71783447265625]
+  },
+  // Rarotonga inundation layer bounds (legacy ncWMS)
   'raro_inun/Band1': {
     southWest: [-21.28, -159.85],
     northEast: [-21.17, -159.70]
@@ -58,4 +64,4 @@ export const getLayerBounds = (layerValue) => {
 };
 
 // Zoom threshold for showing popup instead of bottom canvas for inundation
-export const INUNDATION_POPUP_ZOOM_THRESHOLD = 12;
+export const INUNDATION_POPUP_ZOOM_THRESHOLD = 14;

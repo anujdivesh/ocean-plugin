@@ -13,7 +13,7 @@ import L from 'leaflet';
 import MapInteractionService from '../services/MapInteractionService';
 import BottomCanvasManager from '../services/BottomCanvasManager';
 import MapMarkerService from '../services/MapMarkerService';
-import { isInundationLayer, INUNDATION_POPUP_ZOOM_THRESHOLD } from '../config/layerConfig';
+import { isInundationLayer, INUNDATION_POPUP_ZOOM_THRESHOLD, getLayerBounds } from '../config/layerConfig';
 
 /**
  * Create popup content for inundation layer
@@ -85,9 +85,72 @@ export const useMapInteraction = ({
     const currentZoom = map.getZoom();
     const shouldShowPopup = isInundation && currentZoom >= INUNDATION_POPUP_ZOOM_THRESHOLD;
     
+    // If inundation layer is active but not zoomed in enough, zoom to layer center
+    if (isInundation && currentZoom < INUNDATION_POPUP_ZOOM_THRESHOLD) {
+      const layerBounds = getLayerBounds(selectedWaveForecast);
+      if (layerBounds) {
+        console.log('🔍 Zooming to inundation layer at zoom level', INUNDATION_POPUP_ZOOM_THRESHOLD);
+        // Calculate center of bounds
+        const centerLat = (layerBounds.southWest[0] + layerBounds.northEast[0]) / 2;
+        const centerLng = (layerBounds.southWest[1] + layerBounds.northEast[1]) / 2;
+        // Zoom directly to the threshold level at the center
+        map.setView([centerLat, centerLng], INUNDATION_POPUP_ZOOM_THRESHOLD, {
+          animate: true,
+          duration: 0.5
+        });
+      } else {
+        // Fallback to click location if bounds not available
+        console.log('🔍 Zooming to inundation click location at zoom', INUNDATION_POPUP_ZOOM_THRESHOLD);
+        map.setView(clickEvent.latlng, INUNDATION_POPUP_ZOOM_THRESHOLD, {
+          animate: true,
+          duration: 0.5
+        });
+      }
+      return; // Exit early, the zoom will trigger another click if needed
+    }
+    
     try {
-      // Add temporary marker at click location (but not for inundation popup mode)
-      if (clickEvent.latlng && !shouldShowPopup) {
+      // For inundation layer when zoomed in, show popup instead of bottom canvas
+      // Handle this BEFORE calling handleMapClick to prevent canvas from showing
+      if (shouldShowPopup) {
+        // Immediately hide any open canvas before making the request
+        servicesRef.current.canvasManager.hide();
+        
+        // Don't show marker for popup mode
+        // Pass autoShow: false to prevent canvas from showing during loading
+        const result = await servicesRef.current.mapInteractionService.handleMapClick(
+          clickEvent, 
+          map, 
+          currentSliderDate,
+          { autoShow: false } // Prevent canvas from showing
+        );
+        
+        let value = result.data?.featureInfo || result.featureInfo || 'No Data';
+        const latlng = clickEvent.latlng;
+        
+        // Only show fallback message if truly no data (not a numeric value or message with instructions)
+        if (value === 'No Data' || value.includes('Click on colored areas')) {
+          const lat = latlng.lat.toFixed(5);
+          const lng = latlng.lng.toFixed(5);
+          value = `No data at (${lat}, ${lng}). Click on colored inundation areas.`;
+        }
+        
+        // Make sure bottom canvas is hidden
+        servicesRef.current.canvasManager.hide();
+        
+        // Create popup with specific class for styling
+        L.popup({ className: 'inundation-leaflet-popup' })
+          .setLatLng(latlng)
+          .setContent(createInundationPopupContent(value))
+          .openOn(map);
+        
+        console.log('🌊 Showing inundation popup:', value, 'at zoom:', currentZoom);
+        return; // Exit early - don't show canvas
+      }
+      
+      // Normal flow for non-inundation or low zoom: show bottom canvas
+      // Add temporary marker at click location
+      if (clickEvent.latlng) {
         // Ensure marker service is initialized with the map before use
         if (!servicesRef.current.markerService.mapInstance) {
           servicesRef.current.markerService.initialize(map);
@@ -104,24 +167,6 @@ export const useMapInteraction = ({
         map, 
         currentSliderDate
       );
-      
-      // For inundation layer when zoomed in, show popup instead of bottom canvas
-      if (shouldShowPopup) {
-        const value = result.data?.featureInfo || result.featureInfo || 'No Data';
-        const latlng = clickEvent.latlng;
-        
-        // Hide bottom canvas if it was previously open to avoid stale data lingering
-        servicesRef.current.canvasManager.hide();
-        
-        // Create popup with specific class for styling
-        L.popup({ className: 'inundation-leaflet-popup' })
-          .setLatLng(latlng)
-          .setContent(createInundationPopupContent(value))
-          .openOn(map);
-        
-        console.log('🌊 Showing inundation popup:', value, 'at zoom:', currentZoom);
-        return;
-      }
       
       // Handle loading state for WMS interactions (normal behavior)
       if (result.loadingData) {

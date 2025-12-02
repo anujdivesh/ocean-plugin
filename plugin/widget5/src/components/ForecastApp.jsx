@@ -123,12 +123,12 @@ const PEAK_PERIOD_METADATA = [
 ];
 
 const INUNDATION_METADATA = [
-  { min: -0.05, max: 0, label: 'Dry Ground', value: '≤ 0.0 m', description: 'No surface water present', color: '#f7fbff' },
-  { min: 0, max: 0.15, label: 'Minor Ponding', value: '0–0.15 m', description: 'Shallow nuisance water on low-lying surfaces', color: '#deebf7' },
-  { min: 0.15, max: 0.4, label: 'Shallow Flooding', value: '0.15–0.40 m', description: 'Curb-deep flooding across roads and properties', color: '#c6dbef' },
-  { min: 0.4, max: 0.8, label: 'Significant Flooding', value: '0.40–0.80 m', description: 'Knee-to-waist depth inundation impacting structures', color: '#6baed6' },
-  { min: 0.8, max: 1.2, label: 'Deep Flooding', value: '0.80–1.20 m', description: 'Substantial inundation with unsafe currents', color: '#3182bd' },
-  { min: 1.2, max: 1.6, label: 'Extreme Flooding', value: '≥ 1.20 m', description: 'Life-threatening inundation requiring evacuation', color: '#08519c' }
+  { min: -0.05, max: 0, label: 'Dry Ground', value: '≤ 0.0 m', description: 'No surface water present', color: '#00008f' },
+  { min: 0, max: 0.15, label: 'Minor Ponding', value: '0–0.15 m', description: 'Shallow nuisance water on low-lying surfaces', color: '#0000ff' },
+  { min: 0.15, max: 0.4, label: 'Shallow Flooding', value: '0.15–0.40 m', description: 'Curb-deep flooding across roads and properties', color: '#00ffff' },
+  { min: 0.4, max: 0.8, label: 'Significant Flooding', value: '0.40–0.80 m', description: 'Knee-to-waist depth inundation impacting structures', color: '#00ff00' },
+  { min: 0.8, max: 1.2, label: 'Deep Flooding', value: '0.80–1.20 m', description: 'Substantial inundation with unsafe currents', color: '#ffff00' },
+  { min: 1.2, max: 1.6, label: 'Extreme Flooding', value: '≥ 1.20 m', description: 'Life-threatening inundation requiring evacuation', color: '#ff0000' }
 ];
 
 const DIRECTION_METADATA = [
@@ -182,7 +182,7 @@ const ForecastApp = ({
     
     if (varLower.includes('hs')) {
       // DYNAMIC DATA RANGE - Updates with actual wave height data
-      // UPDATED: Using sequential Blues gradient (similar to inundation)
+      // Using Viridis gradient to match WMS layer (psu-viridis palette)
       const minVal = colorRange?.min ?? 0;
       const maxVal = Number.isFinite(dynamicMax) ? dynamicMax : (colorRange?.max ?? 4);
       const tickCount = 5;
@@ -191,8 +191,8 @@ const ForecastApp = ({
       );
       
       return {
-        // Sequential Blues gradient matching inundation layer
-        gradient: 'linear-gradient(to top, rgb(247, 251, 255), rgb(222, 235, 247), rgb(198, 219, 239), rgb(158, 202, 225), rgb(107, 174, 214), rgb(66, 146, 198), rgb(33, 113, 181), rgb(8, 81, 156), rgb(8, 48, 107))',
+        // Viridis gradient - matches the WMS psu-viridis palette used by the wave height layer
+        gradient: 'linear-gradient(to top, rgb(68, 1, 84), rgb(72, 40, 120), rgb(62, 73, 137), rgb(49, 104, 142), rgb(38, 130, 142), rgb(31, 158, 137), rgb(53, 183, 121), rgb(109, 205, 89), rgb(180, 222, 44), rgb(253, 231, 37))',
         min: minVal,
         max: maxVal,
         units: 'm',
@@ -233,14 +233,14 @@ const ForecastApp = ({
       };
     }
     
-    if (varLower.includes('inun')) {
+    if (varLower.includes('inun') || varLower.includes('h_max')) {
       // DYNAMIC DATA RANGE - Updates with actual inundation data
       const minVal = colorRange?.min ?? -0.05;
       const maxVal = colorRange?.max ?? 1.63;
       const ticks = [minVal, 0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal].map(v => Number(v.toFixed(2)));
       
       return {
-        gradient: 'linear-gradient(to top, rgb(247, 251, 255), rgb(222, 235, 247), rgb(198, 219, 239), rgb(158, 202, 225), rgb(107, 174, 214), rgb(66, 146, 198), rgb(33, 113, 181), rgb(8, 81, 156), rgb(8, 48, 107))',
+        gradient: 'linear-gradient(to top, rgb(0, 0, 143), rgb(0, 0, 255), rgb(0, 255, 255), rgb(0, 255, 0), rgb(255, 255, 0), rgb(255, 127, 0), rgb(255, 0, 0), rgb(127, 0, 0))',
         min: minVal,
         max: maxVal,
         units: 'm',
@@ -409,7 +409,7 @@ const ForecastApp = ({
       return PEAK_PERIOD_METADATA.map(range => ({ ...range }));
     }
 
-    if (variable.includes('inun') || variable.includes('flood')) {
+    if (variable.includes('inun') || variable.includes('flood') || variable.includes('h_max')) {
       return INUNDATION_METADATA.map(range => ({ ...range }));
     }
 

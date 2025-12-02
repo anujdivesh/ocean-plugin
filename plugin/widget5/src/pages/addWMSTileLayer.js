@@ -69,16 +69,17 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
         }
     }
 
-    // Handle raro_inun (Rarotonga inundation) layer configuration
-    if (targetLayerName.includes('raro_inun')) {
+    // Handle inundation layer configuration (both THREDDS H_max and legacy raro_inun)
+    if (targetLayerName.includes('H_max') || targetLayerName.includes('raro_inun')) {
         // Ensure proper color scale range for inundation data
         if (!finalOptions.colorscalerange) {
             finalOptions.colorscalerange = '-0.05,1.63';
-            console.log('Setting Rarotonga inundation color scale range: -0.05-1.63m');
+            console.log('🌊 Setting inundation color scale range: -0.05-1.63m');
         }
         // Ensure proper style for inundation visualization
         if (!finalOptions.styles) {
-            finalOptions.styles = 'default-scalar/seq-Blues';
+            finalOptions.styles = 'default-scalar/x-Sst';
+            console.log('🎨 Setting inundation style: x-Sst (jet colormap)');
         }
     }
 
@@ -115,8 +116,8 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
     
     // Helper function to determine layer type
     function getLayerType(layerName) {
-        // tpeak is a full forecast layer with continuous data coverage
-        if (layerName.includes('raro_inun')) return 'static';
+        // Inundation layers are static (no time dimension)
+        if (layerName.includes('H_max') || layerName.includes('raro_inun')) return 'static';
         return 'forecast'; // All forecast layers including tpeak should be treated as 'forecast'
     }
 
@@ -162,28 +163,44 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
             }
 
             // Only include parameters valid for GetFeatureInfo (exclude style-specific params)
+            // For THREDDS servers, use WMS 1.1.1 and XML format which returns values
+            const isTHREDDS = url.includes('thredds');
+            const infoFormat = isTHREDDS ? 'text/xml' : 'text/html';
+            const wmsVersion = isTHREDDS ? '1.1.1' : (wmsLayer.options.version || '1.3.0');
+            
             const params = {
                 request: 'GetFeatureInfo',
                 service: 'WMS',
-                crs: targetCRS,
                 styles: wmsLayer.options.styles,
                 transparent: wmsLayer.options.transparent,
-                version: wmsLayer.options.version || '1.3.0',
+                version: wmsVersion,
                 format: wmsLayer.options.format,
                 bbox: bbox,
                 height: Math.round(size.y),
                 width: Math.round(size.x),
                 layers: wmsLayer.options.layers,
                 query_layers: wmsLayer.options.layers,
-                info_format: 'text/html', // Request HTML format
+                info_format: infoFormat,
             };
+            
+            // Use appropriate CRS parameter based on WMS version
+            if (wmsVersion === '1.1.1') {
+                params.srs = targetCRS;
+            } else {
+                params.crs = targetCRS;
+            }
+            
+            // Add FEATURE_COUNT for THREDDS servers to get actual values
+            if (isTHREDDS) {
+                params.feature_count = 5;
+            }
 
             // Add time parameter if present (valid for both GetMap and GetFeatureInfo)
             if (wmsLayer.options.time) {
                 params.time = wmsLayer.options.time;
             }
 
-            // For WMS 1.3.0, use i/j instead of x/y
+            // For WMS 1.3.0, use i/j; for WMS 1.1.1, use x/y
             const xParam = params.version === '1.3.0' ? 'i' : 'x';
             const yParam = params.version === '1.3.0' ? 'j' : 'y';
             params[xParam] = Math.round(point.x);
@@ -229,20 +246,98 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
 
           $.ajax({
                 url: featureInfoUrl,
+                dataType: 'text', // Force text to handle both XML and JSON
                 success: function (data) {
                     let featureInfo = "No Data";
+                    console.log('🔍 GetFeatureInfo response type:', typeof data);
+                    console.log('🔍 GetFeatureInfo URL:', featureInfoUrl);
                     
-                   //  Try parsing as HTML table
-                    const doc = (new DOMParser()).parseFromString(data, "text/html");
-                    if (doc.body.innerHTML.trim().length > 0) {
-                        // Try parsing as HTML table
-                        const p = doc.getElementsByTagName('td');
-                        if (p.length > 5) {
-                            featureInfo = p[5] ? p[5].textContent.trim() : "No Data";
-                            const num = Number(featureInfo);
-                            if (!isNaN(num)) {
-                                featureInfo = num.toFixed(2);
+                    // Try parsing as JSON first (Coverage format from THREDDS)
+                    if (typeof data === 'object' || (typeof data === 'string' && data.trim().startsWith('{'))) {
+                        try {
+                            const jsonData = typeof data === 'string' ? JSON.parse(data) : data;
+                            console.log('📊 JSON Response:', jsonData);
+                            
+                            // Coverage JSON format: data.ranges[paramName].values
+                            if (jsonData.type === 'Coverage' && jsonData.ranges) {
+                                const paramNames = Object.keys(jsonData.ranges);
+                                if (paramNames.length > 0) {
+                                    const paramName = paramNames[0]; // Usually 'H_max'
+                                    const values = jsonData.ranges[paramName].values;
+                                    console.log('📈 Values array:', values);
+                                    
+                                    if (Array.isArray(values) && values.length > 0) {
+                                        // Find first non-null value
+                                        const value = values.find(v => v !== null && v !== undefined);
+                                        if (value !== null && value !== undefined && !isNaN(value)) {
+                                            featureInfo = Number(value).toFixed(2);
+                                            console.log('✅ Parsed value from JSON:', featureInfo);
+                                        }
+                                    }
+                                }
                             }
+                        } catch (jsonError) {
+                            console.log('JSON parsing failed, trying XML:', jsonError);
+                        }
+                    }
+                    
+                    // Try parsing as XML if JSON didn't work
+                    if (featureInfo === "No Data" && typeof data === 'string' && data.trim().startsWith('<')) {
+                        try {
+                            const parser = new DOMParser();
+                            const xmlDoc = parser.parseFromString(data, 'text/xml');
+                            
+                            console.log('📄 XML Response:', data.substring(0, 500));
+                            
+                            // THREDDS specific structure: <Feature><FeatureInfo><value>
+                            let valueNode = xmlDoc.querySelector('value');
+                            
+                            if (valueNode && valueNode.textContent) {
+                                const num = Number(valueNode.textContent.trim());
+                                if (!isNaN(num)) {
+                                    featureInfo = num.toFixed(2);
+                                    console.log('✅ Parsed value from XML:', featureInfo);
+                                }
+                            }
+                        } catch (xmlError) {
+                            console.error('XML parsing error:', xmlError);
+                        }
+                    }
+                    
+                    // If no value from XML, try parsing as HTML table
+                    if (featureInfo === "No Data") {
+                        const doc = (new DOMParser()).parseFromString(data, "text/html");
+                        if (doc.body.innerHTML.trim().length > 0) {
+                            // Try parsing as HTML table
+                            const p = doc.getElementsByTagName('td');
+                            if (p.length > 5) {
+                                featureInfo = p[5] ? p[5].textContent.trim() : "No Data";
+                                const num = Number(featureInfo);
+                                if (!isNaN(num)) {
+                                    featureInfo = num.toFixed(2);
+                                }
+                            } else if (p.length > 0) {
+                                // THREDDS might return different table structure
+                                // Try to find any td with a numeric value
+                                for (let i = 0; i < p.length; i++) {
+                                    const text = p[i].textContent.trim();
+                                    const num = Number(text);
+                                    if (!isNaN(num) && text !== '') {
+                                        featureInfo = num.toFixed(2);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // If still no data and this is a THREDDS server, show appropriate message
+                    if (featureInfo === "No Data" && url.includes('thredds')) {
+                        // Check if this is the inundation layer
+                        const isInundationLayer = wmsLayer.options.layers.includes('H_max') || 
+                                                 wmsLayer.options.layers.includes('inun');
+                        if (isInundationLayer) {
+                            featureInfo = "Click on colored areas for values";
                         }
                     }
 

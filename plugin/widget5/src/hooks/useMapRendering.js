@@ -177,7 +177,7 @@ export const useMapRendering = ({
         // Check if this layer should have time dimension
         const layerName = layer.wmsParams.layers || '';
         const isDirectionLayer = layerName.includes('dirm');
-        const isInundationLayer = layerName.includes('raro_inun'); // Static layer, no time dimension
+        const isInundationLayer = layerName.includes('raro_inun') || layerName.includes('H_max'); // Static layer, no time dimension
         
         // Skip time update for static/time-dimensionless layers
         if (!isDirectionLayer && !isInundationLayer) {
