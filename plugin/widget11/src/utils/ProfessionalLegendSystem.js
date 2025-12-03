@@ -12,7 +12,7 @@ class ProfessionalLegendSystem {
   /**
    * Generate professional wave height legend with adaptive parameters
    */
-  getWaveHeightLegendConfig(actualRange = "0.17,1.66", conditions = "normal") {
+  getWaveHeightLegendConfig(actualRange = "0,4", conditions = "normal") {
     const [min, max] = actualRange.split(',').map(Number);
     
     // Calculate optimal parameters based on actual data
