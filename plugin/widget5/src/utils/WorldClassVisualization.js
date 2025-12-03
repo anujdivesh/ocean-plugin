@@ -44,7 +44,8 @@ class WorldClassVisualization {
       "pi-yl-gn": "pi-yl-gn",     // Pink-Yellow-Green divergent
       
       // Sequential palettes for Cook Islands
-      "seq-Blues": "seq-Blues",   // Sequential Blues (used for wave height and inundation)
+      "seq-Blues": "seq-Blues",   // Sequential Blues (legacy)
+      "x-Sst": "x-Sst",           // X-SST palette (matches inundation styling)
       
       // Oceanographic specialist palettes
       ocean: "psu-jet",           // Traditional oceanographic
@@ -58,7 +59,7 @@ class WorldClassVisualization {
       winds: "spectral",          // Updated to Spectral for wave-related data
       
       // Wave-specific palettes (oceanographic standards)
-      waveHeight: "seq-Blues",    // UPDATED: Sequential Blues for wave height (matches inundation)
+      waveHeight: "x-Sst",        // UPDATED: X-SST palette for wave height (matches inundation)
       wavePeriod: "spectral",     // ENHANCED: Spectral divergent for superior period visualization
       waveDirection: "spectral"   // Directional data
   };
@@ -66,37 +67,36 @@ class WorldClassVisualization {
   // Advanced styling configurations
   static advancedConfigs = {
       significantWaveHeight: {
-        // Multi-threshold configuration for different sea states
-        // UPDATED: Using seq-Blues palette (similar to inundation) for visual consistency
+        // Multi-threshold configuration for different sea states using X-SST palette
         calm: {
           range: "0.17,1.66",      // Updated to actual Cook Islands data range
-          palette: "seq-Blues",    // UPDATED: Sequential Blues palette (matches inundation)
-          bands: 50,
+          palette: "x-Sst",        // UPDATED: X-SST palette (matches inundation)
+          bands: 250,
           opacity: 0.7,
           description: "Cook Islands wave conditions"
         },
         moderate: {
           range: "0.17,1.66",      // Updated to actual Cook Islands data range
-          palette: "seq-Blues",    // UPDATED: Sequential Blues palette (matches inundation)
-          bands: 100,
+          palette: "x-Sst",        // UPDATED: X-SST palette (matches inundation)
+          bands: 250,
           opacity: 0.8,
           description: "Cook Islands wave height - current conditions"
         },
         rough: {
           range: "0.17,1.66",      // Cook Islands actual range (not typically rough)
-          palette: "seq-Blues",    // UPDATED: Sequential Blues palette (matches inundation)
-          bands: 150,
+          palette: "x-Sst",        // UPDATED: X-SST palette (matches inundation)
+          bands: 250,
           description: "Cook Islands wave height - full range"
         },
         dangerous: {
           range: "0,15",
-          palette: "seq-Blues",    // UPDATED: Sequential Blues palette for consistency
-          bands: 200,
+          palette: "x-Sst",        // UPDATED: X-SST palette for consistency
+          bands: 250,
           description: "Dangerous seas - gale warning"
         },
         extreme: {
           range: "0,25",
-          palette: "seq-Blues",    // UPDATED: Sequential Blues palette for consistency
+          palette: "x-Sst",        // UPDATED: X-SST palette for consistency
           bands: 250,
           description: "Extreme seas - storm warning"
         }
@@ -157,8 +157,8 @@ class WorldClassVisualization {
 
     // Regional adjustments
     if (region === "tropical") {
-      // Tropical regions: enhance mid-range visibility
-      config = { ...config, bands: Math.min(config.bands + 50, 250) };
+      // Tropical regions: maintain high-resolution palette
+      config = { ...config, bands: 250 };
     } else if (region === "polar") {
       // Polar regions: focus on lower ranges
       config = { ...config, range: `0,${Math.min(parseFloat(config.range.split(',')[1]), 6)}` };
@@ -170,7 +170,8 @@ class WorldClassVisualization {
       numcolorbands: config.bands,
       belowmincolor: "transparent",
       abovemaxcolor: "extend",
-      opacity: config.opacity || 0.8
+      opacity: config.opacity || 0.8,
+      colorscaling: "linear"
     };
   }
 
@@ -220,7 +221,7 @@ class WorldClassVisualization {
       } else if (variable === 'tm02') {
         selectedPalette = "spectral"; // Use spectral for mean periods
       } else if (variable === 'hs') {
-        selectedPalette = "seq-Blues"; // UPDATED: Use seq-Blues for wave height (matches inundation)
+        selectedPalette = "x-Sst"; // UPDATED: Use X-SST for wave height (matches inundation)
       } else {
         selectedPalette = "plasma"; // Default for other variables
       }
@@ -266,6 +267,8 @@ class WorldClassVisualization {
     }
     
     const correctPalette = this.constructor.scientificPalettes[safePalette] || safePalette;
+    const requiresHighResolution = correctPalette === 'x-Sst';
+    const targetBandCount = requiresHighResolution ? '250' : '256';
     // Create legend URL with error handling for WMS server limitations
     const params = new URLSearchParams({
       REQUEST: 'GetLegendGraphic',
@@ -284,15 +287,22 @@ class WorldClassVisualization {
       params.append('WIDTH', width);
       params.append('HEIGHT', height);
       params.append('FORMAT', 'image/png');
+      if (requiresHighResolution) {
+        params.append('NUMCOLORBANDS', targetBandCount);
+        params.append('COLORSCALING', 'linear');
+      }
     } else {
       // For other PSU palettes, use full parameters
-      params.append('NUMCOLORBANDS', '256');
+      params.append('NUMCOLORBANDS', targetBandCount);
       params.append('COLORBARONLY', 'true');
       params.append('VERTICAL', 'true');
       params.append('WIDTH', width);
       params.append('HEIGHT', height);
       params.append('TRANSPARENT', 'true');
       params.append('FORMAT', 'image/png');
+      if (requiresHighResolution) {
+        params.append('COLORSCALING', 'linear');
+      }
     }
 
     return `${baseUrl}?${params.toString()}`;
@@ -322,6 +332,11 @@ class WorldClassVisualization {
       unit: unit
     });
 
+    if (safePalette === 'x-Sst') {
+      params.append('bands', '250');
+      params.append('scaling', 'linear');
+    }
+
     return `${baseUrl}?${params.toString()}`;
   }
 
@@ -340,7 +355,8 @@ class WorldClassVisualization {
       'inferno': 'inferno',
       
       // Sequential palettes for Cook Islands
-      'seq-Blues': 'blues',        // Sequential Blues (matches inundation)
+      'seq-Blues': 'blues',        // Sequential Blues (legacy)
+      'x-Sst': 'sst',              // X-SST palette (matches inundation)
       
       // ENHANCED: Divergent palettes for superior wave period visualization
       'div-Spectral': 'spectral',   // Full divergent spectrum
@@ -413,13 +429,14 @@ class WorldClassVisualization {
           ...this.getAdaptiveWaveHeightConfig(6.0, "tropical"),
           wmsUrl: "https://gem-ncwms-hpc.spc.int/ncWMS/wms",
           id: 1001,
-          legendUrl: this.getWorldClassLegendUrl("hs", "0.17,1.66", "m", "spectral"),
+          legendUrl: this.getWorldClassLegendUrl("hs", "0.17,1.66", "m", "x-Sst"),
           zIndex: 1,
           // Add additional config needed for capabilities
-          style: "default-scalar/psu-viridis",
+          style: "default-scalar/x-Sst",
           colorscalerange: "0.17,1.66",
-          numcolorbands: 256,
-          dataset: "cook_forecast"
+          numcolorbands: 250,
+          dataset: "cook_forecast",
+          colorscaling: "linear"
         },
         {
           value: "dirm", // THREDDS layer name (without dataset prefix)

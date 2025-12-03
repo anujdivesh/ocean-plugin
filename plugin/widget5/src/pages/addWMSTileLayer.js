@@ -81,6 +81,12 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
             finalOptions.styles = 'default-scalar/x-Sst';
             console.log('🎨 Setting inundation style: x-Sst (jet colormap)');
         }
+        if (!finalOptions.numcolorbands) {
+            finalOptions.numcolorbands = 250;
+        }
+        if (!finalOptions.colorscaling) {
+            finalOptions.colorscaling = 'linear';
+        }
     }
 
     // Clean up undefined values to prevent them from appearing in WMS requests

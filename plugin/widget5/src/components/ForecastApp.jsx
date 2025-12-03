@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './ForecastApp.css';
 import '../styles/MapMarker.css';
 import useMapInteraction from '../hooks/useMapInteraction';
@@ -21,31 +21,39 @@ import '../styles/fancyIcons.css';
 
 const EPSILON = 1e-6;
 
-// Data-driven sequential Blues color interpolation (matches seq-Blues palette on WMS server)
-// Color stops: #f7fbff -> #deebf7 -> #c6dbef -> #9ecae1 -> #6baed6 -> #4292c6 -> #2171b5 -> #08519c -> #08306b
-const BLUES_COLOR_STOPS = [
-  { threshold: 0.125, start: [247, 251, 255], end: [222, 235, 247] },
-  { threshold: 0.25,  start: [222, 235, 247], end: [198, 219, 239] },
-  { threshold: 0.375, start: [198, 219, 239], end: [158, 202, 225] },
-  { threshold: 0.5,   start: [158, 202, 225], end: [107, 174, 214] },
-  { threshold: 0.625, start: [107, 174, 214], end: [66, 146, 198] },
-  { threshold: 0.75,  start: [66, 146, 198],  end: [33, 113, 181] },
-  { threshold: 0.875, start: [33, 113, 181],  end: [8, 81, 156] },
-  { threshold: 1.0,   start: [8, 81, 156],   end: [8, 48, 107] }
+// Data-driven X-SST color interpolation (matches x-Sst palette on WMS server)
+const X_SST_GRADIENT_RGB = [
+  [49, 54, 149],
+  [69, 117, 180],
+  [116, 173, 209],
+  [171, 217, 233],
+  [224, 243, 248],
+  [254, 224, 144],
+  [253, 174, 97],
+  [244, 109, 67],
+  [215, 48, 39]
 ];
 
+const X_SST_GRADIENT = `linear-gradient(to top, ${X_SST_GRADIENT_RGB.map(rgb => `rgb(${rgb.join(', ')})`).join(', ')})`;
+
+const X_SST_COLOR_STOPS = X_SST_GRADIENT_RGB.slice(0, -1).map((color, index) => ({
+  threshold: (index + 1) / (X_SST_GRADIENT_RGB.length - 1),
+  start: color,
+  end: X_SST_GRADIENT_RGB[index + 1]
+}));
+
 /**
- * Generate sequential Blues colors (matching inundation layer)
+ * Generate X-SST colors (matching inundation/wave height palette)
  * Uses data-driven approach with color stop arrays for maintainability
  */
-const generateBluesColor = (value, min, max) => {
+const generateXSstColor = (value, min, max) => {
   const normalized = Math.max(0, Math.min(1, (value - min) / (max - min)));
   
   // Find the correct color stop interval
   let prevThreshold = 0;
-  for (let i = 0; i < BLUES_COLOR_STOPS.length; i++) {
-    const stop = BLUES_COLOR_STOPS[i];
-    if (normalized <= stop.threshold || i === BLUES_COLOR_STOPS.length - 1) {
+  for (let i = 0; i < X_SST_COLOR_STOPS.length; i++) {
+    const stop = X_SST_COLOR_STOPS[i];
+    if (normalized <= stop.threshold || i === X_SST_COLOR_STOPS.length - 1) {
       // Guard against division by zero when thresholds are equal
       const range = stop.threshold - prevThreshold;
       const t = range > 0 ? (normalized - prevThreshold) / range : 0;
@@ -57,7 +65,8 @@ const generateBluesColor = (value, min, max) => {
     prevThreshold = stop.threshold;
   }
   // Fallback (should not reach here)
-  return `rgb(8, 48, 107)`;
+  const lastColor = X_SST_GRADIENT_RGB[X_SST_GRADIENT_RGB.length - 1];
+  return `rgb(${lastColor.join(', ')})`;
 };
 
 /**
@@ -168,9 +177,42 @@ const ForecastApp = ({
 }) => {
   const [metadataVisible, setMetadataVisible] = useState(false); // Metadata panel state
   const [detailedMetadataVisible, setDetailedMetadataVisible] = useState(false); // Detailed metadata state
+  const lastZoomedLayerRef = useRef(null);
   const selectedLayer = useMemo(() => {
     return ALL_LAYERS.find(l => l.value === selectedWaveForecast) || null;
   }, [ALL_LAYERS, selectedWaveForecast]);
+
+  const zoomToLayerBounds = useCallback((layerValue, { force = false } = {}) => {
+    if (!layerValue || !mapInstance?.current) {
+      return;
+    }
+    const layerBounds = getLayerBounds(layerValue);
+    if (!layerBounds) {
+      return;
+    }
+    if (!force && lastZoomedLayerRef.current === layerValue) {
+      return;
+    }
+
+    const map = mapInstance.current;
+    map.fitBounds(
+      [
+        layerBounds.southWest,
+        layerBounds.northEast
+      ],
+      {
+        padding: [20, 20],
+        maxZoom: 14,
+        animate: true
+      }
+    );
+    lastZoomedLayerRef.current = layerValue;
+    console.log('🏝️ Zoomed to layer bounds for:', layerValue);
+  }, [mapInstance]);
+
+  useEffect(() => {
+    zoomToLayerBounds(selectedWaveForecast);
+  }, [selectedWaveForecast, zoomToLayerBounds]);
 
   // Dynamic marine legend configuration - RESPONDS TO ACTUAL DATA
   const getLegendConfig = (variable, layerData) => {
@@ -182,7 +224,7 @@ const ForecastApp = ({
     
     if (varLower.includes('hs')) {
       // DYNAMIC DATA RANGE - Updates with actual wave height data
-      // Using Viridis gradient to match WMS layer (psu-viridis palette)
+      // Using X-SST gradient to match WMS layer (default-scalar/x-Sst palette)
       const minVal = colorRange?.min ?? 0;
       const maxVal = Number.isFinite(dynamicMax) ? dynamicMax : (colorRange?.max ?? 4);
       const tickCount = 5;
@@ -191,8 +233,8 @@ const ForecastApp = ({
       );
       
       return {
-        // Viridis gradient - matches the WMS psu-viridis palette used by the wave height layer
-        gradient: 'linear-gradient(to top, rgb(68, 1, 84), rgb(72, 40, 120), rgb(62, 73, 137), rgb(49, 104, 142), rgb(38, 130, 142), rgb(31, 158, 137), rgb(53, 183, 121), rgb(109, 205, 89), rgb(180, 222, 44), rgb(253, 231, 37))',
+        // X-SST gradient - matches the WMS palette used by the wave height layer
+        gradient: X_SST_GRADIENT,
         min: minVal,
         max: maxVal,
         units: 'm',
@@ -240,7 +282,7 @@ const ForecastApp = ({
       const ticks = [minVal, 0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal].map(v => Number(v.toFixed(2)));
       
       return {
-        gradient: 'linear-gradient(to top, rgb(0, 0, 143), rgb(0, 0, 255), rgb(0, 255, 255), rgb(0, 255, 0), rgb(255, 255, 0), rgb(255, 127, 0), rgb(255, 0, 0), rgb(127, 0, 0))',
+        gradient: X_SST_GRADIENT,
         min: minVal,
         max: maxVal,
         units: 'm',
@@ -340,7 +382,7 @@ const ForecastApp = ({
         : dataMax;
       
       // Create appropriate number of color stops based on data range
-      // Uses generateBluesColor from top-level scope
+      // Uses generateXSstColor from top-level scope
       const numStops = Math.max(2, Math.min(5, Math.ceil(effectiveMax * 2))); // Adaptive number of stops
       const colorStops = [];
       
@@ -348,7 +390,7 @@ const ForecastApp = ({
         const value = dataMin + (effectiveMax - dataMin) * (i / (numStops - 1));
         colorStops.push({
           value: value,
-          color: generateBluesColor(value, dataMin, effectiveMax)
+          color: generateXSstColor(value, dataMin, effectiveMax)
         });
       }
 
@@ -552,22 +594,7 @@ const ForecastApp = ({
   const handleVariableChange = (layerValue) => {
     setSelectedWaveForecast(layerValue);
     setActiveLayers(prev => ({ ...prev, waveForecast: true }));
-    
-    // Auto-zoom to layer bounds when selecting layers with defined bounds
-    const layerBounds = getLayerBounds(layerValue);
-    if (layerBounds && mapInstance?.current) {
-      const map = mapInstance.current;
-      if (typeof map.fitBounds === 'function') {
-        map.fitBounds([
-          layerBounds.southWest,
-          layerBounds.northEast
-        ], {
-          padding: [20, 20],
-          maxZoom: 14
-        });
-        console.log('🏝️ Zoomed to layer bounds for:', layerValue);
-      }
-    }
+    zoomToLayerBounds(layerValue, { force: true });
   };
 
   const handlePlayToggle = () => {

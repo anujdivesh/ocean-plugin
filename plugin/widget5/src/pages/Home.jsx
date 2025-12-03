@@ -40,12 +40,13 @@ const getRarotongaInundationLegendUrl = () => {
   const params = new URLSearchParams({
     REQUEST: 'GetLegendGraphic',
     LAYER: 'H_max',
-    PALETTE: 'seq-Blues',
+    PALETTE: 'x-Sst',
     COLORBARONLY: 'true',
     WIDTH: width,
     HEIGHT: height,
     COLORSCALERANGE: '-0.05,1.63',
-    NUMCOLORBANDS: '220',
+    NUMCOLORBANDS: '250',
+    COLORSCALING: 'linear',
     VERTICAL: 'true',
     TRANSPARENT: 'true',
     FORMAT: 'image/png',
@@ -68,9 +69,10 @@ const variableConfigMap = {
   inun: () => ({
     style: "default-scalar/x-Sst",
     colorscalerange: "-0.05,1.63",
-    numcolorbands: 220,
+    numcolorbands: 250,
     belowmincolor: "transparent",
-    abovemaxcolor: "extend"
+    abovemaxcolor: "extend",
+    colorscaling: "linear"
   }),
   dirm: () => ({ style: "black-arrow", colorscalerange: "" }),
 };
