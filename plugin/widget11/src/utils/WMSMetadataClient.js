@@ -108,7 +108,7 @@ export async function fetchLayerMinMax(wmsUrl, layerName, time, bounds) {
   // For Cook Islands forecast layers, use known optimal ranges instead of server requests
   // This avoids 400 errors from servers that don't support GetMetadata
   const knownRanges = {
-    'cook_forecast/hs': { min: 0, max: 4 },             // Wave height range (updated max from 2 to 4)
+    'cook_forecast/hs': { min: 0, max: 4 },             // Wave height range (updated max from 1.66 to 4)
     'cook_forecast/tm02': { min: 0, max: 20 },          // Wave period range
     'cook_forecast/tpeak': { min: 9, max: 14 },         // Peak period optimized range
     'cook_forecast/dirm': { min: 0, max: 360 },         // Direction range
