@@ -18,7 +18,7 @@
   position: absolute;
   top: -100px;
   left: 0;
-  z-index: 10000;
+  z-index: var(--z-tooltips, 3000); /* Accessibility links should be top layer */
 }
 
 .skip-link {
@@ -48,7 +48,7 @@
   display: flex;
   flex-direction: column;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1000;
+  z-index: var(--z-map-overlay, 1000);
   overflow: hidden;
 }
 
@@ -71,7 +71,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1001;
+  z-index: var(--z-map-overlay, 1000);
   transition: all 0.3s ease;
   font-size: 18px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -124,7 +124,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  z-index: 1000;
+  z-index: var(--z-map-overlay, 1000);
 }
 
 .fab {
@@ -256,7 +256,7 @@
   width: 100vw;
   max-width: 350px;
   transform: translateX(-100%);
-  z-index: 2000;
+  z-index: var(--z-modals, 2000);
   box-shadow: 2px 0 20px rgba(0, 0, 0, 0.5);
 }
 
@@ -269,7 +269,7 @@
   top: 20px;
   left: 20px;
   right: auto;
-  z-index: 2001;
+  z-index: var(--z-modals, 2000);
 }
 
 .responsive-layout.mobile .floating-actions {

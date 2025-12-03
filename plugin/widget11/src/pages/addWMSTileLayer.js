@@ -62,9 +62,9 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
             finalOptions.colorscalerange = '-0.05,1.63';
             console.log('Setting Tuvalu inundation color scale range: -0.05-1.63m');
         }
-        // Ensure proper style for inundation visualization
+        // Use x-Sst (jet) color palette for inundation visualization, similar to CK model
         if (!finalOptions.styles) {
-            finalOptions.styles = 'default-scalar/seq-Blues';
+            finalOptions.styles = 'default-scalar/x-Sst';
         }
     }    // Clean up undefined values to prevent them from appearing in WMS requests
     Object.keys(finalOptions).forEach(key => {
@@ -72,6 +72,12 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
             delete finalOptions[key];
         }
     });
+
+    // Add cache-busting parameter to force fresh tiles (especially for style changes)
+    // This helps bypass Cloudflare CDN caching of old tiles with different styles
+    if (!finalOptions._v) {
+        finalOptions._v = Date.now();
+    }
 
     // For ncWMS servers, we need to create a custom WMS layer that handles the coordinate transformation
     let wmsLayer;

@@ -1,5 +1,8 @@
 /* Inundation Points Styling */
 
+/* Note: Z-index CSS custom properties are defined in z-index-system.css
+   which is imported globally in App.jsx. No need to duplicate here. */
+
 /* Custom marker icons */
 .inundation-point-icon {
   background: transparent !important;
@@ -9,7 +12,7 @@
 
 .inundation-point-icon:hover {
   transform: scale(1.2);
-  z-index: 1000 !important;
+  z-index: var(--z-map-overlay, 1000) !important;
 }
 
 /* Popup container */
@@ -31,34 +34,56 @@
 
 /* Popup content */
 .inundation-popup h3 {
-  font-size: 16px;
-  font-weight: 600;
   margin: 0 0 12px 0;
-  padding-bottom: 8px;
+  padding: 10px 14px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(4, 15, 30, 0.85);
+  border: 1px solid rgba(112, 216, 255, 0.25);
+  border-radius: 14px;
   border-bottom: 2px solid currentColor;
 }
 
 .inundation-popup > div {
   margin-bottom: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(144, 224, 239, 0.35);
+  background: rgba(2, 6, 28, 0.98);
+  color: rgba(255, 255, 255, 0.92);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-weight: 600;
+  box-shadow: 0 12px 24px rgba(3, 10, 30, 0.35);
+  transition: all 0.2s ease;
+}
+
+.inundation-popup > div:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(0, 212, 255, 0.18);
 }
 
 .inundation-popup strong {
-  font-weight: 600;
-  color: #333;
+  color: inherit;
 }
 
 /* Image styling */
 .inundation-popup img {
   display: block;
   margin-top: 8px;
-  border: 1px solid #e0e0e0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
+  border: 1px solid rgba(144, 224, 239, 0.6);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #00d4ff 0%, #51e2f5 40%, #6ef0ff 100%);
+  box-shadow: 0 18px 40px rgba(0, 212, 255, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .inundation-popup img:hover {
   transform: scale(1.02);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 25px 55px rgba(3, 10, 30, 0.65);
 }
 
 /* Risk level badges */
@@ -92,21 +117,33 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(33, 150, 243, 0.1);
-  border-radius: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   font-size: 14px;
-  color: #1976D2;
+  color: rgba(255, 255, 255, 0.9);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.inundation-loading:hover {
+  background: rgba(0, 212, 255, 0.12);
+  transform: translateY(-1px);
 }
 
 .inundation-loading-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid #1976D2;
-  border-top-color: transparent;
-  border-radius: 50%;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.08));
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 12px;
+  font-size: 12px;
+  color: #fef3c7;
   animation: spin 0.8s linear infinite;
 }
-
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -126,124 +163,173 @@
 
 /* Stats panel */
 .inundation-stats {
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  background: rgba(4, 10, 28, 0.9);
+  border-radius: 18px;
+  border: 1px solid rgba(112, 216, 255, 0.25);
+  box-shadow: 0 22px 48px rgba(3, 10, 30, 0.55);
   font-size: 13px;
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .inundation-stats-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   margin-bottom: 8px;
-  color: #333;
+  color: #f7fbff;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
 }
 
 .inundation-stats-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 0;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .inundation-stats-label {
   display: flex;
   align-items: center;
   gap: 6px;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 600;
 }
 
 .inundation-stats-color {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 8px currentColor;
 }
 
 .inundation-stats-value {
-  font-weight: 600;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 /* Accessibility-friendly warnings */
-.inundation-warning-note {
+.inundation-warning-note,
+.inundation-warning-card {
   margin-top: 6px;
-  padding: 8px;
-  background: #FFF4D6;
-  border: 1px solid #DA8B24;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #6A3700;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(245, 158, 11, 0.08));
+  color: #fef3c7;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 16px 32px rgba(50, 20, 0, 0.35);
 }
 
 .inundation-warning-card {
-  padding: 10px;
-  background: #FFE8C7;
-  border: 1px solid #C47311;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #5A2C00;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
-/* Control container */
+/* ========================================
+   Control Container - Layout System
+   ======================================== */
 .inundation-control {
-  position: absolute;
-  z-index: 1000;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
+/* Floating map overlay positions */
 .inundation-control-topright {
+  position: absolute;
   top: 120px;
   right: 10px;
+  z-index: var(--z-map-overlay);
 }
 
 .inundation-control-topleft {
+  position: absolute;
   top: 120px;
   left: 10px;
+  z-index: var(--z-map-overlay);
 }
 
 .inundation-control-bottomright {
+  position: absolute;
   bottom: 40px;
   right: 10px;
+  z-index: var(--z-map-overlay);
 }
 
 .inundation-control-bottomleft {
+  position: absolute;
   bottom: 40px;
   left: 10px;
+  z-index: var(--z-map-overlay);
+}
+
+/* Inline position (stacked below Island Selector in sidebar) */
+.inundation-control-inline {
+  position: relative;
+  z-index: var(--z-sidebar);  /* Lower than dropdowns to prevent overlap */
+  top: auto;
+  right: auto;
+  left: auto;
+  bottom: auto;
+  margin-top: 0.5rem;  /* Spacing from island selector */
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(112, 216, 255, 0.3);
+  background: radial-gradient(circle at 0% 0%, rgba(0, 212, 255, 0.18), transparent 55%), rgba(6, 18, 54, 0.9);
+  box-shadow: 0 25px 55px rgba(3, 10, 30, 0.65);
+  backdrop-filter: blur(18px);
+  gap: 14px;
 }
 
 /* Toggle button */
 .inundation-toggle {
-  padding: 8px 12px;
-  background: white;
-  border: 2px solid rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(112, 216, 255, 0.35);
+  border-radius: 999px;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 15px 35px rgba(3, 10, 30, 0.45);
   white-space: nowrap;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .inundation-toggle:hover:not(:disabled) {
-  background: #f5f5f5;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+  border-color: rgba(112, 216, 255, 0.65);
+  box-shadow: 0 18px 42px rgba(0, 212, 255, 0.25);
 }
 
 .inundation-toggle:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .inundation-toggle.active {
-  background: #2196F3;
-  color: white;
-  border-color: #2196F3;
+  background: linear-gradient(135deg, #00d4ff 0%, #51e2f5 40%, #6ef0ff 100%);
+  color: #02152b;
+  border-color: rgba(144, 224, 239, 0.8);
+  box-shadow: 0 22px 48px rgba(0, 212, 255, 0.45);
+}
+
+.inundation-toggle svg {
+  stroke: currentColor;
+  transition: stroke 0.2s ease;
 }
 
 .inundation-toggle-icon {
@@ -255,12 +341,14 @@
 .inundation-controls-expanded {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: white;
-  padding: 12px;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  min-width: 200px;
+  gap: 14px;
+  background: rgba(4, 10, 28, 0.85);
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(112, 216, 255, 0.2);
+  box-shadow: 0 22px 48px rgba(3, 10, 30, 0.55);
+  min-width: 220px;
+  backdrop-filter: blur(14px);
 }
 
 /* Atoll selector */
@@ -271,18 +359,36 @@
 }
 
 .inundation-atoll-selector label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #666;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(112, 216, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
 }
 
 .inundation-atoll-selector select {
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(112, 216, 255, 0.35);
+  border-radius: 14px;
   font-size: 13px;
-  background: white;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.92);
   cursor: pointer;
+  max-height: 280px;  /* Prevent long lists from extending off-screen */
+  overflow-y: auto;   /* Enable scrolling for long lists */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.inundation-atoll-selector select option {
+  color: #02152b;
+  background: #f7fbff;
+}
+
+.inundation-atoll-selector select:focus {
+  outline: none;
+  border-color: rgba(144, 224, 239, 0.85);
+  background: rgba(0, 212, 255, 0.08);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
 }
 
 .inundation-atoll-selector select:disabled {
@@ -290,24 +396,35 @@
   cursor: not-allowed;
 }
 
+/* Note: Dropdown menu styles are defined globally in z-index-system.css.
+   Removed duplicate .dropdown-menu selector to maintain single source of truth. */
+
 /* Stats toggle button */
 .inundation-stats-toggle {
-  padding: 6px 10px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(112, 216, 255, 0.25);
+  border-radius: 999px;
   cursor: pointer;
   font-size: 12px;
-  font-weight: 500;
-  transition: background 0.2s ease;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: rgba(255, 255, 255, 0.9);
+  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
 .inundation-stats-toggle:hover {
-  background: #e0e0e0;
+  background: rgba(0, 212, 255, 0.12);
+  border-color: rgba(144, 224, 239, 0.5);
+  transform: translateY(-1px);
 }
 
-/* Responsive design */
+/* ========================================
+   Responsive Design - Mobile/Tablet
+   ======================================== */
 @media (max-width: 768px) {
+  /* Popup adjustments */
   .inundation-popup-container .leaflet-popup-content {
     min-width: 200px;
     margin: 12px;
@@ -321,40 +438,63 @@
     font-size: 13px;
   }
   
-  .inundation-toggle {
+  /* Control positioning adjustments */
+  .inundation-control-topright,
+  .inundation-control-topleft {
     top: 80px;
+  }
+  
+  .inundation-toggle {
     padding: 6px 10px;
     font-size: 13px;
   }
+  
+  /* Inline controls in sidebar */
+  .inundation-control-inline {
+    max-width: 100%;
+  }
+  
+  .inundation-controls-expanded {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  /* Note: .dropdown-menu responsive styles are defined globally in z-index-system.css */
+  
+  .inundation-atoll-selector select {
+    max-height: 200px;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  .inundation-controls-expanded {
+    padding: 8px;
+  }
+  
+  /* Note: .dropdown-menu responsive styles are defined globally in z-index-system.css */
 }
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .inundation-popup-container .leaflet-popup-content-wrapper {
-    background-color: #2c2c2c;
-    color: #e0e0e0;
+    background-color: rgba(4, 10, 28, 0.92);
+    color: #f7fbff;
   }
   
-  .inundation-popup strong {
-    color: #ffffff;
-  }
-  
+  .inundation-control-inline,
+  .inundation-controls-expanded,
   .inundation-stats {
-    background: rgba(44, 44, 44, 0.95);
-    color: #e0e0e0;
+    background: rgba(2, 6, 18, 0.92);
   }
   
-  .inundation-stats-title {
-    color: #ffffff;
+  .inundation-stats-title,
+  .inundation-popup strong {
+    color: #f7fbff;
   }
   
   .inundation-toggle {
-    background: #2c2c2c;
-    color: #e0e0e0;
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-  
-  .inundation-toggle:hover {
-    background: #3c3c3c;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.92);
   }
 }

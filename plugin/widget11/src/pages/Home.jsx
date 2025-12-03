@@ -11,10 +11,13 @@ import LegendCleanup from "../components/LegendCleanup";
 import TuvaluConfig from "../config/TuvaluConfig";
 import IslandSelector from "../components/IslandSelector";
 import IslandComparisonDashboard from "../components/IslandComparisonDashboard";
+import InundationControl from "../components/InundationControl";
+import useInundationPoints from "../hooks/useInundationPoints";
 import logger from "../utils/logger";
 import IslandWaveStats from "../utils/IslandWaveStats";
 import vectorArrowOptimizer from "../services/VectorArrowOptimizer";
 import waveDirectionDataService from "../services/WaveDirectionDataService";
+import "../styles/MultiIslandControls.css";
 
 // Initialize world-class visualization system
 const worldClassViz = new WorldClassVisualization();
@@ -78,7 +81,8 @@ const variableConfigMap = {
     abovemaxcolor: "extend"
   }),
   inun: () => ({
-    style: "default-scalar/seq-Blues",
+    // Use x-Sst (jet) color palette for inundation maps, similar to CK model
+    style: "default-scalar/x-Sst",
     colorscalerange: "-0.05,1.63",
     numcolorbands: 220,
     belowmincolor: "transparent",
@@ -227,7 +231,9 @@ function TuvaluForecast() {
             id: 1001,
             legendUrl: hsLegendUrl,
             zIndex: 1,
-            numcolorbands: isIslandScale ? Math.max(hsConfig.numcolorbands || 200, 240) : hsConfig.numcolorbands,
+            // Respect configured bands; remove auto-bump at island scale
+            // numcolorbands: isIslandScale ? Math.max(hsConfig.numcolorbands || 200, 240) : hsConfig.numcolorbands,
+            numcolorbands: hsConfig.numcolorbands,
             belowmincolor: "transparent",
             abovemaxcolor: "extend",
             opacity: hsConfig.opacity ?? 0.85
@@ -262,7 +268,9 @@ function TuvaluForecast() {
         id: 4,
         wmsUrl: wmsUrl,
         legendUrl: tmLegendUrl,
-        numcolorbands: isIslandScale ? Math.max(tmConfig.numcolorbands || 200, 240) : tmConfig.numcolorbands,
+        // Respect configured bands; remove auto-bump at island scale
+        // numcolorbands: isIslandScale ? Math.max(tmConfig.numcolorbands || 200, 240) : tmConfig.numcolorbands,
+        numcolorbands: tmConfig.numcolorbands,
         belowmincolor: "transparent",
         abovemaxcolor: "extend",
         opacity: tmConfig.opacity ?? 0.85,
@@ -319,6 +327,13 @@ function TuvaluForecast() {
     minIndex,
   } = useForecast(tuvaluConfig);
 
+  // Initialize inundation points service in Home.jsx for inline layout.
+  // Set debugMode based on environment: enabled in development, disabled in production.
+  const inundationPoints = useInundationPoints(mapInstance, {
+    debugMode: process.env.NODE_ENV === 'development',
+    defaultVisible: false
+  });
+
   // Debug: Track state changes
   useEffect(() => {
     logger.debug('HOME', 'BottomCanvas state changed', {
@@ -327,8 +342,26 @@ function TuvaluForecast() {
     });
   }, [showBottomCanvas, bottomCanvasData]);
 
-  // Handle island selection
+  // Handle island selection - now handles both whole domain (isWholeDomain=true) and specific islands
   const handleIslandChange = (island) => {
+    if (island?.isWholeDomain) {
+      // Tuvalu whole domain selected - clear selected island to use national scale
+      logger.info('ISLAND', 'Tuvalu whole domain selected');
+      setSelectedIsland(null);
+      setAutoDetectedIsland(null); // Clear auto-detection to ensure national-scale layers are used
+      
+      // Zoom to whole Tuvalu bounds
+      const map = mapInstance?.current;
+      if (map && typeof map.fitBounds === 'function') {
+        try {
+          map.fitBounds(bounds);
+        } catch (error) {
+          logger.error('MAP', 'Failed to fit bounds for Tuvalu', { error });
+        }
+      }
+      return;
+    }
+    
     logger.island(island.name, 'Island selected');
     setSelectedIsland(island);
     
@@ -629,24 +662,16 @@ function TuvaluForecast() {
     <div style={widgetContainerStyle}>
       <ModernHeader />
       
-      {/* World-Class Multi-Island Controls */}
-      <div style={{
-        position: 'absolute',
-        top: '80px',
-        left: '20px',
-        zIndex: 1000,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        padding: '15px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-        maxWidth: '400px'
-      }}>
-        <IslandSelector 
-          onIslandChange={handleIslandChange}
-          onComparisonChange={handleComparisonChange}
-          currentIsland={selectedIsland?.name}
-          persistIslandSelection={persistIslandSelection}
-          onPersistToggle={setPersistIslandSelection}
+      {/* World-Class Inundation Control Panel (Island Selector moved into controls panel) */}
+      <div className="multi-island-controls-panel">
+        <InundationControl
+          loadPoints={inundationPoints.loadPoints}
+          isVisible={inundationPoints.isVisible}
+          onToggle={inundationPoints.toggleVisibility}
+          stats={inundationPoints.stats}
+          isLoading={inundationPoints.isLoading}
+          error={inundationPoints.error}
+          position="inline"
         />
       </div>
 
@@ -656,7 +681,7 @@ function TuvaluForecast() {
           position: 'absolute',
           top: '20px',
           right: '20px',
-          zIndex: 997,
+          zIndex: 'var(--z-sidebar, 10)',  /* Use sidebar z-index to avoid blocking map overlays */
           backgroundColor: 'var(--color-surface)',
           borderRadius: '8px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
@@ -740,7 +765,7 @@ function TuvaluForecast() {
           position: 'absolute',
           top: '20px',
           right: '20px',
-          zIndex: 997,
+          zIndex: 'var(--z-sidebar, 10)',  /* Use sidebar z-index to avoid blocking map overlays */
           backgroundColor: 'var(--color-surface)',
           borderRadius: '8px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
@@ -777,9 +802,9 @@ function TuvaluForecast() {
       {showComparison && (
         <div style={{
           position: 'absolute',
-          top: '80px',
+          top: '140px', /* Align with multi-island controls vertical offset */
           right: '20px',
-          zIndex: 999,
+          zIndex: 'var(--z-sidebar, 10)',  /* Use sidebar z-index to avoid blocking map overlays */
           maxWidth: '800px',
           maxHeight: 'calc(100vh - 100px)',
           overflow: 'auto'
@@ -818,6 +843,16 @@ function TuvaluForecast() {
         setShowBottomCanvas={setShowBottomCanvas}
         isUpdatingVisualization={isUpdatingVisualization}
         minIndex={minIndex}
+        islandSelector={(
+          <IslandSelector 
+            onIslandChange={handleIslandChange}
+            onComparisonChange={handleComparisonChange}
+            currentIsland={selectedIsland?.name}
+            persistIslandSelection={persistIslandSelection}
+            onPersistToggle={setPersistIslandSelection}
+            variant="compact"
+          />
+        )}
 
       />
 

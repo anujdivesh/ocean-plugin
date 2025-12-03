@@ -42,6 +42,7 @@ class WorldClassVisualization {
       "psu-turbo": "psu-turbo",   // Google Turbo (improved rainbow)
       "br-bg": "br-bg",           // Brown-Blue-Green divergent
       "pi-yl-gn": "pi-yl-gn",     // Pink-Yellow-Green divergent
+      "x-Sst": "x-Sst",           // SST-style palette for wave heights (CK model style)
       
       // Oceanographic specialist palettes
       ocean: "psu-jet",           // Traditional oceanographic
@@ -55,7 +56,7 @@ class WorldClassVisualization {
       winds: "spectral",          // Updated to Spectral for wave-related data
       
       // Wave-specific palettes (oceanographic standards)
-      waveHeight: "psu-viridis",   // Perceptually uniform for wave height
+      waveHeight: "x-Sst",        // SST-style palette for wave height (similar to CK model)
       wavePeriod: "spectral",      // ENHANCED: Spectral divergent for superior period visualization
       waveDirection: "spectral"    // Directional data
   };
@@ -64,37 +65,38 @@ class WorldClassVisualization {
   static advancedConfigs = {
       significantWaveHeight: {
         // Tuned ranges for Tuvalu and similar tropical archipelagos
+        // Using x-Sst palette (similar to CK model) for better wave height visualization
         calm: {
           range: "0,1.5",
-          palette: "psu-viridis",
+          palette: "x-Sst",
           bands: 80,
           opacity: 0.72,
           description: "Calm to slight seas"
         },
         moderate: {
           range: "0,3.0",
-          palette: "psu-viridis",
+          palette: "x-Sst",
           bands: 140,
           opacity: 0.8,
           description: "Moderate seas commonly observed around Tuvalu"
         },
         rough: {
           range: "0,6.0",
-          palette: "psu-viridis",
+          palette: "x-Sst",
           bands: 200,
           opacity: 0.85,
           description: "Rough to very rough swell events"
         },
         dangerous: {
           range: "0,10.0",
-          palette: "psu-inferno",
+          palette: "x-Sst",
           bands: 240,
           opacity: 0.9,
           description: "Dangerous gale/TC driven seas"
         },
         extreme: {
           range: "0,15.0",
-          palette: "psu-jet",
+          palette: "x-Sst",
           bands: 260,
           opacity: 0.92,
           description: "Extreme storm conditions"
@@ -248,7 +250,7 @@ class WorldClassVisualization {
       } else if (variable === 'tm02') {
         selectedPalette = "spectral"; // Use spectral for mean periods
       } else if (variable === 'hs') {
-        selectedPalette = "viridis"; // Use viridis for wave height
+        selectedPalette = "x-Sst"; // Use x-Sst (jet-style) for wave height
       } else {
         selectedPalette = "plasma"; // Default for other variables
       }

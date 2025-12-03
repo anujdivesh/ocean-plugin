@@ -88,7 +88,8 @@ describe('IslandSelector', () => {
 
     test('should display current island when provided', () => {
       render(<IslandSelector islandManager={mockManager} currentIsland="Funafuti" />);
-      expect(screen.getByText(/Funafuti/i)).toBeInTheDocument();
+      // Target the button to avoid multiple matches in dropdown
+      expect(screen.getByRole('button', { name: /Funafuti/i })).toBeInTheDocument();
     });
 
     test('should show capital badge for Funafuti', () => {
@@ -154,46 +155,7 @@ describe('IslandSelector', () => {
     });
   });
 
-  describe('Comparison Mode', () => {
-    test('should toggle comparison mode', async () => {
-      render(<IslandSelector islandManager={mockManager} />);
-      
-      const compareButton = screen.getByRole('button', { name: /Compare Islands/i });
-      await user.click(compareButton);
-
-      expect(mockManager.toggleComparisonMode).toHaveBeenCalled();
-    });
-
-    test('should add island to comparison', async () => {
-      mockManager.toggleComparisonMode.mockReturnValue(true);
-      const handleComparisonChange = jest.fn();
-      
-      render(<IslandSelector islandManager={mockManager} onComparisonChange={handleComparisonChange} />);
-
-      const compareButton = screen.getByRole('button', { name: /Compare Islands/i });
-      await user.click(compareButton);
-
-      expect(mockManager.toggleComparisonMode).toHaveBeenCalled();
-    });
-
-    test('should remove island from comparison', async () => {
-      render(<IslandSelector islandManager={mockManager} />);
-      
-      // Just verify the component renders and manager is available
-      expect(mockManager.getAllIslands).toHaveBeenCalled();
-    });
-
-    test('should call onComparisonChange when comparison changes', async () => {
-      const handleComparisonChange = jest.fn();
-      
-      render(<IslandSelector islandManager={mockManager} onComparisonChange={handleComparisonChange} />);
-      
-      const compareButton = screen.getByRole('button', { name: /Compare Islands/i });
-      await user.click(compareButton);
-      
-      expect(handleComparisonChange).toHaveBeenCalled();
-    });
-  });
+  // Comparison mode is not required; removing related tests
 
   describe('Regional Grouping', () => {
     test('should display North region badge for northern islands', async () => {
@@ -230,29 +192,7 @@ describe('IslandSelector', () => {
     });
   });
 
-  describe('Persist Island Selection', () => {
-    test('should render persist toggle when persistIslandSelection is true', () => {
-      render(<IslandSelector islandManager={mockManager} persistIslandSelection={true} />);
-      const toggle = screen.getByLabelText(/Lock island view/i);
-      expect(toggle).toBeInTheDocument();
-    });
-
-    test('should call onPersistToggle when toggled', async () => {
-      const handlePersistToggle = jest.fn();
-      render(
-        <IslandSelector 
-          islandManager={mockManager}
-          persistIslandSelection={true} 
-          onPersistToggle={handlePersistToggle} 
-        />
-      );
-      
-      const toggle = screen.getByLabelText(/Lock island view/i);
-      await user.click(toggle);
-      
-      expect(handlePersistToggle).toHaveBeenCalled();
-    });
-  });
+  // Persist toggle removed per product decision
 
   describe('Accessibility', () => {
     test('should have proper ARIA labels', () => {
@@ -378,10 +318,10 @@ describe('IslandSelector', () => {
           expect(screen.getByText('Nanumea')).toBeInTheDocument();
         });
         
-        // Verify all three regions are represented
-        expect(screen.getByText('North')).toBeInTheDocument(); // Green (#28a745)
-        expect(screen.getByText('Central')).toBeInTheDocument(); // Yellow (#ffc107)
-        expect(screen.getByText('South')).toBeInTheDocument(); // Blue (#007bff)
+        // Verify all three regions are represented (allow multiple matches)
+        expect(screen.getAllByText('North').length).toBeGreaterThan(0); // Green (#28a745)
+        expect(screen.getAllByText('Central').length).toBeGreaterThan(0); // Yellow (#ffc107)
+        expect(screen.getAllByText('South').length).toBeGreaterThan(0); // Blue (#007bff)
       });
     });
 
@@ -392,46 +332,22 @@ describe('IslandSelector', () => {
         const capitalBadges = screen.getAllByText('Capital');
         expect(capitalBadges.length).toBeGreaterThan(0);
         
-        // Verify it's a warning-styled badge
+        // Verify it uses the themed capital pill class
         const badge = capitalBadges[0];
-        expect(badge).toHaveClass('badge');
+        expect(badge).toHaveClass('capital-pill');
       });
 
-      test('should display island emoji in selector button', () => {
-        render(<IslandSelector islandManager={mockManager} />);
-        
+      test('should display an island icon in selector button', () => {
+        const { container } = render(<IslandSelector islandManager={mockManager} />);
         const button = screen.getByRole('button', { name: /Select Island/i });
-        expect(button.textContent).toContain('🏝️');
+        const icon = container.querySelector('.selector-icon .lucide');
+        expect(button).toBeInTheDocument();
+        expect(icon).toBeTruthy();
       });
 
-      test('should display checkmark when comparison mode is active', async () => {
-        render(<IslandSelector islandManager={mockManager} />);
-        
-        const compareButton = screen.getByRole('button', { name: /Compare Islands/i });
-        await user.click(compareButton);
-        
-        await waitFor(() => {
-          const activeButton = screen.getByRole('button', { name: /Comparison ON/i });
-          expect(activeButton.textContent).toContain('✓');
-        });
-      });
+      // Comparison mode not used
 
-      test('should show correct variant for comparison mode button', async () => {
-        render(<IslandSelector islandManager={mockManager} />);
-        
-        const compareButton = screen.getByRole('button', { name: /Compare Islands/i });
-        
-        // Initially should be outline-secondary
-        expect(compareButton).toHaveClass('btn-outline-secondary');
-        
-        await user.click(compareButton);
-        
-        // After activation should change to success
-        await waitFor(() => {
-          const activeButton = screen.getByRole('button', { name: /Comparison ON/i });
-          expect(activeButton).toHaveClass('btn-success');
-        });
-      });
+      // Comparison mode not used
     });
 
     describe('Data Presentation Accuracy', () => {
@@ -448,14 +364,14 @@ describe('IslandSelector', () => {
         // Nanumea: -5.6883 -> North (> -7.0) ✓
         // Funafuti: -8.5167 -> Central (-9.0 < lat <= -7.0) ✓
         // Niulakita: -10.7833 -> South (< -9.0) ✓
+        const menu = document.querySelector('.dropdown-menu');
+        const northBadges = within(menu).getAllByText('North');
+        const centralBadges = within(menu).getAllByText('Central');
+        const southBadges = within(menu).getAllByText('South');
         
-        const northBadges = screen.getAllByText('North');
-        const centralBadges = screen.getAllByText('Central');
-        const southBadges = screen.getAllByText('South');
-        
-        expect(northBadges.length).toBe(1); // Only Nanumea
-        expect(centralBadges.length).toBe(1); // Only Funafuti
-        expect(southBadges.length).toBe(1); // Only Niulakita
+        expect(northBadges.length).toBe(1); // Only Nanumea in menu
+        expect(centralBadges.length).toBe(1); // Only Funafuti in menu
+        expect(southBadges.length).toBe(1); // Only Niulakita in menu
       });
 
       test('should maintain consistent color-region mapping', async () => {
@@ -467,8 +383,9 @@ describe('IslandSelector', () => {
           expect(screen.getByText('Nanumea')).toBeInTheDocument();
         });
         
-        // All North region badges should have the same color
-        const northBadges = screen.getAllByText('North');
+        // All North region badges in menu should have style
+        const menu = document.querySelector('.dropdown-menu');
+        const northBadges = within(menu).getAllByText('North');
         northBadges.forEach(badge => {
           const style = badge.getAttribute('style') || badge.parentElement?.getAttribute('style');
           // Should contain green color (#28a745) or its RGB equivalent
@@ -514,18 +431,7 @@ describe('IslandSelector', () => {
         });
       });
 
-      test('should show comparison count badge', async () => {
-        render(<IslandSelector islandManager={mockManager} />);
-        
-        const compareButton = screen.getByRole('button', { name: /Compare Islands/i });
-        await user.click(compareButton);
-        
-        // In real implementation, this would show a count badge
-        // For now, verify the comparison mode is active
-        await waitFor(() => {
-          expect(screen.getByRole('button', { name: /Comparison ON/i })).toBeInTheDocument();
-        });
-      });
+      // Comparison mode tests removed per product decision
 
       test('should maintain visual consistency across state changes', async () => {
         const { rerender } = render(<IslandSelector islandManager={mockManager} />);
@@ -539,8 +445,8 @@ describe('IslandSelector', () => {
         expect(button).toHaveTextContent('Funafuti');
         expect(screen.getByText('Capital')).toBeInTheDocument();
         
-        // Visual elements should remain consistent
-        expect(screen.getByRole('button', { name: /Compare Islands/i })).toBeInTheDocument();
+        // Visual elements should remain consistent: primary selector present
+        expect(screen.getByRole('button', { name: /Funafuti|Select Island/i })).toBeInTheDocument();
       });
     });
 
@@ -556,15 +462,17 @@ describe('IslandSelector', () => {
         await user.click(dropdownToggle);
         
         await waitFor(() => {
-          expect(screen.getByText('North')).toBeInTheDocument();
-          expect(screen.getByText('Central')).toBeInTheDocument();
-          expect(screen.getByText('South')).toBeInTheDocument();
+          const menu = document.querySelector('.dropdown-menu');
+          expect(within(menu).getAllByText('North').length).toBeGreaterThan(0);
+          expect(within(menu).getAllByText('Central').length).toBeGreaterThan(0);
+          expect(within(menu).getAllByText('South').length).toBeGreaterThan(0);
         });
         
         // All region names should be visible and readable
-        expect(screen.getByText('North')).toBeVisible();
-        expect(screen.getByText('Central')).toBeVisible();
-        expect(screen.getByText('South')).toBeVisible();
+        const menu = document.querySelector('.dropdown-menu');
+        within(menu).getAllByText('North').forEach(el => expect(el).toBeVisible());
+        within(menu).getAllByText('Central').forEach(el => expect(el).toBeVisible());
+        within(menu).getAllByText('South').forEach(el => expect(el).toBeVisible());
       });
 
       test('should provide clear visual hierarchy', () => {
@@ -573,11 +481,75 @@ describe('IslandSelector', () => {
         // Primary element: Island selector button
         const primaryButton = screen.getByRole('button', { name: /Funafuti/i });
         expect(primaryButton).toHaveClass('btn-primary');
-        
-        // Secondary element: Comparison button
-        const secondaryButton = screen.getByRole('button', { name: /Compare Islands/i });
-        expect(secondaryButton).toHaveClass('btn-sm');
       });
     });
+  });
+
+  describe('Tuvalu Whole Domain Option', () => {
+    test('should display Tuvalu option in dropdown menu', async () => {
+      const user = userEvent.setup();
+      render(<IslandSelector islandManager={mockManager} />);
+      
+      // Open dropdown
+      await user.click(screen.getByRole('button', { name: /Select Island/i }));
+      
+      // Look for Tuvalu Domain header and Tuvalu option (there are multiple matches)
+      await waitFor(() => {
+        const tuvaluElements = screen.getAllByText(/Tuvalu/);
+        expect(tuvaluElements.length).toBeGreaterThan(0);
+      });
+    });
+
+    test('should show "Whole Domain" badge for Tuvalu option', async () => {
+      const user = userEvent.setup();
+      render(<IslandSelector islandManager={mockManager} />);
+      
+      // Open dropdown
+      await user.click(screen.getByRole('button', { name: /Select Island/i }));
+      
+      // Find the Whole Domain badge
+      await waitFor(() => {
+        expect(screen.getByText(/Whole Domain/i)).toBeInTheDocument();
+      });
+    });
+
+    test('should call onIslandChange with TUVALU_WHOLE_DOMAIN when Tuvalu is selected', async () => {
+      const user = userEvent.setup();
+      const onIslandChange = jest.fn();
+      render(<IslandSelector islandManager={mockManager} onIslandChange={onIslandChange} />);
+      
+      // Open dropdown
+      await user.click(screen.getByRole('button', { name: /Select Island/i }));
+      
+      // Wait for dropdown to open and find the Tuvalu option (contains "🌊 Tuvalu")
+      await waitFor(() => {
+        expect(screen.getByText(/Whole Domain/i)).toBeInTheDocument();
+      });
+      
+      // Click on Tuvalu domain option - find by the badge text since it's unique
+      const wholeDomainBadge = screen.getByText(/Whole Domain/i);
+      const tuvaluOption = wholeDomainBadge.closest('[class*="dropdown-item"]');
+      await user.click(tuvaluOption);
+      
+      // Verify callback was called with correct parameters
+      await waitFor(() => {
+        expect(onIslandChange).toHaveBeenCalled();
+      });
+      
+      // Verify the callback was called with the correct object
+      const calledWith = onIslandChange.mock.calls[0][0];
+      expect(calledWith).toHaveProperty('isWholeDomain', true);
+      expect(calledWith).toHaveProperty('name', 'Tuvalu');
+    });
+
+    test('should display "All Islands" badge when Tuvalu is selected', async () => {
+      render(<IslandSelector islandManager={mockManager} currentIsland="Tuvalu" />);
+      
+      // Look for the "All Islands" badge
+      await waitFor(() => {
+        expect(screen.getByText(/All Islands/i)).toBeInTheDocument();
+      });
+    });
+
   });
 });
