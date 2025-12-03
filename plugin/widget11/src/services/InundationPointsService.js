@@ -12,6 +12,9 @@
 import L from 'leaflet';
 
 class InundationPointsService {
+  // Pattern to extract atoll name from image URL (e.g., "Nanumaga" from "Nanumaga_t_3_forecast.png")
+  static ATOLL_NAME_PATTERN = /\/([A-Za-z]+)_t_\d+_forecast\.png/;
+
   constructor(options = {}) {
     this.debugMode = options.debugMode || false;
     this.mapInstance = null;
@@ -41,6 +44,183 @@ class InundationPointsService {
     this.cacheExpiry = 5 * 60 * 1000; // 5 minutes
     
     this.log('InundationPointsService initialized');
+    
+    // Create image modal for expand functionality
+    this.setupImageModal();
+  }
+  
+  /**
+   * Create and setup the image modal for expand functionality
+   */
+  setupImageModal() {
+    // Only create if not already exists
+    if (document.getElementById('inundation-image-modal')) return;
+    
+    const modal = document.createElement('div');
+    modal.id = 'inundation-image-modal';
+    modal.style.cssText = `
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(0, 0, 0, 0.9);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    `;
+    
+    modal.innerHTML = `
+      <div style="position: relative; max-width: 95vw; max-height: 95vh;">
+        <button 
+          onclick="InundationPointsService.closeImageModal()"
+          style="
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            color: #333;
+            font-size: 24px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+          "
+          title="Close (Esc)"
+        >&times;</button>
+        <img 
+          id="inundation-modal-img" 
+          src="" 
+          alt="Expanded Forecast"
+          style="
+            max-width: 100%;
+            max-height: 95vh;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+          "
+        />
+      </div>
+    `;
+    
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        InundationPointsService.closeImageModal();
+      }
+    });
+    
+    document.body.appendChild(modal);
+    
+    // Close on Esc key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        InundationPointsService.closeImageModal();
+      }
+    });
+  }
+  
+  /**
+   * Extract atoll name from image URL
+   * @param {string} url - The image URL (e.g., "http://...Nanumaga_t_3_forecast.png")
+   * @returns {string|null} - The atoll name or null if not found
+   */
+  extractAtollNameFromUrl(url) {
+    if (!url) return null;
+    const match = url.match(InundationPointsService.ATOLL_NAME_PATTERN);
+    return match ? match[1] : null;
+  }
+  
+  /**
+   * Show image in fullscreen modal
+   * Uses DOM methods to avoid XSS vulnerabilities from string concatenation
+   * @param {string} imageSrc - The source URL of the image to display
+   */
+  static showImageModal(imageSrc) {
+    // Validate and sanitize the image URL
+    if (!imageSrc || typeof imageSrc !== 'string') return;
+    
+    // Get or create modal
+    let modal = document.getElementById('inundation-image-modal');
+    if (!modal) {
+      // Modal should already exist from setupImageModal, but create if missing
+      modal = document.createElement('div');
+      modal.id = 'inundation-image-modal';
+      modal.style.cssText = `
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(0, 0, 0, 0.9);
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      `;
+      modal.innerHTML = `
+        <div style="position: relative; max-width: 95vw; max-height: 95vh;">
+          <button 
+            onclick="InundationPointsService.closeImageModal()"
+            style="
+              position: absolute;
+              top: -40px;
+              right: 0;
+              background: rgba(255,255,255,0.9);
+              border: none;
+              color: #333;
+              font-size: 24px;
+              width: 36px;
+              height: 36px;
+              border-radius: 50%;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              z-index: 10001;
+            "
+            title="Close (Esc)"
+          >&times;</button>
+          <img 
+            id="inundation-modal-img" 
+            src="" 
+            alt="Expanded Forecast"
+            style="
+              max-width: 100%;
+              max-height: 95vh;
+              border-radius: 8px;
+              box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            "
+          />
+        </div>
+      `;
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          InundationPointsService.closeImageModal();
+        }
+      });
+      document.body.appendChild(modal);
+    }
+    
+    // Set image source and show modal
+    const img = modal.querySelector('#inundation-modal-img') || modal.querySelector('img');
+    if (img) {
+      img.src = imageSrc;
+    }
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
+  }
+  
+  /**
+   * Close the image modal
+   */
+  static closeImageModal() {
+    const modal = document.getElementById('inundation-image-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = ''; // Restore scrolling
+    }
   }
   
   /**
@@ -249,8 +429,24 @@ class InundationPointsService {
     const inundationValue = point.max_inundation || point.inundation;
     const riskLevel = this.getRiskLevel(hazardLevel || inundationValue || 0);
     
-    // Determine location name
-    const locationName = point.station_name || point.location || point.name || `Point ${point.index || ''}`;
+    // Determine location name - avoid showing "unknown" or "Point" when no proper name available
+    // Extract atoll name from image URL if available
+    let locationName = point.station_name || point.location || point.name;
+    
+    // Filter out "unknown" strings (case insensitive)
+    if (locationName && locationName.toLowerCase() === 'unknown') {
+      locationName = null;
+    }
+    
+    // Try to extract from URL if no valid name
+    if (!locationName) {
+      locationName = this.extractAtollNameFromUrl(point.primary_image_url);
+    }
+    
+    // Final fallback to "Inundation Forecast Point"
+    if (!locationName) {
+      locationName = 'Inundation Forecast Point';
+    }
     
     let content = `
       <div class="inundation-popup">
@@ -288,13 +484,26 @@ class InundationPointsService {
     }
     
     if (imageUrl) {
+      // Expandable image - click to view full size in modal
       content += `
         <div style="margin-top: 12px;">
-          <img src="${imageUrl}" 
-               alt="Inundation Forecast" 
-               style="width: 100%; max-width: 400px; height: auto; border-radius: 4px; cursor: pointer;"
-               onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
-          />
+          <div 
+            style="position: relative; cursor: pointer;"
+            onclick="InundationPointsService.showImageModal('${imageUrl}')"
+            title="Click to expand image"
+          >
+            <img src="${imageUrl}" 
+                 alt="Inundation Forecast" 
+                 class="inundation-forecast-img"
+                 style="width: 100%; max-width: 600px; height: auto; border-radius: 4px; transition: opacity 0.2s, transform 0.2s;"
+                 onmouseover="this.style.opacity='0.9'; this.style.transform='scale(0.98)'"
+                 onmouseout="this.style.opacity='1'; this.style.transform='scale(1)'"
+                 onerror="this.parentElement.style.display='none'; this.parentElement.nextElementSibling.style.display='block';"
+            />
+            <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+              🔍 Click to expand
+            </div>
+          </div>
           <div style="display: none; padding: 10px; background: #ffebee; border-radius: 4px; color: #c62828;">
             Image not available
           </div>
@@ -312,7 +521,23 @@ class InundationPointsService {
    */
   createMultiPointPopupContent(points) {
     const firstPoint = points[0];
-    const locationName = firstPoint.station_name || firstPoint.location || firstPoint.name || 'Location';
+    // Determine location name - avoid showing "unknown"
+    let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name;
+    
+    // Filter out "unknown" strings (case insensitive)
+    if (locationName && locationName.toLowerCase() === 'unknown') {
+      locationName = null;
+    }
+    
+    // Try to extract from URL if no valid name
+    if (!locationName) {
+      locationName = this.extractAtollNameFromUrl(firstPoint.primary_image_url);
+    }
+    
+    // Final fallback
+    if (!locationName) {
+      locationName = 'Inundation Forecast Points';
+    }
     
     let content = `
       <div class="inundation-popup">
@@ -331,7 +556,7 @@ class InundationPointsService {
       content += `
         <div style="margin-bottom: 12px; padding: 10px; background: #f5f5f5; border-radius: 4px; border-left: 4px solid ${riskLevel.color};">
           <div style="margin-bottom: 6px;">
-            <strong>Point ${index + 1}:</strong> 
+            <strong>Forecast ${index + 1}:</strong> 
             <span style="color: ${riskLevel.color}; font-weight: bold;">${hazardLevel || riskLevel.label}</span>
           </div>
       `;
@@ -348,9 +573,13 @@ class InundationPointsService {
         const imageUrl = `${this.imageBaseUrl}${filename}`;
         content += `
           <div style="margin-top: 8px;">
-            <a href="${imageUrl}" target="_blank" style="color: #1976D2; text-decoration: none; font-size: 12px;">
-              📊 View Forecast Image
-            </a>
+            <img src="${imageUrl}" 
+                 alt="Inundation Forecast ${index + 1}" 
+                 style="width: 100%; max-width: 400px; height: auto; border-radius: 4px; cursor: zoom-in; margin-bottom: 4px;"
+                 onclick="InundationPointsService.showImageModal(this.src)"
+                 onerror="this.style.display='none';"
+            />
+            <div style="font-size: 11px; color: #666; text-align: center;">🔍 Click image to expand</div>
           </div>
         `;
       }
@@ -497,7 +726,23 @@ class InundationPointsService {
         
         // Create marker with the highest risk level
         const firstPoint = points[0];
-        const locationName = firstPoint.station_name || firstPoint.location || firstPoint.name || `Point ${firstPoint.index || ''}`;
+        // Extract location name - avoid showing "unknown"
+        let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name;
+        
+        // Filter out "unknown" strings (case insensitive)
+        if (locationName && locationName.toLowerCase() === 'unknown') {
+          locationName = null;
+        }
+        
+        // Try to extract from URL if no valid name
+        if (!locationName) {
+          locationName = this.extractAtollNameFromUrl(firstPoint.primary_image_url);
+        }
+        
+        // Final fallback
+        if (!locationName) {
+          locationName = 'Inundation Forecast Point';
+        }
         
         const marker = L.marker([lat, lng], {
           icon: this.createPointIcon(highestRiskLevel),
@@ -510,8 +755,9 @@ class InundationPointsService {
           ? this.createMultiPointPopupContent(points)
           : this.createPopupContent(firstPoint);
           
+        // Increased maxWidth to 650 to accommodate larger images
         marker.bindPopup(popupContent, {
-          maxWidth: 450,
+          maxWidth: 650,
           className: 'inundation-popup-container'
         });
         
@@ -650,6 +896,12 @@ class InundationPointsService {
       console.log('[InundationPointsService]', ...args);
     }
   }
+}
+
+// Make the class available globally for onclick handlers in dynamically generated HTML
+// This is necessary because inline onclick handlers cannot access ES module exports
+if (typeof window !== 'undefined') {
+  window.InundationPointsService = InundationPointsService;
 }
 
 export default InundationPointsService;

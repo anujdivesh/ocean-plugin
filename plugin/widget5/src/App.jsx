@@ -9,7 +9,6 @@ import TokenError from './components/TokenError';
 import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator';
 
 function App() {
-  // Authentication enabled for production
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorType, setErrorType] = useState(null);
@@ -17,23 +16,19 @@ function App() {
   const [validCountries, setValidCountries] = useState(['COK']); // Cook Islands by default
 
   useEffect(() => {
-    // Authentication enabled
+    // Authentication enabled for widget5
     const initializeApp = async () => {
       console.log('Initializing app with token and country validation...');
-      
-      // Initialize console error suppressor for known WMS server issues
       initConsoleErrorSuppressor();
-      
-      // Check if token exists in URL first
       const token = extractTokenFromURL('token');
-      
+
       if (!token) {
         console.log('No token found in URL');
         setErrorType('no_token');
         setIsLoading(false);
         return;
       }
-      
+
       try {
         const validationResult = await validateTokenOnLoad(
           () => {
@@ -47,20 +42,18 @@ function App() {
           },
           () => {
             console.log('Country validation failed - page should not load');
-            // Country validation failed, so we should not show the app
             setIsAuthenticated(false);
             setErrorType('invalid_country');
           }
         );
-        
-        // Store widget data and valid countries if available
+
         if (validationResult.widgetData) {
           setWidgetData(validationResult.widgetData);
         }
         if (validationResult.validCountries) {
           setValidCountries(validationResult.validCountries);
         }
-        
+
         console.log('Validation result:', validationResult);
         setIsLoading(false);
       } catch (error) {
@@ -73,7 +66,6 @@ function App() {
     initializeApp();
   }, []);
 
-  // Show loading state while validating token
   if (isLoading) {
     return (
       <div style={{

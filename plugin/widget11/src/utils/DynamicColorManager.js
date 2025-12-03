@@ -115,34 +115,63 @@ export class DynamicColorManager {
   /**
    * Generate ncWMS style configuration for wave height
    */
-  getWaveHeightStyle(range = "0,4", variant = "viridis-normal") {
+  getWaveHeightStyle(range = "0,4", variant = "x-sst-normal") {
     // eslint-disable-next-line no-unused-vars
     const [min, max] = range.split(',').map(Number);
     
     const styleConfigs = {
+      "x-sst-calm": {
+        style: "default-scalar/x-Sst", // x-Sst (jet) - perfect for calm conditions
+        numcolorbands: 400,
+        belowmincolor: "transparent",
+        abovemaxcolor: "extend",
+        colorscalerange: range
+      },
+      "x-sst-normal": {
+        style: "default-scalar/x-Sst", // x-Sst (jet) - standard oceanographic palette
+        numcolorbands: 300,
+        belowmincolor: "transparent", 
+        abovemaxcolor: "extend",
+        colorscalerange: range
+      },
+      "x-sst-storm": {
+        style: "default-scalar/x-Sst", // x-Sst (jet) - good for dynamic conditions
+        numcolorbands: 250,
+        belowmincolor: "transparent",
+        abovemaxcolor: "#ff0000",
+        colorscalerange: range
+      },
+      "x-sst-extreme": {
+        style: "default-scalar/x-Sst", // x-Sst (jet) - perfect for extreme conditions
+        numcolorbands: 200,
+        belowmincolor: "transparent",
+        abovemaxcolor: "#ff0000",
+        colorscalerange: range
+      },
+      // Legacy variants for backward compatibility
       "viridis-calm": {
-        style: "default-scalar/psu-viridis", // Viridis - perfect for calm conditions
+        style: "default-scalar/x-Sst",
         numcolorbands: 400,
         belowmincolor: "transparent",
         abovemaxcolor: "extend",
         colorscalerange: range
       },
       "viridis-normal": {
-        style: "default-scalar/psu-viridis", // Viridis - standard scientific palette
+        style: "default-scalar/x-Sst",
         numcolorbands: 300,
         belowmincolor: "transparent", 
         abovemaxcolor: "extend",
         colorscalerange: range
       },
       "viridis-storm": {
-        style: "default-scalar/psu-plasma", // Plasma - good for dynamic conditions
+        style: "default-scalar/x-Sst",
         numcolorbands: 250,
         belowmincolor: "transparent",
         abovemaxcolor: "#ff0000",
         colorscalerange: range
       },
       "viridis-extreme": {
-        style: "default-scalar/psu-inferno", // Inferno - perfect for extreme conditions
+        style: "default-scalar/x-Sst",
         numcolorbands: 200,
         belowmincolor: "transparent",
         abovemaxcolor: "#ff0000",
@@ -150,7 +179,7 @@ export class DynamicColorManager {
       }
     };
 
-    return styleConfigs[variant] || styleConfigs["viridis-normal"];
+    return styleConfigs[variant] || styleConfigs["x-sst-normal"];
   }
 
   /**

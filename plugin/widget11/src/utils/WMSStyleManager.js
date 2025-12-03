@@ -22,28 +22,31 @@ export const WMSColorPalettes = {
   OCCAM: 'default-scalar/occam',
   YLGNBU: 'default-scalar/seq-YlGnBu',
   
+  // SST-style jet color palette (matching CK model)
+  X_SST: 'default-scalar/x-Sst',
+  
   // Default fallback
   DEFAULT: 'default-scalar/default'
 };
 
 export const WMSStylePresets = {
   WAVE_HEIGHT: {
-    style: WMSColorPalettes.VIRIDIS,
-    numcolorbands: 256, // Continuous like QGIS (max resolution)
+    style: WMSColorPalettes.X_SST,
+    numcolorbands: 20, // Match working endpoint for Hs
     belowmincolor: 'transparent',
     abovemaxcolor: 'extend',
     interpolation: 'linear', // Linear interpolation like your QGIS example
     mode: 'continuous', // Continuous classification
-    description: 'Viridis palette - perceptually uniform ramp for wave height',
-    // Rounded, perceptually uniform color mapping (heights in meters) - Bright Viridis
+    description: 'x-Sst (jet) palette for wave height - matching CK model style',
+    // x-Sst color mapping (heights in meters) - Jet-style rainbow
     colorMapping: {
-      0: 'rgb(13, 8, 135)',    // Calm seas (0–1 m) - Deep blue
-      1: 'rgb(70, 3, 159)',    // Slight (1–2 m) - Purple  
-      2: 'rgb(114, 1, 168)',   // Moderate (2–4 m) - Blue-purple
-      4: 'rgb(31, 158, 137)',  // Rough (4–6 m) - Teal
-      6: 'rgb(53, 183, 121)',  // Very Rough (6–9 m) - Green
-      9: 'rgb(181, 222, 43)',  // High (9–14 m) - Yellow-green
-      14: 'rgb(240, 249, 33)'  // Extreme (14+ m) - Bright yellow
+      0: 'rgb(0, 0, 143)',     // Calm seas (0–1 m) - Deep blue
+      1: 'rgb(0, 0, 255)',     // Slight (1–2 m) - Blue  
+      2: 'rgb(0, 255, 255)',   // Moderate (2–4 m) - Cyan
+      4: 'rgb(0, 255, 0)',     // Rough (4–6 m) - Green
+      6: 'rgb(255, 255, 0)',   // Very Rough (6–9 m) - Yellow
+      9: 'rgb(255, 127, 0)',   // High (9–14 m) - Orange
+      14: 'rgb(255, 0, 0)'     // Extreme (14+ m) - Red
     }
   },
   
@@ -64,11 +67,11 @@ export const WMSStylePresets = {
   },
   
   INUNDATION: {
-    style: WMSColorPalettes.BLUES,
+    style: WMSColorPalettes.X_SST,
     numcolorbands: 220,
     belowmincolor: 'transparent',
     abovemaxcolor: 'extend',
-    description: 'Sequential blues palette for inundation depth visualisation'
+    description: 'x-Sst (jet) palette for inundation depth visualisation, matching CK model style'
   },
   
   WAVE_ENERGY: {
@@ -103,6 +106,207 @@ export class WMSStyleManager {
   }
 
   /**
+   * Update number of color bands for a given data type preset
+   * @param {string} dataType - e.g., 'hs', 'tpeak', 'inun'
+   * @param {number} bands - integer > 2
+   */
+  setNumColorBands(dataType, bands) {
+    const n = Number(bands);
+    if (!Number.isFinite(n) || n < 2) return;
+    const preset = this.getPresetForDataType(dataType || 'hs');
+    if (preset) {
+      preset.numcolorbands = Math.round(n);
+      this.notifyListeners();
+    }
+  }
+
+  /**
+   * Get current number of bands for a given data type preset
+   * @param {string} dataType
+   * @returns {number}
+   */
+  getNumColorBands(dataType) {
+    const preset = this.getPresetForDataType(dataType || 'hs');
+    return preset?.numcolorbands ?? 256;
+  }
+
+  /**
+   * Convert a color mapping object into sorted stops
+   * @param {Object} colorMapping
+   * @returns {Array<{value:number,color:string}>}
+   */
+  getColorStops(colorMapping = {}) {
+    return Object.keys(colorMapping)
+      .map(value => ({
+        value: Number(value),
+        color: colorMapping[value]
+      }))
+      .filter(stop => Number.isFinite(stop.value) && typeof stop.color === 'string')
+      .sort((a, b) => a.value - b.value);
+  }
+
+  /**
+   * Get the representative color for a numeric value
+   * @param {Object} colorMapping
+   * @param {number} value
+   * @returns {string}
+   */
+  getColorForValue(colorMapping = {}, value = 0) {
+    const stops = this.getColorStops(colorMapping);
+    if (!stops.length) {
+      return '#ffffff';
+    }
+    if (!Number.isFinite(value)) {
+      return stops[stops.length - 1].color;
+    }
+    for (const stop of stops) {
+      if (value <= stop.value + Number.EPSILON) {
+        return stop.color;
+      }
+    }
+    return stops[stops.length - 1].color;
+  }
+
+  /**
+   * Build a CSS linear-gradient string from a color mapping
+   * @param {Object} colorMapping
+   * @param {number} min
+   * @param {number} max
+   * @param {string} direction
+   * @returns {string}
+   */
+  buildCssGradientFromMapping(colorMapping = {}, min = 0, max = 1, direction = 'to top', options = {}) {
+    const gradientStops = this.getGradientStops(colorMapping, min, max, options);
+    if (!gradientStops.length) {
+      return '';
+    }
+    return `linear-gradient(${direction}, ${gradientStops.join(', ')})`;
+  }
+
+  /**
+   * Get gradient stops array for custom rendering
+   */
+  getGradientStops(colorMapping = {}, min = 0, max = 1, options = {}) {
+    const { preserveFullScale = false } = options;
+    const stops = this.getColorStops(colorMapping);
+    if (!stops.length) {
+      return [];
+    }
+
+    if (preserveFullScale) {
+      if (stops.length === 1) {
+        return [`${stops[0].color} 0%`, `${stops[0].color} 100%`];
+      }
+      return stops.map((stop, index) => {
+        const percent = (index / (stops.length - 1)) * 100;
+        return `${stop.color} ${percent.toFixed(2)}%`;
+      });
+    }
+
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {
+      return stops.map(stop => `${stop.color} 0%`);
+    }
+
+    const filteredStops = stops.filter(stop => stop.value >= min - Number.EPSILON && stop.value <= max + Number.EPSILON);
+    if (!filteredStops.length) {
+      const fallbackColor = this.getColorForValue(colorMapping, min);
+      return fallbackColor ? [`${fallbackColor} 0%`, `${fallbackColor} 100%`] : [];
+    }
+
+    const range = max - min;
+    const gradientStops = [];
+    const addStop = (value, color) => {
+      const clamped = Math.min(Math.max(value, min), max);
+      const percent = ((clamped - min) / range) * 100;
+      gradientStops.push(`${color} ${percent.toFixed(2)}%`);
+    };
+
+    if (filteredStops[0].value > min) {
+      addStop(min, filteredStops[0].color);
+    }
+
+    filteredStops.forEach(stop => addStop(stop.value, stop.color));
+
+    if (filteredStops[filteredStops.length - 1].value < max) {
+      addStop(max, filteredStops[filteredStops.length - 1].color);
+    }
+
+    return gradientStops;
+  }
+
+  /**
+   * Sample a palette color at a normalized ratio (0-1)
+   */
+  samplePaletteColor(colorMapping = {}, ratio = 0) {
+    const stops = this.getColorStops(colorMapping);
+    if (!stops.length) {
+      return '#ffffff';
+    }
+    if (stops.length === 1) {
+      return stops[0].color;
+    }
+
+    const clamped = Math.min(Math.max(ratio, 0), 1);
+    const scaled = clamped * (stops.length - 1);
+    const lower = Math.floor(scaled);
+    const upper = Math.ceil(scaled);
+
+    if (lower === upper) {
+      return stops[lower].color;
+    }
+
+    const weight = scaled - lower;
+    const start = this.parseColorString(stops[lower].color);
+    const end = this.parseColorString(stops[upper].color);
+
+    if (!start || !end) {
+      return weight < 0.5 ? stops[lower].color : stops[upper].color;
+    }
+
+    const interpolated = start.map((component, index) =>
+      Math.round(component + (end[index] - component) * weight)
+    );
+
+    return `rgb(${interpolated[0]}, ${interpolated[1]}, ${interpolated[2]})`;
+  }
+
+  /**
+   * Basic color parser for rgb()/hex strings
+   */
+  parseColorString(color) {
+    if (typeof color !== 'string') {
+      return null;
+    }
+
+    const rgbMatch = color.match(/rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)/i);
+    if (rgbMatch) {
+      return [
+        Number(rgbMatch[1]),
+        Number(rgbMatch[2]),
+        Number(rgbMatch[3])
+      ];
+    }
+
+    if (color.startsWith('#')) {
+      let hex = color.slice(1);
+      if (hex.length === 3) {
+        hex = hex.split('').map(char => char + char).join('');
+      }
+      if (hex.length !== 6) {
+        return null;
+      }
+      const intValue = parseInt(hex, 16);
+      return [
+        (intValue >> 16) & 255,
+        (intValue >> 8) & 255,
+        intValue & 255
+      ];
+    }
+
+    return null;
+  }
+
+  /**
    * Get enhanced WMS options for a specific data type (QGIS-style continuous classification)
    * @param {string} dataType - Type of oceanographic data
    * @param {Object} baseOptions - Base WMS options
@@ -116,18 +320,15 @@ export class WMSStyleManager {
       style: preset.style,
       // QGIS-style continuous rendering
       numcolorbands: preset.numcolorbands || 256, // Maximum resolution like QGIS
-      belowmincolor: preset.belowmincolor,
-      abovemaxcolor: preset.abovemaxcolor,
-      // Enhanced sampling for smoother gradients (like QGIS linear interpolation)
-      version: '1.3.0',
+      belowmincolor: preset.belowmincolor === 'transparent' ? 'extend' : preset.belowmincolor,
+      abovemaxcolor: preset.abovemaxcolor || 'extend',
+      // Align with working endpoint parameters
+      version: '1.1.1',
       format: 'image/png',
       transparent: true,
-      // Advanced rendering options for professional quality
-      map_resolution: 200, // Higher resolution for crisp rendering
-      bgcolor: '0x000000',
-      // Anti-aliasing and smooth transitions
-      smooth: true,
-      antialias: true
+      // Optional advanced rendering (kept minimal to avoid server-side overrides)
+      // map_resolution intentionally omitted to match server behavior
+      // bgcolor left unset; server defaults are acceptable
     };
   }
 

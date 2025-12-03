@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
+import './styles/z-index-system.css'; // World-class z-index system (must load first)
 import './App.css';
 import Header from './components/header';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -11,7 +12,6 @@ import TokenError from './components/TokenError';
 import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator';
 
 function App() {
-  // Authentication enabled for production
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorType, setErrorType] = useState(null);
@@ -19,23 +19,18 @@ function App() {
   const [validCountries, setValidCountries] = useState(['TUV']); // Tuvalu by default
 
   useEffect(() => {
-    // Authentication enabled
     const initializeApp = async () => {
-      logger.info('APP', 'Initializing Tuvalu Multi-Island Widget with token and country validation...');
-      
-      // Initialize console error suppressor for known WMS server issues
+      logger.info('APP', 'Initializing Tuvalu Multi-Island Widget (authentication enabled)...');
       initConsoleErrorSuppressor();
-      
-      // Check if token exists in URL first
+
       const token = extractTokenFromURL('token');
-      
       if (!token) {
         logger.warn('APP', 'No token found in URL');
         setErrorType('no_token');
         setIsLoading(false);
         return;
       }
-      
+
       try {
         const validationResult = await validateTokenOnLoad(
           () => {
@@ -49,20 +44,18 @@ function App() {
           },
           () => {
             logger.warn('APP', 'Country validation failed - page should not load');
-            // Country validation failed, so we should not show the app
             setIsAuthenticated(false);
             setErrorType('invalid_country');
           }
         );
-        
-        // Store widget data and valid countries if available
+
         if (validationResult.widgetData) {
           setWidgetData(validationResult.widgetData);
         }
         if (validationResult.validCountries) {
           setValidCountries(validationResult.validCountries);
         }
-        
+
         logger.info('APP', 'Validation result:', validationResult);
         setIsLoading(false);
       } catch (error) {

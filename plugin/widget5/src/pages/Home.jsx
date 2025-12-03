@@ -35,17 +35,18 @@ const getWorldClassLegendUrl = (variable, range, unit) => {
 };
 
 const getRarotongaInundationLegendUrl = () => {
-  const baseUrl = "https://gem-ncwms-hpc.spc.int/ncWMS/wms";
+  const baseUrl = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_reproj.nc";
   const { width, height } = getResponsiveLegendDimensions();
   const params = new URLSearchParams({
     REQUEST: 'GetLegendGraphic',
-    LAYER: 'raro_inun/Band1',
-    PALETTE: 'seq-Blues',
+    LAYER: 'H_max',
+    PALETTE: 'x-Sst',
     COLORBARONLY: 'true',
     WIDTH: width,
     HEIGHT: height,
     COLORSCALERANGE: '-0.05,1.63',
-    NUMCOLORBANDS: '220',
+    NUMCOLORBANDS: '250',
+    COLORSCALING: 'linear',
     VERTICAL: 'true',
     TRANSPARENT: 'true',
     FORMAT: 'image/png',
@@ -70,7 +71,8 @@ const variableConfigMap = {
     colorscalerange: "0,2",
     numcolorbands: 20,
     belowmincolor: "transparent",
-    abovemaxcolor: "extend"
+    abovemaxcolor: "extend",
+    colorscaling: "linear"
   }),
   dirm: () => ({ style: "black-arrow", colorscalerange: "" }),
 };

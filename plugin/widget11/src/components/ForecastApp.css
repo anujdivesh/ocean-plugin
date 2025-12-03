@@ -67,7 +67,7 @@
   position: absolute;
   bottom: 20px;
   right: 20px;
-  z-index: 1010; /* Higher z-index to ensure it's above Leaflet controls */
+  z-index: var(--z-map-overlay, 1000); /* Map overlay layer for floating controls */
   pointer-events: auto; /* Enable clicks on legend */
   
   /* Professional marine styling */
@@ -421,7 +421,7 @@
   position: absolute;
   bottom: 20px; /* Align with Leaflet scale control */
   left: 20px;
-  z-index: 1000;
+  z-index: var(--z-map-overlay, 1000);
   background: linear-gradient(135deg, #2c3e50, #34495e);
   color: white;
   border: 2px solid rgba(255, 255, 255, 0.1);
@@ -464,7 +464,7 @@
   color: white;
   font-size: 0.75rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  z-index: 999;
+  z-index: var(--z-map-overlay, 1000);
   transition: all 0.3s ease;
   animation: metadataSlideUp 0.4s ease-out;
   overflow-y: auto; /* Enable scrolling if content is too tall */
@@ -514,6 +514,38 @@
   padding-bottom: 0.5rem;
   letter-spacing: 0.3px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.metadata-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.metadata-close {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(8, 26, 70, 0.6);
+  color: white;
+  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+}
+
+.metadata-close:hover {
+  background: rgba(0, 188, 212, 0.3);
+  transform: scale(1.05);
+}
+
+.metadata-close:focus-visible {
+  outline: 2px solid rgba(0, 188, 212, 0.8);
+  outline-offset: 2px;
 }
 
 .range-metadata-panel h4 .wmo-code {
@@ -710,7 +742,7 @@
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 212, 255, 0.15);
   backdrop-filter: blur(10px);
-  z-index: 1001;
+  z-index: var(--z-map-overlay, 1000);
 }
 
 .metadata-toggle:hover {

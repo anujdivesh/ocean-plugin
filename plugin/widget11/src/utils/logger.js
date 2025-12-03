@@ -24,10 +24,12 @@ class Logger {
   }
 
   shouldLog(level) {
+    // Always evaluate current env level to reflect test/runtime changes
+    const currentLevel = this.getLogLevel();
     if (process.env.NODE_ENV === 'production' && !this.enabledInProduction) {
       return level >= LOG_LEVELS.ERROR;
     }
-    return level >= this.level;
+    return level >= currentLevel;
   }
 
   formatMessage(level, category, message, data) {
