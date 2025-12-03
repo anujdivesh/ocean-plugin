@@ -446,7 +446,7 @@ class WorldClassVisualization {
         dirLayer: 'dirm',
         threddsPath: 'COK/Rarotonga_UGRID.nc',
         wmsUrl: 'https://gem-ncwms-hpc.spc.int/ncWMS/wms',
-        range: '0.17,1.66',
+        range: '0,4',
         description: 'Cook Islands marine forecast'
       }
     };

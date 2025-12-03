@@ -6,7 +6,7 @@ import ProfessionalLegendSystem from '../utils/ProfessionalLegendSystem';
  * Replaces dual legend approach with unified, adaptive system
  */
 const ProfessionalLegend = ({ 
-  range = "0.17,1.66", 
+  range = "0,4", 
   conditions = "normal",
   className = "",
   style = {},
@@ -160,7 +160,7 @@ const ProfessionalLegend = ({
  * Enhanced Wave Height Legend - Specific implementation
  */
 export const WaveHeightLegend = ({ 
-  range = "0.17,1.66", 
+  range = "0,4", 
   conditions = "normal",
   showMetadata = false,
   ...props 
@@ -181,7 +181,7 @@ export const WaveHeightLegend = ({
  */
 export const ForecastMapLegend = ({ 
   legendUrl, 
-  range = "0.17,1.66",
+  range = "0,4",
   conditions = "normal",
   className = "forecast-map-legend__image",
   ...props 
