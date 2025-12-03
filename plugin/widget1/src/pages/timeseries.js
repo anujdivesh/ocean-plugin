@@ -1,5 +1,25 @@
-import React, { useEffect, useState, useRef } from "react";
-import Plot from 'react-plotly.js';
+import React, { useEffect, useState } from "react";
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const fixedColors = [
   'rgb(255, 99, 132)',   // 0: hs
@@ -27,12 +47,9 @@ function extractCoverageTimeseries(json, variable) {
 }
 
 function Timeseries({ perVariableData }) {
-  const [plotData, setPlotData] = useState([]);
+  const [chartData, setChartData] = useState(null);
   const [error, setError] = useState("");
-  const [parentHeight, setParentHeight] = useState(400);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const containerRef = useRef(null);
-  const parentHeightRef = useRef(400); // Track current height without causing re-renders
 
   // Check for dark mode
   useEffect(() => {
@@ -40,206 +57,175 @@ function Timeseries({ perVariableData }) {
       const isDark = document.body.classList.contains('dark-mode');
       setIsDarkMode(isDark);
     };
-    
+
     checkTheme();
-    
-    // Listen for theme changes
+
     const observer = new MutationObserver(checkTheme);
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    
+
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    // Use container ref instead of searching DOM
-    const updateHeight = () => {
-      const el = containerRef.current?.parentElement;
-      if (el) {
-        const height = el.clientHeight - 36;
-        // Only update if height is valid and significantly different
-        // Use ref to avoid stale closure and dependency array issues
-        if (height > 0 && isFinite(height) && Math.abs(height - parentHeightRef.current) > 5) {
-          parentHeightRef.current = height;
-          setParentHeight(height);
-        }
-      }
-    };
-    
-    // Initial measurement
-    updateHeight();
-    
-    let resizeTimeout;
-    const el = containerRef.current?.parentElement;
-    const observer = el
-      ? new ResizeObserver(() => {
-          // Debounce resize updates to prevent loop
-          clearTimeout(resizeTimeout);
-          resizeTimeout = setTimeout(updateHeight, 150);
-        })
-      : null;
-    if (observer && el) observer.observe(el);
-    return () => {
-      clearTimeout(resizeTimeout);
-      observer && observer.disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency - only set up once to avoid resize loop
-
-  useEffect(() => {
-    let isMounted = true;
     if (!perVariableData) {
-      setPlotData([]);
+      setChartData(null);
       setError("No timeseries data available.");
       return;
     }
 
-    // Same variables as Widget 5
     const layers = [
-      { key: "hs", label: "Significant Wave Height", colorIdx: 0, yaxis: 'y1', type: 'scatter', mode: 'lines+markers' },
-      { key: "tpeak", label: "Peak Wave Period", colorIdx: 1, yaxis: 'y2', type: 'scatter', mode: 'lines+markers' },
-      { key: "dirp", label: "Mean Wave Direction", colorIdx: 2, yaxis: 'y3', type: 'scatter', mode: 'markers' },
+      { key: "hs", label: "Significant Wave Height (m)", colorIdx: 0, yAxisID: 'y' },
+      { key: "tpeak", label: "Peak Wave Period (s)", colorIdx: 1, yAxisID: 'y1' },
+      { key: "dirp", label: "Mean Wave Direction (°)", colorIdx: 2, yAxisID: 'y2' },
     ];
-    const traces = [];
+
+    let labels = [];
+    const datasets = [];
+
     for (let idx = 0; idx < layers.length; idx++) {
-      const { key, label, colorIdx, yaxis, type, mode } = layers[idx];
+      const { key, label, colorIdx, yAxisID } = layers[idx];
       const color = fixedColors[colorIdx % fixedColors.length];
       const tsJson = perVariableData[key];
       const ts = extractCoverageTimeseries(tsJson, key);
+
       if (ts && ts.times && ts.values) {
-        // Filter out invalid values (null, undefined, NaN, Infinity)
-        const validIndices = ts.values
-          .map((v, i) => (v != null && isFinite(v) ? i : -1))
-          .filter(i => i !== -1);
-        
-        if (validIndices.length > 0) {
-          const filteredTimes = validIndices.map(i => ts.times[i]);
-          const filteredValues = validIndices.map(i => ts.values[i]);
-          
-          // Format times for this specific trace
-          const formattedLabels = filteredTimes.map(v =>
+        if (labels.length === 0) {
+          labels = ts.times.map(v =>
             typeof v === "string" && v.length > 15 ? v.substring(0, 16).replace("T", " ") : v
           );
-          
-          traces.push({
-            x: formattedLabels,
-            y: filteredValues,
-            name: label,
-            type,
-            mode,
-            marker: { color },
-            line: { color },
-            yaxis,
-          });
         }
+        datasets.push({
+          label: label,
+          data: ts.values,
+          borderColor: color,
+          backgroundColor: color,
+          yAxisID: yAxisID,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          borderWidth: 2,
+          tension: 0.1,
+        });
       }
     }
-    if (!isMounted) return;
-    setPlotData(traces);
-    if (traces.length === 0) setError("No timeseries data returned.");
-    else setError("");
-    return () => {
-      isMounted = false;
-    };
+
+    if (datasets.length === 0) {
+      setError("No timeseries data returned.");
+      setChartData(null);
+    } else {
+      setError("");
+      setChartData({
+        labels,
+        datasets,
+      });
+    }
   }, [perVariableData]);
 
   if (!perVariableData) return <div>No data available.</div>;
   if (error) return <div style={{ color: "red" }}>{error}</div>;
-  if (plotData.length === 0) return <div>No timeseries data.</div>;
+  if (!chartData) return <div>No timeseries data.</div>;
 
-  // Ensure valid height to prevent Infinity errors in Plotly
-  const validHeight = parentHeight && isFinite(parentHeight) && parentHeight > 0 
-    ? parentHeight 
-    : 400;
-
-  const layout = {
-    autosize: true,
-    height: validHeight,
-    margin: { t: 40, l: 60, r: 60, b: 60 },
-    paper_bgcolor: isDarkMode ? '#2e2f33' : '#ffffff',
-    plot_bgcolor: isDarkMode ? '#2e2f33' : '#ffffff',
-    font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-    legend: { 
-      orientation: 'h', 
-      y: -0.2,
-      font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      bgcolor: isDarkMode ? '#3f4854' : '#ffffff',
-      bordercolor: isDarkMode ? '#44454a' : '#e2e8f0'
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
     },
-    xaxis: { 
-      title: { text: 'Time', font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' } }, 
-      tickangle: -45,
-      showgrid: true,
-      gridcolor: isDarkMode ? '#44454a' : '#e2e8f0',
-      tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-    },
-    yaxis: { 
-      title: { 
-        text: 'Height (m)', 
-        font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        standoff: 30
-      }, 
-      side: 'left',
-      showgrid: true,
-      gridcolor: isDarkMode ? '#44454a' : '#e2e8f0',
-      tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-    },
-    yaxis2: {
-      title: { 
-        text: 'Period (s)', 
-        font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        standoff: 15
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: '#1e293b',
+          boxWidth: 12,
+          padding: 10,
+        },
       },
-      overlaying: 'y',
-      side: 'right',
-      showgrid: false,
-      tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0',
-      anchor: 'free',
-      position: 0.95
-    },
-    yaxis3: {
-      title: { 
-        text: 'Direction (°)', 
-        font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        standoff: 15
+      title: {
+        display: false,
       },
-      overlaying: 'y',
-      side: 'right',
-      showgrid: false,
-      tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0',
-      anchor: 'free',
-      position: 1.0
+      tooltip: {
+        enabled: true,
+        mode: 'index',
+        intersect: false,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        titleColor: '#1e293b',
+        bodyColor: '#1e293b',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+      }
     },
-    showlegend: true,
+    scales: {
+      x: {
+        ticks: {
+          color: '#1e293b',
+          maxRotation: 45,
+          minRotation: 45,
+        },
+        grid: {
+          color: '#e2e8f0',
+        },
+      },
+      y: {
+        type: 'linear',
+        display: true,
+        position: 'left',
+        title: {
+          display: true,
+          text: 'Height (m)',
+          color: '#1e293b',
+        },
+        ticks: {
+          color: '#1e293b',
+        },
+        grid: {
+          color: '#e2e8f0',
+        },
+        beginAtZero: true,
+      },
+      y1: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        title: {
+          display: true,
+          text: 'Period (s)',
+          color: '#1e293b',
+        },
+        ticks: {
+          color: '#1e293b',
+        },
+        grid: {
+          drawOnChartArea: false,
+        },
+        beginAtZero: true,
+      },
+      y2: {
+        type: 'linear',
+        display: false,
+        position: 'right',
+        min: 0,
+        max: 360,
+        grid: {
+          drawOnChartArea: false,
+        },
+      },
+    },
   };
 
-  // Map yaxis for each trace
-  plotData.forEach((trace, idx) => {
-    if (idx === 0) trace.yaxis = 'y1';
-    if (idx === 1) trace.yaxis = 'y2';
-    if (idx === 2) trace.yaxis = 'y3';
-  });
-
   return (
-    <div 
-      ref={containerRef}
-      style={{ 
-        width: "100%", 
-        height: validHeight,
-        overflow: 'hidden',
-        position: 'relative'
-      }}
-    >
-      <Plot
-        data={plotData}
-        layout={layout}
-        useResizeHandler={false}
-        style={{ width: '100%', height: '100%' }}
-        config={{ responsive: true }}
-      />
+    <div style={{
+      width: "100%",
+      height: "100%",
+      minHeight: "300px",
+      backgroundColor: '#ffffff',
+      padding: '10px',
+      borderRadius: '4px',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+        <Line options={options} data={chartData} />
+      </div>
     </div>
   );
 }

@@ -1,14 +1,34 @@
-import React, { useRef, useState, useEffect } from "react";
-import Offcanvas from "react-bootstrap/Offcanvas";
-import 'chart.js/auto';
-// import { Line } from "react-chartjs-2";
-import Plot from 'react-plotly.js';
+import React, { useState, useEffect, useRef } from "react";
+import { Offcanvas } from "react-bootstrap";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+import 'chartjs-adapter-date-fns';
 
-// Fixed color palette for datasets
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale
+);
+
 const BUOY_COLORS = [
-  '#D81B60', // Vivid Pink
-  '#1E88E5', // Vivid Blue
+  '#0288D1', // Vivid Blue
   '#FFC107', // Vivid Amber
+  '#D32F2F', // Vivid Red
 ];
 
 const MODEL_COLORS = [
@@ -18,7 +38,7 @@ const MODEL_COLORS = [
 ];
 
 const MIN_HEIGHT = 100;
-const MAX_HEIGHT = 800;
+const MAX_HEIGHT_FALLBACK = 800; // used if window size unavailable
 
 const MODEL_VARIABLES = ["hs_p1", "tp_p1", "dirp_p1"];
 const LATEST_CAPABILITY_URL = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/NIU/ForecastNiue_latest.nc?service=WMS&version=1.3.0&request=GetCapabilities";
@@ -92,17 +112,17 @@ async function fetchCapabilities(url) {
 async function fetchForecastData(baseUrl, layer, timeRange) {
   const timeParam = `${formatDateISOString(timeRange.start)}/${formatDateISOString(timeRange.end)}`;
   const url = `${baseUrl}?REQUEST=GetTimeseries&LAYERS=${layer}&QUERY_LAYERS=${layer}&BBOX=-169.9315,-19.05455,-169.9314,-19.05445&SRS=CRS:84&FEATURE_COUNT=5&HEIGHT=1&WIDTH=1&X=0&Y=0&STYLES=default/default&VERSION=1.1.1&TIME=${timeParam}&INFO_FORMAT=text/json`;
-  
+
   console.log(`Fetching forecast data from: ${url}`);
-  
+
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch forecast data from ${baseUrl}`);
   const json = await res.json();
-  
+
   //console.log(`Forecast data response for ${baseUrl} [${layer}]:`, json);
   //console.log(`Time range: ${timeParam}`);
   //console.log(`Data points: ${json.domain?.axes?.t?.values?.length || 0}`);
-  
+
   return json;
 }
 
@@ -228,33 +248,6 @@ async function fetchAllModelVariables() {
   }
 }
 
-function extractModelVariables(model, variables) {
-  // Always return arrays for requested variables, fill with nulls if missing
-  const result = {};
-  const N = model.domain.axes.t.values.length;
-  for (const v of variables) {
-    if (model.ranges && model.ranges[v]) {
-      result[v] = {
-        values: model.ranges[v].values,
-        label:
-          (model.parameters &&
-            model.parameters[v] &&
-            (model.parameters[v].description?.en ||
-              model.parameters[v].observedProperty?.label?.en ||
-              v)) ||
-          v,
-      };
-    } else {
-      // Fill with nulls so axes always appear, but line will not show
-      result[v] = {
-        values: Array(N).fill(null),
-        label: v,
-      };
-    }
-  }
-  return result;
-}
-
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -266,7 +259,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Error in Plotly component:', error, errorInfo);
+    console.error('Error in Chart component:', error, errorInfo);
   }
 
   render() {
@@ -283,13 +276,12 @@ class ErrorBoundary extends React.Component {
 }
 
 function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
-  const [height, setHeight] = useState(400);
+  const [height, setHeight] = useState(650);
+  const offRef = useRef(null);
   const [activeTab, setActiveTab] = useState("buoy");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
-  // eslint-disable-next-line no-unused-vars
-  const [parentHeight, setParentHeight] = useState(undefined); // TODO: Remove if truly unused
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Check for dark mode
@@ -298,13 +290,13 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
       const isDark = document.body.classList.contains('dark-mode');
       setIsDarkMode(isDark);
     };
-    
+
     checkTheme();
-    
+
     // Listen for theme changes
     const observer = new MutationObserver(checkTheme);
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    
+
     return () => observer.disconnect();
   }, []);
 
@@ -313,52 +305,111 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
   const [modelLoading, setModelLoading] = useState(false);
   const [modelError, setModelError] = useState("");
 
-  // Drag handle logic
+  // Add this new state to track if we've loaded data
+  const [hasLoadedData, setHasLoadedData] = useState({
+    buoy: false,
+    model: false
+  });
+
+  // Drag handle logic (mouse + touch) with dynamic viewport clamp
   const dragging = useRef(false);
   const startY = useRef(0);
-  const startHeight = useRef(400);
-  const onMouseDown = (e) => {
-    dragging.current = true;
-    startY.current = e.clientY;
-    startHeight.current = height;
-    document.body.style.cursor = "ns-resize";
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+  const startHeight = useRef(650);
+  const currentDragHeight = useRef(650);
+
+  const getMaxHeight = () => {
+    const vh = typeof window !== 'undefined' ? window.innerHeight : MAX_HEIGHT_FALLBACK;
+    // Leave a small margin so header doesn't get trapped off-screen
+    return Math.max(Math.min(vh - 60, 1200), MIN_HEIGHT);
   };
-  const onMouseMove = (e) => {
+
+  const applyHeightToDom = (h) => {
+    try {
+      const el = document.getElementById('bottom-buoy-offcanvas');
+      if (el) {
+        el.style.setProperty('--bs-offcanvas-height', `${h}px`);
+        el.style.setProperty('height', `${h}px`, 'important');
+        el.style.setProperty('max-height', `${h}px`);
+      }
+    } catch (_) {}
+  };
+
+  const applyDrag = (clientY) => {
     if (!dragging.current) return;
-    let newHeight = startHeight.current - (e.clientY - startY.current);
-    newHeight = Math.min(Math.max(newHeight, MIN_HEIGHT), MAX_HEIGHT);
-    setHeight(newHeight);
+    let newHeight = startHeight.current - (clientY - startY.current);
+    const maxH = getMaxHeight();
+    if (Number.isFinite(newHeight)) {
+      newHeight = Math.min(Math.max(newHeight, MIN_HEIGHT), maxH);
+      currentDragHeight.current = newHeight;
+      applyHeightToDom(newHeight);
+    }
   };
-  const onMouseUp = () => {
+
+  const onMouseMove = (e) => applyDrag(e.clientY);
+  const onTouchMove = (e) => {
+    if (e.touches && e.touches[0]) applyDrag(e.touches[0].clientY);
+  };
+
+  const endDrag = () => {
     dragging.current = false;
     document.body.style.cursor = "";
     document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
+    document.removeEventListener("mouseup", endDrag);
+    document.removeEventListener("touchmove", onTouchMove);
+    document.removeEventListener("touchend", endDrag);
+    
+    setHeight(currentDragHeight.current);
+    const el = document.getElementById('bottom-buoy-offcanvas');
+    if (el) el.style.transition = '';
   };
 
-  // Chart dynamic height based on Offcanvas.Body
+  const beginDrag = (clientY, setCursor = true) => {
+    dragging.current = true;
+    startY.current = clientY;
+    startHeight.current = height;
+    currentDragHeight.current = height;
+    
+    const el = document.getElementById('bottom-buoy-offcanvas');
+    if (el) el.style.transition = 'none';
+
+    if (setCursor) document.body.style.cursor = "ns-resize";
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", endDrag);
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", endDrag);
+  };
+
+  const onMouseDown = (e) => { beginDrag(e.clientY, true); };
+  // Ensure height is applied to the real offcanvas element (RB/Bootstrap sometimes relies on CSS var)
   useEffect(() => {
-    let timer = null;
-    let observer = null;
-    function measure() {
-      const el = document.querySelector('.offcanvas-body');
-      if (el) setParentHeight(el.clientHeight - 36);
-    }
-    if (show) {
-      timer = setTimeout(measure, 250);
-      const el = document.querySelector('.offcanvas-body');
-      if (el && window.ResizeObserver) {
-        observer = new window.ResizeObserver(measure);
-        observer.observe(el);
+    const apply = () => {
+      const el = document.getElementById('bottom-buoy-offcanvas');
+      if (el) {
+        try {
+          el.style.setProperty('height', `${height}px`, 'important');
+          el.style.setProperty('--bs-offcanvas-height', `${height}px`);
+          el.style.setProperty('max-height', `${height}px`);
+        } catch (_) {}
       }
-    }
-    return () => {
-      if (timer) clearTimeout(timer);
-      if (observer) observer.disconnect();
     };
-  }, [show, buoyId]);
+    
+    if (show) {
+      // Apply immediately
+      apply();
+      // Apply repeatedly to fight Bootstrap's CSS transitions/animations
+      const t1 = setTimeout(apply, 50);
+      const t2 = setTimeout(apply, 150);
+      const t3 = setTimeout(apply, 350);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
+    }
+  }, [height, show]);
+  const onTouchStart = (e) => {
+    if (e.touches && e.touches[0]) { beginDrag(e.touches[0].clientY, false); }
+  };
 
   // Fetch Sofarocean data when buoyId changes and panel is open
   useEffect(() => {
@@ -410,241 +461,6 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
       });
   }, [show]);
 
-
-
-  // Prepare chart data and formatting for Sofarocean
-  // eslint-disable-next-line no-unused-vars
-  let chartData = null; // TODO: Remove if Chart.js rendering not implemented
-  // eslint-disable-next-line no-unused-vars
-  let chartOptions = {}; // TODO: Remove if Chart.js rendering not implemented
-  let plotlyBuoyData = null;
-  let plotlyBuoyLayout = null;
-  if (activeTab === "buoy" && data && data.waves && data.waves.length > 0) {
-    const waves = data.waves;
-    const labels = waves.map(w =>
-      typeof w.timestamp === "string" && w.timestamp.length > 15
-        ? w.timestamp.substring(0, 16).replace("T", " ")
-        : w.timestamp
-    );
-    plotlyBuoyData = [
-      {
-        x: labels,
-        y: waves.map(w => w.significantWaveHeight),
-        name: "Significant Wave Height (m)",
-        type: 'scatter',
-        mode: 'lines',
-        //marker: { color: BUOY_COLORS[0], symbol: 'circle', size: 6 },
-        line: { color: BUOY_COLORS[0], width: 2 },
-        yaxis: 'y',
-      },
-      {
-        x: labels,
-        y: waves.map(w => w.meanPeriod),
-        name: "Mean Period (s)",
-        type: 'scatter',
-        mode: 'lines',
-        //marker: { color: BUOY_COLORS[1], symbol: 'square', size: 6 },
-        line: { color: BUOY_COLORS[1], width: 2, dash: 'dot' },
-        yaxis: 'y2',
-      },
-      {
-        x: labels,
-        y: waves.map(w => w.meanDirection),
-        name: "Mean Direction (°)",
-        type: 'scatter',
-        mode: 'lines',
-        //marker: { color: BUOY_COLORS[2], symbol: 'diamond', size: 7 },
-        line: { color: BUOY_COLORS[2], width: 2, dash: 'dash' },
-        yaxis: 'y3',
-      },
-    ];
-    plotlyBuoyLayout = {
-      autosize: true,
-      height: Math.max(Math.min(height - 100, 500), 300),
-      margin: { t: 60, l: 70, r: 70, b: 60 },
-      paper_bgcolor: isDarkMode ? '#2e2f33' : '#ffffff',
-      plot_bgcolor: isDarkMode ? '#2e2f33' : '#ffffff',
-      font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      legend: { 
-        orientation: 'h', 
-        y: 1.15, 
-        x: 0.5, 
-        xanchor: 'center',
-        font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        bgcolor: isDarkMode ? '#3f4854' : '#ffffff',
-        bordercolor: isDarkMode ? '#44454a' : '#e2e8f0'
-      },
-      xaxis: { 
-        title: { text: 'Time (UTC)', font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' } }, 
-        tickangle: -45, 
-        showgrid: true,
-        gridcolor: isDarkMode ? '#44454a' : '#e2e8f0',
-        tickmode: 'auto',
-        nticks: 10,
-        tickformat: '%b %d %Y',
-        tickfont: { size: 10, color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        tickwidth: 1,
-        ticklen: 5,
-        tickcolor: isDarkMode ? '#a1a1aa' : '#666',
-        showticklabels: true,
-        automargin: true,
-        zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-      },
-      yaxis: { 
-        title: { text: 'Height (m)', font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' } }, 
-        side: 'left', 
-        showgrid: true, 
-        gridcolor: isDarkMode ? '#44454a' : '#e2e8f0',
-        zeroline: false,
-        tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-      },
-      yaxis2: {
-        title: { text: 'Period (s)', font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' } },
-        overlaying: 'y',
-        side: 'right',
-        showgrid: false,
-        zeroline: false,
-        anchor: 'x',
-        tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-      },
-      yaxis3: {
-        title: { text: 'Direction (°)', font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' } },
-        overlaying: 'y',
-        side: 'right',
-        position: 1,
-        showgrid: false,
-        zeroline: false,
-        anchor: 'x',
-        tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-      },
-      hovermode: 'x unified',
-      showlegend: true,
-      dragmode: 'pan',
-    };
-  }
-
-  // Prepare chart data for model
-  let modelChartData = null;
-  // eslint-disable-next-line no-unused-vars
-  let modelChartOptions = {}; // TODO: Remove if Chart.js rendering not implemented
-  let plotlyModelData = [];
-  let plotlyModelLayout = null;
-  let modelMissingVars = [];
-  console.log("1");
-  if (activeTab === "model" && modelData && modelData.domain && modelData.domain.axes && modelData.domain.axes.t) {
-    const variables = MODEL_VARIABLES;
- 
-    // eslint-disable-next-line no-unused-vars
-    const varMeta = extractModelVariables(modelData, variables); // TODO: Use this data or remove
-    modelMissingVars = variables.filter(v => !modelData.ranges || !modelData.ranges[v]);
-    const labels = modelData.domain.axes.t.values.map(t =>
-      t.length > 15 ? t.substring(0, 16).replace("T", " ") : t
-    );
-    console.log("2");
-    // Debug: log the modelData.ranges and the arrays for each variable
-    console.log('modelData.ranges:', modelData.ranges);
-    //console.log('hs_p1:', modelData.ranges?.hs_p1?.values);
-    //console.log('tp_p1:', modelData.ranges?.tp_p1?.values);
-    //console.log('dirp_p1:', modelData.ranges?.dirp_p1?.values);
-    plotlyModelData = [
-      {
-        x: labels,
-        y: modelData.ranges?.hs_p1?.values || [],
-        name: "Significant Wave Height (Model)",
-        type: 'scatter',
-        mode: 'lines',
-        line: { color: MODEL_COLORS[0], width: 2, dash: 'dot' },
-        yaxis: 'y',
-      },
-      {
-        x: labels,
-        y: modelData.ranges?.tp_p1?.values || [],
-        name: "Wind Wave Period (Model)",
-        type: 'scatter',
-        mode: 'lines',
-        line: { color: MODEL_COLORS[1], width: 2, dash: 'dot' },
-        yaxis: 'y2',
-      },
-      {
-        x: labels,
-        y: modelData.ranges?.dirp_p1?.values || [],
-        name: "Wind Wave Direction (Model)",
-        type: 'scatter',
-        mode: 'lines',
-        line: { color: MODEL_COLORS[2], width: 2, dash: 'dot' },
-        yaxis: 'y3',
-      }
-    ];
-    //console.log('plotlyModelData:', plotlyModelData);
-    plotlyModelLayout = {
-      autosize: true,
-      height: Math.max(Math.min(height - 100, 500), 300),
-      margin: { t: 60, l: 70, r: 70, b: 60 },
-      paper_bgcolor: isDarkMode ? '#2e2f33' : '#ffffff',
-      plot_bgcolor: isDarkMode ? '#2e2f33' : '#ffffff',
-      font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      legend: { 
-        orientation: 'h', 
-        y: 1.15, 
-        x: 0.5, 
-        xanchor: 'center',
-        font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        bgcolor: isDarkMode ? '#3f4854' : '#ffffff',
-        bordercolor: isDarkMode ? '#44454a' : '#e2e8f0'
-      },
-      xaxis: { 
-        title: { text: 'Time', font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' } }, 
-        tickangle: -45, 
-        showgrid: true,
-        gridcolor: isDarkMode ? '#44454a' : '#e2e8f0',
-        tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-      },
-      yaxis: { 
-        title: { text: 'Height (m)', font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' } }, 
-        side: 'left', 
-        showgrid: true, 
-        gridcolor: isDarkMode ? '#44454a' : '#e2e8f0',
-        zeroline: false,
-        tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-      },
-      yaxis2: {
-        title: { text: 'Period (s)', font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' } },
-        overlaying: 'y',
-        side: 'right',
-        showgrid: false,
-        zeroline: false,
-        anchor: 'x',
-        tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-      },
-      yaxis3: {
-        title: { text: 'Direction (°)', font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' } },
-        overlaying: 'y',
-        side: 'right',
-        position: 1,
-        showgrid: false,
-        zeroline: false,
-        anchor: 'x',
-        tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-      },
-      hovermode: 'x unified',
-      showlegend: true,
-      dragmode: 'pan',
-    };
-  }
-
-  // Add this new state to track if we've loaded data
-  const [hasLoadedData, setHasLoadedData] = useState({
-    buoy: false,
-    model: false
-  });
-
   // Switch to appropriate tab based on buoy
   useEffect(() => {
     if (buoyId === "SPOT-31091C") {
@@ -654,13 +470,311 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
     }
   }, [buoyId]);
 
+  // Common Chart.js options generator
+  const createCommonOptions = (title) => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    stacked: false,
+    plugins: {
+      title: {
+        display: true,
+        text: title,
+      },
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: isDarkMode ? '#f1f5f9' : '#1e293b',
+          generateLabels: (chart) => {
+            const original = ChartJS.defaults.plugins.legend.labels.generateLabels(chart);
+            return original.map(label => {
+              const dataset = chart.data.datasets[label.datasetIndex];
+              if (dataset.borderDash && dataset.borderDash.length > 0) {
+                return {
+                  ...label,
+                  fillStyle: 'rgba(0,0,0,0)', // Transparent fill
+                  strokeStyle: dataset.borderColor,
+                  lineWidth: 2,
+                  lineDash: dataset.borderDash,
+                  lineDashOffset: dataset.borderDashOffset || 0,
+                };
+              }
+              return label;
+            });
+          }
+        }
+      },
+    },
+    scales: {
+      x: {
+        type: 'time',
+        time: {
+          unit: 'day',
+          displayFormats: {
+            day: 'MMM d'
+          },
+          tooltipFormat: 'MMM d, yyyy HH:mm'
+        },
+        title: {
+          display: true,
+          text: 'Time (UTC)',
+          color: isDarkMode ? '#f1f5f9' : '#1e293b'
+        },
+        ticks: {
+          color: isDarkMode ? '#f1f5f9' : '#1e293b'
+        },
+        grid: {
+          color: isDarkMode ? '#44454a' : '#e2e8f0'
+        }
+      },
+      y: {
+        type: 'linear',
+        display: true,
+        position: 'left',
+        title: {
+          display: true,
+          text: 'Height (m)',
+          color: isDarkMode ? '#f1f5f9' : '#1e293b'
+        },
+        ticks: {
+          color: isDarkMode ? '#f1f5f9' : '#1e293b'
+        },
+        grid: {
+          color: isDarkMode ? '#44454a' : '#e2e8f0'
+        }
+      },
+      y1: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        grid: {
+          drawOnChartArea: false,
+        },
+        title: {
+          display: true,
+          text: 'Period (s)',
+          color: isDarkMode ? '#f1f5f9' : '#1e293b'
+        },
+        ticks: {
+          color: isDarkMode ? '#f1f5f9' : '#1e293b'
+        }
+      },
+      y2: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        grid: {
+          drawOnChartArea: false,
+        },
+        title: {
+          display: true,
+          text: 'Direction (°)',
+          color: isDarkMode ? '#f1f5f9' : '#1e293b'
+        },
+        ticks: {
+          color: isDarkMode ? '#f1f5f9' : '#1e293b'
+        },
+        min: 0,
+        max: 360
+      },
+    },
+  });
+
+  // Prepare chart data for buoy
+  let buoyChartData = null;
+  let buoyChartOptions = {};
+
+  if (activeTab === "buoy" && !loading && !fetchError && data?.waves?.length > 0) {
+    const waves = data.waves;
+    // Sort by timestamp
+    waves.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    buoyChartData = {
+      labels: waves.map(w => w.timestamp),
+      datasets: [
+        {
+          label: 'Significant Wave Height (m)',
+          data: waves.map(w => w.significantWaveHeight),
+          borderColor: BUOY_COLORS[0],
+          backgroundColor: BUOY_COLORS[0],
+          yAxisID: 'y',
+          tension: 0.1,
+          pointRadius: 2
+        },
+        {
+          label: 'Peak Period (s)',
+          data: waves.map(w => w.peakPeriod),
+          borderColor: BUOY_COLORS[1],
+          backgroundColor: BUOY_COLORS[1],
+          yAxisID: 'y1',
+          tension: 0.1,
+          pointRadius: 2
+        },
+        {
+          label: 'Mean Direction (°)',
+          data: waves.map(w => w.meanDirection),
+          borderColor: BUOY_COLORS[2],
+          backgroundColor: BUOY_COLORS[2],
+          yAxisID: 'y2',
+          tension: 0.1,
+          pointRadius: 2,
+          borderDash: [5, 5]
+        }
+      ]
+    };
+
+    buoyChartOptions = createCommonOptions(`Buoy Data: ${buoyId}`);
+  }
+
+  // Prepare chart data for model
+  let modelChartData = null;
+  let modelChartOptions = {};
+  let modelMissingVars = [];
+
+  if (activeTab === "model" && modelData && modelData.domain && modelData.domain.axes && modelData.domain.axes.t) {
+    const variables = MODEL_VARIABLES;
+    modelMissingVars = variables.filter(v => !modelData.ranges || !modelData.ranges[v]);
+
+    const timeValues = modelData.domain.axes.t.values;
+
+    modelChartData = {
+      labels: timeValues,
+      datasets: [
+        {
+          label: 'Significant Wave Height (m)',
+          data: modelData.ranges?.hs_p1?.values || [],
+          borderColor: MODEL_COLORS[0],
+          backgroundColor: MODEL_COLORS[0],
+          yAxisID: 'y',
+          tension: 0.1,
+          pointRadius: 2,
+          borderDash: [5, 5]
+        },
+        {
+          label: 'Wind Wave Period (s)',
+          data: modelData.ranges?.tp_p1?.values || [],
+          borderColor: MODEL_COLORS[1],
+          backgroundColor: MODEL_COLORS[1],
+          yAxisID: 'y1',
+          tension: 0.1,
+          pointRadius: 2,
+          borderDash: [5, 5]
+        },
+        {
+          label: 'Wind Wave Direction (°)',
+          data: modelData.ranges?.dirp_p1?.values || [],
+          borderColor: MODEL_COLORS[2],
+          backgroundColor: MODEL_COLORS[2],
+          yAxisID: 'y2',
+          tension: 0.1,
+          pointRadius: 2,
+          borderDash: [5, 5]
+        }
+      ]
+    };
+
+    modelChartOptions = createCommonOptions('Model Forecast');
+  }
+
+  // Prepare chart data for combination
+  let combinationChartData = null;
+  let combinationChartOptions = {};
+
+  if (activeTab === "combination" && hasLoadedData.buoy && hasLoadedData.model) {
+    const buoyWaves = data?.waves || [];
+    // Sort buoy waves by timestamp
+    buoyWaves.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    // Buoy Datasets
+    const buoyDatasets = [
+      {
+        label: 'Significant Wave Height (Buoy)',
+        data: buoyWaves.map(w => ({ x: w.timestamp, y: w.significantWaveHeight })),
+        borderColor: BUOY_COLORS[0],
+        backgroundColor: BUOY_COLORS[0],
+        yAxisID: 'y',
+        tension: 0.1,
+        pointRadius: 2
+      },
+      {
+        label: 'Peak Period (Buoy)',
+        data: buoyWaves.map(w => ({ x: w.timestamp, y: w.peakPeriod })),
+        borderColor: BUOY_COLORS[1],
+        backgroundColor: BUOY_COLORS[1],
+        yAxisID: 'y1',
+        tension: 0.1,
+        pointRadius: 2
+      },
+      {
+        label: 'Mean Direction (Buoy)',
+        data: buoyWaves.map(w => ({ x: w.timestamp, y: w.meanDirection })),
+        borderColor: BUOY_COLORS[2],
+        backgroundColor: BUOY_COLORS[2],
+        yAxisID: 'y2',
+        tension: 0.1,
+        pointRadius: 2,
+        borderDash: [5, 5]
+      }
+    ];
+
+    // Model Datasets
+    let modelDatasets = [];
+    if (modelData && modelData.domain && modelData.domain.axes && modelData.domain.axes.t) {
+      const timeValues = modelData.domain.axes.t.values;
+
+      modelDatasets = [
+        {
+          label: 'Significant Wave Height (Model)',
+          data: (modelData.ranges?.hs_p1?.values || []).map((v, i) => ({ x: timeValues[i], y: v })),
+          borderColor: MODEL_COLORS[0],
+          backgroundColor: MODEL_COLORS[0],
+          yAxisID: 'y',
+          tension: 0.1,
+          pointRadius: 2,
+          borderDash: [2, 2] // Dotted line for model
+        },
+        {
+          label: 'Wind Wave Period (Model)',
+          data: (modelData.ranges?.tp_p1?.values || []).map((v, i) => ({ x: timeValues[i], y: v })),
+          borderColor: MODEL_COLORS[1],
+          backgroundColor: MODEL_COLORS[1],
+          yAxisID: 'y1',
+          tension: 0.1,
+          pointRadius: 2,
+          borderDash: [2, 2]
+        },
+        {
+          label: 'Wind Wave Direction (Model)',
+          data: (modelData.ranges?.dirp_p1?.values || []).map((v, i) => ({ x: timeValues[i], y: v })),
+          borderColor: MODEL_COLORS[2],
+          backgroundColor: MODEL_COLORS[2],
+          yAxisID: 'y2',
+          tension: 0.1,
+          pointRadius: 2,
+          borderDash: [2, 2]
+        }
+      ];
+    }
+
+    combinationChartData = {
+      datasets: [...modelDatasets, ...buoyDatasets]
+    };
+
+    combinationChartOptions = createCommonOptions('Model vs Buoy: All Variables');
+    if (buoyWaves.length > 0) {
+      combinationChartOptions.scales.x.min = buoyWaves[0].timestamp;
+    }
+  }
 
   let tabLabels = [];
-  
+
   if (buoyId === "SPOT-31091C") {
     tabLabels = [
-      // { key: "model", label: "Model" },
-      { key: "combination", label: "Buoy vs Model" }
+      { key: "combination", label: "Buoy vs Model" },
+      { key: "buoy", label: "Wave buoy" }
     ];
   } else {
     tabLabels = [
@@ -669,172 +783,177 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
   }
 
   return (
-    <Offcanvas
-      show={show}
-      onHide={onHide}
-      placement="bottom"
+  <>
+  <Offcanvas
+    id="bottom-buoy-offcanvas"
+    ref={offRef}
+    show={show}
+    onHide={onHide}
+    placement="bottom"
+    style={{
+      height: height,
+      zIndex: 12000,
+      background: isDarkMode ? "rgba(63, 72, 84, 0.98)" : "rgba(255,255,255,0.98)",
+      color: isDarkMode ? "#f1f5f9" : "#1e293b",
+      overflow: "visible",
+      borderTop: `1px solid ${isDarkMode ? "#44454a" : "#e2e8f0"}`,
+    }}
+    backdrop={false}
+    scroll={true}
+  >
+    {/* Drag Handle */}
+    <div
+      onMouseDown={(e) => { e.preventDefault(); onMouseDown(e); }}
+      onTouchStart={onTouchStart}
+      title="Drag to resize"
       style={{
-        height: height,
-        zIndex: 12000,
-        background: isDarkMode ? "rgba(63, 72, 84, 0.98)" : "rgba(255,255,255,0.98)",
-        color: isDarkMode ? "#f1f5f9" : "#1e293b",
-        overflow: "visible",
-        transition: "height 0.1s",
-        borderTop: `1px solid ${isDarkMode ? "#44454a" : "#e2e8f0"}`,
+        height: 12,
+        cursor: "ns-resize",
+        background: isDarkMode ? "#44454a" : "#e0e0e0",
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
+        textAlign: "center",
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        touchAction: "none",
+        margin: "-8px 0 0 0",
       }}
-      backdrop={false}
-      scroll={true}
     >
-      {/* Drag Handle */}
       <div
         style={{
-          height: 12,
-          cursor: "ns-resize",
-          background: isDarkMode ? "#44454a" : "#e0e0e0",
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
-          textAlign: "center",
-          userSelect: "none",
-          margin: "-8px 0 0 0",
+          width: 40,
+          height: 4,
+          background: isDarkMode ? "#a1a1aa" : "#aaa",
+          borderRadius: 2,
+          margin: "4px auto",
         }}
-        onMouseDown={onMouseDown}
-        title="Drag to resize"
+      />
+    </div>
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      borderBottom: `1px solid ${isDarkMode ? "#44454a" : "#eee"}`,
+      padding: "0 1rem 0 0.5rem"
+    }}>
+      {/* Custom CSS Tabs */}
+      <div style={{ display: "flex", flex: 1, paddingTop: 10 }}>
+        {tabLabels.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              border: "none",
+              borderBottom: activeTab === tab.key ? `2px solid ${isDarkMode ? "#60a5fa" : "#007bff"}` : "2px solid transparent",
+              background: "none",
+              padding: "8px 20px",
+              marginRight: 8,
+              fontWeight: activeTab === tab.key ? "bold" : "normal",
+              color: activeTab === tab.key ? (isDarkMode ? "#60a5fa" : "#007bff") : (isDarkMode ? "#a1a1aa" : "#555"),
+              cursor: "pointer",
+              fontSize: 16,
+              transition: "border-bottom 0.1s"
+            }}
+            role="tab"
+            aria-selected={activeTab === tab.key}
+            aria-controls={`tab-panel-${tab.key}`}
+            tabIndex={activeTab === tab.key ? 0 : -1}
+            type="button"
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <button
+        onClick={onHide}
+        type="button"
+        aria-label="Close"
+        style={{
+          border: "none",
+          background: "none",
+          fontSize: 26,
+          marginLeft: 8,
+          color: isDarkMode ? "#a1a1aa" : "#666",
+          cursor: "pointer",
+          lineHeight: 1,
+        }}
       >
-        <div
-          style={{
-            width: 40,
-            height: 4,
-            background: isDarkMode ? "#a1a1aa" : "#aaa",
-            borderRadius: 2,
-            margin: "4px auto",
-          }}
-        />
-      </div>
-      <div style={{ 
-        display: "flex", 
-        alignItems: "center", 
-        borderBottom: `1px solid ${isDarkMode ? "#44454a" : "#eee"}`, 
-        padding: "0 1rem 0 0.5rem" 
-      }}>
-        {/* Custom CSS Tabs */}
-        <div style={{ display: "flex", flex: 1, paddingTop: 10 }}>
-          {tabLabels.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                border: "none",
-                borderBottom: activeTab === tab.key ? `2px solid ${isDarkMode ? "#60a5fa" : "#007bff"}` : "2px solid transparent",
-                background: "none",
-                padding: "8px 20px",
-                marginRight: 8,
-                fontWeight: activeTab === tab.key ? "bold" : "normal",
-                color: activeTab === tab.key ? (isDarkMode ? "#60a5fa" : "#007bff") : (isDarkMode ? "#a1a1aa" : "#555"),
-                cursor: "pointer",
-                fontSize: 16,
-                transition: "border-bottom 0.1s"
-              }}
-              role="tab"
-              aria-selected={activeTab === tab.key}
-              aria-controls={`tab-panel-${tab.key}`}
-              tabIndex={activeTab === tab.key ? 0 : -1}
-              type="button"
-            >
-              {tab.label}
-            </button>
-          ))}
+        ×
+      </button>
+    </div>
+    <Offcanvas.Body style={{ paddingTop: 16, height: 'calc(100% - 60px)' }}>
+      {activeTab === "buoy" && loading && <div style={{ textAlign: "center", padding: "2rem" }}>Loading buoy data...</div>}
+      {activeTab === "buoy" && fetchError && <div style={{ color: "red", textAlign: "center" }}>{fetchError}</div>}
+      {activeTab === "buoy" && !loading && !fetchError && data?.waves?.length > 0 && (
+        <div style={{
+          width: "100%",
+          height: "100%",
+          minHeight: '300px',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
+          padding: '10px',
+          borderRadius: '8px'
+        }}>
+          <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+            <ErrorBoundary>
+              <Line data={buoyChartData} options={buoyChartOptions} />
+            </ErrorBoundary>
+          </div>
         </div>
-        <button
-          onClick={onHide}
-          type="button"
-          aria-label="Close"
-          style={{
-            border: "none",
-            background: "none",
-            fontSize: 26,
-            marginLeft: 8,
-            color: isDarkMode ? "#a1a1aa" : "#666",
-            cursor: "pointer",
-            lineHeight: 1,
-          }}
-        >
-          ×
-        </button>
-      </div>
-      <Offcanvas.Body style={{ paddingTop: 16, height: 'calc(100% - 60px)' }}>
-        {activeTab === "buoy" && loading && <div style={{ textAlign: "center", padding: "2rem" }}>Loading buoy data...</div>}
-        {activeTab === "buoy" && fetchError && <div style={{ color: "red", textAlign: "center" }}>{fetchError}</div>}
-        {activeTab === "buoy" && !loading && !fetchError && data?.waves?.length > 0 && (
-          <div style={{ width: "100%", height: "100%", minHeight: '300px' }}>
+      )}
+      {activeTab === "buoy" && !loading && !fetchError && data && (!data.waves || data.waves.length === 0) && (
+        <div style={{ textAlign: "center", color: "#999" }}>No data available for this buoy.</div>
+      )}
+      {activeTab === "model" && modelLoading && (
+        <div style={{ textAlign: "center", padding: "2rem" }}>Loading model data...</div>
+      )}
+      {activeTab === "model" && modelError && (
+        <div style={{ color: "red", textAlign: "center" }}>{modelError}</div>
+      )}
+      {activeTab === "model" && !modelLoading && !modelError && (
+        <div style={{
+          width: "100%",
+          height: "100%",
+          minHeight: '300px',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
+          padding: '10px',
+          borderRadius: '8px'
+        }}>
+          <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
             <ErrorBoundary>
-              <Plot
-                data={plotlyBuoyData}
-                layout={{
-                  ...plotlyBuoyLayout,
-                  autosize: true,
-                  height: null,
-                  width: null
-                }}
-                useResizeHandler={true}
-                style={{ width: '100%', height: '100%', minHeight: '300px' }}
-                config={{
-                  responsive: true,
-                  displayModeBar: true,
-                  scrollZoom: true
-                }}
-                onError={err => console.error('Plotly error:', err)}
-              />
+              <Line data={modelChartData} options={modelChartOptions} />
             </ErrorBoundary>
           </div>
-        )}
-        {activeTab === "buoy" && !loading && !fetchError && data && (!data.waves || data.waves.length === 0) && (
-          <div style={{ textAlign: "center", color: "#999" }}>No data available for this buoy.</div>
-        )}
-        {activeTab === "model" && modelLoading && (
-          <div style={{ textAlign: "center", padding: "2rem" }}>Loading model data...</div>
-        )}
-        {activeTab === "model" && modelError && (
-          <div style={{ color: "red", textAlign: "center" }}>{modelError}</div>
-        )}
-        {activeTab === "model" && !modelLoading && !modelError && (
-          <div style={{ width: "100%", height: "100%", minHeight: '300px' }}>
-            <ErrorBoundary>
-              <Plot
-                data={plotlyModelData}
-                layout={{
-                  ...plotlyModelLayout,
-                  autosize: true,
-                  height: null,
-                  width: null
-                }}
-                useResizeHandler={true}
-                style={{ width: '100%', height: '100%', minHeight: '300px' }}
-                config={{
-                  responsive: true,
-                  displayModeBar: true,
-                  scrollZoom: true
-                }}
-                onError={err => console.error('Plotly error:', err)}
-              />
-            </ErrorBoundary>
-            {modelMissingVars.length > 0 && (
-              <div style={{ color: "orange", textAlign: "center", paddingTop: 10 }}>
-                No model data for: {modelMissingVars.join(', ')}
-              </div>
-            )}
-          </div>
-        )}
-        {activeTab === "model" && !modelLoading && !modelError && !modelChartData && (
-          <div style={{ textAlign: "center", color: "#999" }}>No model data available.</div>
-        )}
-        {activeTab === "combination" && (
-          <div style={{ width: "100%", height: "100%", minHeight: '300px' }}>
+          {modelMissingVars.length > 0 && (
+            <div style={{ color: "orange", textAlign: "center", paddingTop: 10 }}>
+              No model data for: {modelMissingVars.join(', ')}
+            </div>
+          )}
+        </div>
+      )}
+      {activeTab === "model" && !modelLoading && !modelError && !modelChartData && (
+        <div style={{ textAlign: "center", color: "#999" }}>No model data available.</div>
+      )}
+      {activeTab === "combination" && (
+        <div style={{
+          width: "100%",
+          height: "100%",
+          minHeight: '300px',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
+          padding: '10px',
+          borderRadius: '8px'
+        }}>
+          <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
             <ErrorBoundary>
               {(!hasLoadedData.buoy || !hasLoadedData.model) ? (
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  alignItems: 'center', 
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
                   height: '100%',
                   color: '#666',
                   flexDirection: 'column',
@@ -847,210 +966,7 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
                   </div>
                 </div>
               ) : (
-                <Plot
-                  data={(() => {
-                    // Prepare buoy data with its own time axis
-                    let buoyTraces = [];
-                    if (data && data.waves && data.waves.length > 0) {
-                      const buoyTimes = data.waves.map(w => w.timestamp);
-                      const buoyLabels = buoyTimes.map(t => 
-                        typeof t === "string" && t.length > 15 ? t.substring(0, 16).replace("T", " ") : t
-                      );
-                      const buoyData = {
-                        hs: data.waves.map(w => w.significantWaveHeight || w.waveHs || w.hs),
-                        tpeak: data.waves.map(w => w.meanPeriod || w.peakPeriod || w.waveTp || w.tpeak),
-                        dirp: data.waves.map(w => w.meanDirection || w.waveDp || w.dirp)
-                      };
-                      
-                      buoyTraces = [
-                        {
-                          x: buoyLabels,
-                          y: buoyData.hs,
-                          name: 'Significant Wave Height (Buoy)',
-                          type: 'scatter',
-                          mode: 'lines',
-                          line: { color: BUOY_COLORS[0], width: 2, dash: 'solid' },
-                          yaxis: 'y',
-                        },
-                        {
-                          x: buoyLabels,
-                          y: buoyData.tpeak,
-                          name: 'Peak Wave Period (Buoy)',
-                          type: 'scatter',
-                          mode: 'lines',
-                          line: { color: BUOY_COLORS[1], width: 2, dash: 'solid' },
-                          yaxis: 'y2',
-                        },
-                        {
-                          x: buoyLabels,
-                          y: buoyData.dirp,
-                          name: 'Mean Wave Direction (Buoy)',
-                          type: 'scatter',
-                          mode: 'lines',
-                          line: { color: BUOY_COLORS[2], width: 2, dash: 'solid' },
-                          yaxis: 'y3',
-                        }
-                      ];
-                    }
-                    
-                    // Prepare model data with its own time axis
-                    let modelTraces = [];
-                    if (modelData && modelData.domain && modelData.domain.axes && modelData.domain.axes.t) {
-                      const modelTimes = modelData.domain.axes.t.values || [];
-                      const modelLabels = modelTimes.map(t => 
-                        t.length > 15 ? t.substring(0, 16).replace("T", " ") : t
-                      );
-                      console.log("hs_p1 ::" + modelData.ranges?.hs_p1?.values);
-                      console.log("dirp_p1 ::" + modelData.ranges?.dirp_p1?.values);
-                      console.log("tp_p1 ::" + modelData.ranges?.tp_p1?.values);
-                      
-
-                      modelTraces = [
-                        {
-                          x: modelLabels,
-                          y: modelData.ranges?.hs_p1?.values || [],
-                          name: 'Significant Wave Height (Model)',
-                          type: 'scatter',
-                          mode: 'lines',
-                          line: { color: MODEL_COLORS[0], width: 2, dash: 'dot' },
-                          yaxis: 'y',
-                        },
-                        {
-                          x: modelLabels,
-                          y: modelData.ranges?.tp_p1?.values || [],
-                          name: 'Wind Wave Period (Model)',
-                          type: 'scatter',
-                          mode: 'lines',
-                          line: { color: MODEL_COLORS[1], width: 2, dash: 'dot' },
-                          yaxis: 'y2',
-                        },
-                        {
-                          x: modelLabels,
-                          y: modelData.ranges?.dirp_p1?.values || [],
-                          name: 'Wind Wave Direction (Model)',
-                          type: 'scatter',
-                          mode: 'lines',
-                          line: { color: MODEL_COLORS[2], width: 2, dash: 'dot' },
-                          yaxis: 'y3',
-                        }
-                      ];
-                    }
-                    
-                    //console.log('Final traces count:', {
-                    //   modelTraces: modelTraces.length,
-                    //   buoyTraces: buoyTraces.length,
-                    //   total: modelTraces.length + buoyTraces.length
-                    // });
-                    
-                    return [...modelTraces, ...buoyTraces];
-                  })()}
-                  layout={{
-                    title: { 
-                      text: "Model vs Buoy: All Variables",
-                      font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' }
-                    },
-                    paper_bgcolor: isDarkMode ? '#2e2f33' : '#ffffff',
-                    plot_bgcolor: isDarkMode ? '#2e2f33' : '#ffffff',
-                    font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-                    xaxis: { 
-                      title: { text: "Time", font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' } }, 
-                      tickangle: -45, 
-                      showgrid: true,
-                      gridcolor: isDarkMode ? '#44454a' : '#e2e8f0',
-                      tickmode: 'auto',
-                      nticks: 10,
-                      tickformat: '%b %d %Y',
-                      tickfont: { size: 10, color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-                      tickwidth: 1,
-                      ticklen: 5,
-                      tickcolor: isDarkMode ? '#a1a1aa' : '#666',
-                      showticklabels: true,
-                      automargin: true,
-                      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-                    },
-                    yaxis: { 
-                      title: { 
-                        text: "Height (m)", 
-                        font: { 
-                          color: isDarkMode ? '#f1f5f9' : '#1e293b',
-                          size: 12,
-                          family: 'Arial, sans-serif'
-                        },
-                        standoff: 10
-                      }, 
-                      side: 'left', 
-                      showgrid: true, 
-                      gridcolor: isDarkMode ? '#44454a' : '#e2e8f0',
-                      zeroline: false,
-                      tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-                      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-                    },
-                                                                                                                                                                       yaxis2: {
-                        title: { 
-                          text: "Period (s)", 
-                          font: { 
-                            color: isDarkMode ? '#f1f5f9' : '#1e293b',
-                            size: 12,
-                            family: 'Arial, sans-serif'
-                          },
-                          standoff: 70,
-                          x: 1.15
-                        },
-                        overlaying: 'y',
-                        side: 'right',
-                        position: 0.98,
-                        showgrid: false,
-                        zeroline: false,
-                        anchor: 'x',
-                        tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-                        zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-                      },
-                      yaxis3: {
-                        title: { 
-                          text: "Direction (°)", 
-                          font: { 
-                            color: isDarkMode ? '#f1f5f9' : '#1e293b',
-                            size: 12,
-                            family: 'Arial, sans-serif'
-                          },
-                          standoff: 50,
-                          x: 1.25
-                        },
-                        overlaying: 'y',
-                        side: 'right',
-                        position: 0.75,
-                        showgrid: false,
-                        zeroline: false,
-                        anchor: 'x',
-                        tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-                        zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
-                      },
-                    legend: { 
-                      orientation: 'h', 
-                      y: 1.15, 
-                      x: 0.5, 
-                      xanchor: 'center',
-                      font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-                      bgcolor: isDarkMode ? '#3f4854' : '#ffffff',
-                      bordercolor: isDarkMode ? '#44454a' : '#e2e8f0'
-                    },
-                    hovermode: 'x unified',
-                    autosize: true,
-                    height: Math.max(Math.min(height - 100, 500), 300),
-                                         margin: { t: 60, l: 70, r: 120, b: 80 },
-                    dragmode: 'pan',
-                  }}
-                  useResizeHandler={true}
-                  style={{ width: '100%', height: '100%', minHeight: '300px' }}
-                  config={{
-                    responsive: true,
-                    displayModeBar: true,
-                    scrollZoom: true,
-                    modeBarButtonsToRemove: ['select2d', 'lasso2d'],
-                    displaylogo: false
-                  }}
-                  onError={err => console.error('Plotly error:', err)}
-                />
+                combinationChartData && <Line data={combinationChartData} options={combinationChartOptions} />
               )}
             </ErrorBoundary>
             {hasLoadedData.buoy && hasLoadedData.model && (
@@ -1077,10 +993,12 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
               })()
             )}
           </div>
-        )}
-      </Offcanvas.Body>
-    </Offcanvas>
-  );
+        </div>
+      )}
+    </Offcanvas.Body>
+  </Offcanvas>
+  </>
+);
 }
 
 export default BottomBuoyOffCanvas;

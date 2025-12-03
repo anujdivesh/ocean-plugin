@@ -68,8 +68,8 @@ const variableConfigMap = {
   }),
   inun: () => ({
     style: "default-scalar/x-Sst",
-    colorscalerange: "-0.05,1.63",
-    numcolorbands: 250,
+    colorscalerange: "0,2",
+    numcolorbands: 20,
     belowmincolor: "transparent",
     abovemaxcolor: "extend",
     colorscaling: "linear"
@@ -141,8 +141,9 @@ function CookIslandsForecast() {
       {
         label: "Rarotonga Inundation",
         value: "H_max",
-        ...getWorldClassConfig('inun'),
+        ...getWorldClassConfig('raro_inun'),
         id: 200,
+        dataset: 'H_max',
         wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_reproj.nc",
         legendUrl: getRarotongaInundationLegendUrl(),
         description: "Modeled inundation depth for Rarotonga (0–1.63 m above ground)",

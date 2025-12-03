@@ -1,3 +1,4 @@
+//working code
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Container, Button, Form, Spinner, Badge, Card, Row, Col } from 'react-bootstrap';
 import { FaWaveSquare, FaArrowLeft } from 'react-icons/fa';
@@ -7,29 +8,120 @@ import 'chartjs-adapter-date-fns';
 import Lottie from 'lottie-react';
 import animationData from './live.json';
 import './Dashboard.css';
-ChartJS.register(LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, Filler, CategoryScale);
+
+// Custom htmlLegend plugin to render legends with proper line dash patterns
+const htmlLegendPlugin = {
+    id: 'htmlLegend',
+    afterUpdate(chart, args, options) {
+        const ul = getOrCreateLegendList(chart, options.containerID);
+
+        // Remove old legend items
+        while (ul.firstChild) {
+            ul.firstChild.remove();
+        }
+
+        // Reuse the built-in legendItems generator
+        const items = chart.options.plugins.legend.labels.generateLabels(chart);
+
+        items.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.style.alignItems = 'center';
+            li.style.cursor = 'pointer';
+            li.style.display = 'flex';
+            li.style.marginLeft = '10px';
+
+            li.onclick = () => {
+                chart.setDatasetVisibility(item.datasetIndex, !chart.isDatasetVisible(item.datasetIndex));
+                chart.update();
+            };
+
+            // Color box with line (solid or dashed)
+            const boxSpan = document.createElement('span');
+            boxSpan.style.background = item.fillStyle;
+            boxSpan.style.borderColor = item.strokeStyle;
+            boxSpan.style.borderWidth = item.lineWidth + 'px';
+            boxSpan.style.display = 'inline-block';
+            boxSpan.style.height = '2px';
+            boxSpan.style.marginRight = '10px';
+            boxSpan.style.width = '40px';
+            
+            if (item.lineDash && item.lineDash.length > 0) {
+                // Create dashed line using border-style
+                boxSpan.style.borderTop = '2px dashed ' + item.strokeStyle;
+                boxSpan.style.height = '0px';
+            } else {
+                // Solid line
+                boxSpan.style.backgroundColor = item.strokeStyle;
+            }
+
+            const textContainer = document.createElement('p');
+            textContainer.style.color = item.fontColor;
+            textContainer.style.margin = '0';
+            textContainer.style.padding = '0';
+            textContainer.style.textDecoration = item.hidden ? 'line-through' : '';
+
+            const text = document.createTextNode(item.text);
+            textContainer.appendChild(text);
+
+            li.appendChild(boxSpan);
+            li.appendChild(textContainer);
+            ul.appendChild(li);
+        });
+    }
+};
+
+const getOrCreateLegendList = (chart, id) => {
+    const legendContainer = document.getElementById(id);
+    let listContainer = legendContainer.querySelector('ul');
+
+    if (!listContainer) {
+        listContainer = document.createElement('ul');
+        listContainer.style.display = 'flex';
+        listContainer.style.flexDirection = 'row';
+        listContainer.style.flexWrap = 'wrap';
+        listContainer.style.margin = '0';
+        listContainer.style.padding = '0';
+
+        legendContainer.appendChild(listContainer);
+    }
+
+    return listContainer;
+};
+
+ChartJS.register(LineElement, PointElement, LinearScale, TimeScale, Tooltip, Legend, Filler, CategoryScale, htmlLegendPlugin);
 
 const fixedColors = [
-    'rgb(255, 87, 51)', 'rgb(153, 102, 255)', 'rgb(255, 206, 86)',
-    'rgb(54, 162, 235)', 'rgb(255, 99, 132)', 'rgb(75, 192, 192)'
+    '#FF5733', // Bright Orange-Red
+    '#33FFB5', // Bright Mint
+    '#FFD633', // Bright Yellow
+    '#3399FF', // Bright Blue
+    '#FF33F5', // Bright Magenta
+    '#33FF57'  // Bright Green
 ];
 // Dynamic flag loader now uses country_short fetched in searchComponent; fallback handled via onError
+
+// Outlier removal removed: raw values will be used directly.
 
 export default function RealtimeComponent({ selectedStations, setDashboardGenerated, buoyOptions, sharedCountryMap = {}, initialLiveMode = false }) {
     const [stationData, setStationData] = useState({});
     const [chartData, setChartData] = useState({});
     const isLoadingChartsRef = useRef(false);
-    const [dataLimit, setDataLimit] = useState(1000); // default limit per requirement
-    const [liveMode, setLiveMode] = useState(false);
+    // Hour-based window for display/fetch tuning (12,18,24,48,72); default 12h
+    const [hourWindow, setHourWindow] = useState(12);
+    const [liveMode, setLiveMode] = useState(true);
     // Station currently expanded in overlay (double-click)
     const [expandedStationId, setExpandedStationId] = useState(null);
+    const [offcanvasHeight, setOffcanvasHeight] = useState(400);
+    const isDraggingRef = useRef(false);
     const appliedInitialLiveModeRef = useRef(false);
     const [shareStatus, setShareStatus] = useState('');
     // themeKey increments when body class (light/dark) changes so charts fully re-render with new colors
     const [themeKey, setThemeKey] = useState(0);
     const refreshIntervalRef = useRef(null);
-    const REFRESH_INTERVAL = 1800000;
+    const REFRESH_INTERVAL = 300000;
     const controlsRef = useRef(null);
+    // Keep last known sampling interval per station without triggering renders
+    const sampleMinutesRef = useRef({});
 
     const getStationDetails = useCallback(id => {
         const found = buoyOptions.find(b=>b.spotter_id===id);
@@ -94,19 +186,25 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
             }
             
                          // Handle the response structure - data can be directly in response or nested
-             let actualData, dataLabels;
+             let actualData, dataLabels, chartType, stationType;
              if (data.data !== undefined) {
                  // Case 1: data is nested (existing structure)
                  actualData = data.data;
                  dataLabels = data.data_labels;
+                 chartType = data.chart_type || data.chartType || data.meta?.chart_type;
+                 stationType = data.type || data.station_type || data.stationType || data.meta?.type || data.station?.type;
              } else if (Array.isArray(data)) {
                  // Case 2: response is directly an array
                  actualData = data;
                  dataLabels = '';
+                 chartType = undefined;
+                 stationType = undefined;
              } else {
                  // Case 3: data is at top level (your current response structure)
                  actualData = data.data || [];
                  dataLabels = data.data_labels || '';
+                 chartType = data.chart_type || data.chartType || data.meta?.chart_type;
+                 stationType = data.type || data.station_type || data.stationType || data.meta?.type || data.station?.type;
              }
              
                           // Check if data array is empty (this handles the case where data: [] is returned)
@@ -114,8 +212,8 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                  return { data: [], data_labels: dataLabels || '', isEmpty: true };
              }
             
-            // Return normalized structure
-            return { data: actualData, data_labels: dataLabels };
+            // Return normalized structure (also include optional chart_type and station type if provided by API)
+            return { data: actualData, data_labels: dataLabels, chart_type: chartType, station_type: stationType };
         } catch (err) {
             if (err.name === 'AbortError') {
                 console.error(`[fetchInsituData] Request timeout for station ${stationId} after 5 minutes`);
@@ -155,7 +253,20 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                  return;
              }
              
-             const data = await fetchInsituData(stationId, dataLimit, `initializeChartData - Live: ${liveMode}`);
+             // Determine fetch size (effectiveLimit) purely from hourWindow & prior sampling interval.
+             // If hourWindow is provided: desired points = hours * 60 / samplingMinutes (rounded up).
+             // Otherwise request a broad recent window capped by MAX_FETCH_POINTS.
+             const priorStep = sampleMinutesRef.current[spotterId] || 1; // assume 1-minute if unknown
+             let effectiveLimit;
+             if (hourWindow) {
+                // Desired points = hours * 60 / samplingMinutes (rounded up). No upper cap enforced.
+                effectiveLimit = Math.max(1, Math.ceil((Number(hourWindow) * 60) / priorStep));
+             } else {
+                // Without an hour window, we could request a broad recent slice; choose a generous default.
+                // This can be tuned later or made configurable; for now fetch 4000 to avoid extreme loads.
+                effectiveLimit = 4000;
+             }
+             const data = await fetchInsituData(stationId, effectiveLimit, `initializeChartData - Live: ${liveMode} - Hours: ${hourWindow ?? 'all'}`);
              
              // Create base chart data structure for all cases
              const metaBase = stationData[spotterId] || {};
@@ -176,7 +287,8 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                  return;
              }
              
-             const { data: rows = [], data_labels, isEmpty, isTimeout, stationNotFound, notFound } = data;
+            // station_type currently unused after removal of outlier logic; omit to avoid lint warning
+            const { data: rows = [], data_labels, chart_type, isEmpty, isTimeout, stationNotFound, notFound } = data;
              
              if (isEmpty || isTimeout || stationNotFound || notFound || !rows.length || !data_labels) {
                  newChartData[spotterId] = {
@@ -214,28 +326,80 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                 return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}Z`;
             });
             // Using Date objects directly for Chart.js time scale
-            const datasets = yKeys.map((k, idx) => ({
-                key: k,
-                label: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-                values: rows.map(r => {
+            const rawDatasets = yKeys.map((k, idx) => {
+                const rawValues = rows.map(r => {
                     const val = r[k];
-                    if (val === -999) return null; // -999 as null
+                    if (val === -999) return null; // treat sentinel -999 as missing
                     return val;
-                }),
-                axis: idx === 0 ? 'y1' : idx === 1 ? 'y2' : 'y3'
-            }));
+                });
+                return {
+                    key: k,
+                    label: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                    values: rawValues,
+                    originalValues: rawValues,
+                    axis: idx === 0 ? 'y1' : idx === 1 ? 'y2' : 'y3'
+                };
+            });
+
+            // Determine sampling interval (median delta) in minutes for this station
+            const labelDates = times.map(t => new Date(t));
+            let sampleMinutes = 1;
+            if (labelDates.length > 1) {
+                const deltas = [];
+                for (let i=1;i<labelDates.length;i++) {
+                    const dt = (new Date(labelDates[i]).getTime() - new Date(labelDates[i-1]).getTime());
+                    if (dt > 0) deltas.push(dt);
+                }
+                if (deltas.length) {
+                    deltas.sort((a,b)=>a-b);
+                    const mid = Math.floor(deltas.length/2);
+                    const medianMs = deltas.length % 2 ? deltas[mid] : (deltas[mid-1]+deltas[mid])/2;
+                    sampleMinutes = Math.max(1, Math.round(medianMs/60000));
+                }
+            }
+
+            // If an hour window is selected, strictly filter to that time window based on the maximum timestamp
+            let finalLabels = labelDates;
+            let finalDatasets = rawDatasets;
+            if (hourWindow && labelDates.length) {
+                const timesMs = labelDates.map(d => d.getTime());
+                const maxTime = Math.max(...timesMs);
+                const cutoff = maxTime - Number(hourWindow) * 3600000;
+                const indices = [];
+                for (let i = 0; i < timesMs.length; i++) {
+                    const t = timesMs[i];
+                    if (t >= cutoff && t <= maxTime) indices.push(i);
+                }
+                if (indices.length) {
+                    finalLabels = indices.map(i => labelDates[i]);
+                    finalDatasets = rawDatasets.map(ds => ({
+                        ...ds,
+                        values: indices.map(i => ds.values[i])
+                    }));
+                } else {
+                    // No points fall within the requested window
+                    finalLabels = [];
+                    finalDatasets = rawDatasets.map(ds => ({ ...ds, values: [] }));
+                }
+            }
             
+            const effectiveChartType = (chart_type || '').toString().toLowerCase();
             newChartData[spotterId] = {
-                labels: times.map(t => new Date(t)),
-                datasets,
+                labels: finalLabels,
+                datasets: finalDatasets,
                 lastUpdated: new Date().toISOString(),
                 meta: metaBase,
-                noData: false
+                noData: false,
+                // Pass through API hint to influence rendering style (scatter vs line)
+                chartType: effectiveChartType,
+                sampleMinutes
             };
+            // Store sampling interval for next fetch sizing without creating state dependency loops
+            sampleMinutesRef.current[spotterId] = sampleMinutes;
         }));
         setChartData(newChartData);
         isLoadingChartsRef.current = false;
-    }, [selectedStations, dataLimit, fetchInsituData, getStationDetails, stationData, sharedCountryMap, liveMode]);
+    }, [selectedStations, hourWindow, fetchInsituData, getStationDetails, stationData, sharedCountryMap, liveMode]);
 
     useEffect(() => { fetchStationData(); }, [fetchStationData]);
     useEffect(() => { initializeChartData(); }, [initializeChartData]);
@@ -266,20 +430,36 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
 
     const toggleLiveMode = () => setLiveMode(m=>!m);
     const handleBack = () => setDashboardGenerated(false);
-    const handleLimitChange = e => { 
-        const v = parseInt(e.target.value); 
-        if (!isNaN(v)) {
-            const newLimit = Math.min(1000, Math.max(1, v));
-            setDataLimit(newLimit);
-            // Data will be automatically re-fetched due to dependency on dataLimit in initializeChartData
-        }
-    };
+    // Legacy dataLimit control removed; hourWindow now solely governs fetch sizing.
 
     // Handle double click to expand a station chart
     const handleExpand = id => {
         setExpandedStationId(id);
     };
     const handleCloseExpand = useCallback(() => setExpandedStationId(null), []);
+
+    const onMouseDown = useCallback((e) => {
+        e.preventDefault();
+        isDraggingRef.current = true;
+        const startY = e.clientY;
+        const startHeight = offcanvasHeight;
+
+        const onMouseMove = (moveEvent) => {
+            if (!isDraggingRef.current) return;
+            const deltaY = startY - moveEvent.clientY;
+            const newHeight = Math.min(Math.max(200, startHeight + deltaY), window.innerHeight - 100);
+            setOffcanvasHeight(newHeight);
+        };
+
+        const onMouseUp = () => {
+            isDraggingRef.current = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    }, [offcanvasHeight]);
 
     // Close on ESC
     useEffect(() => {
@@ -300,13 +480,16 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                 const st = getStationDetails(id);
                 if (st?.country_short) countryMap[id] = st.country_short;
             });
-            const payload = { s: selectedStations, l: dataLimit, c: countryMap, lm: liveMode ? 1 : 0 };
+            const payload = { s: selectedStations, h: hourWindow || 0, c: countryMap, lm: liveMode ? 1 : 0 };
             const encoded = encodeURIComponent(btoa(JSON.stringify(payload)));
             const url = new URL(window.location.href);
             url.searchParams.set('rtd', encoded);
             return url.toString();
         } catch { return window.location.href; }
     };
+
+    // Rough aggregate sampling interval across selected stations (in minutes)
+    // Aggregate sampling helper removed (was only used to sync deprecated Data Points control).
 
     const handleShare = async () => {
         const link = buildShareURL();
@@ -332,7 +515,7 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                 // Fire a custom event including country map so parent can store
                 window.dispatchEvent(new CustomEvent('restore-shared-stations', { detail: json }));
             }
-            if (json.l && !isNaN(json.l)) setDataLimit(json.l);
+            if (json.h && !isNaN(json.h)) setHourWindow(Number(json.h));
         } catch {/* ignore */}
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -428,27 +611,77 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
             textColor = (rs.getPropertyValue('--color-text') || textColor).trim();
         }
         // Build Chart.js datasets (single Y axis primary + optional second using plugin approach simplified)
+        const isScatter = (d.chartType === 'scatter');
         const data = {
             labels: d.labels,
-            datasets: d.datasets.map((ds,i)=> ({
-                label: ds.label,
-                data: d.labels.map((time, idx) => ({ x: time, y: ds.values[idx] })),
-                borderColor: fixedColors[i%fixedColors.length],
-                backgroundColor: fixedColors[i%fixedColors.length] + '33',
-                tension: 0.3,
-                pointRadius: 0,
-                pointHitRadius: 6,
-                pointHoverRadius: 4,
-                yAxisID: i === 0 ? 'y' : (i === 1 ? 'y1' : 'y2')
-            }))
+            datasets: d.datasets.map((ds,i)=> {
+                const color = fixedColors[i%fixedColors.length];
+                const isDashed = i > 0; // First dataset is solid, others are dashed
+                return {
+                    label: ds.label,
+                    data: d.labels.map((time, idx) => ({ x: time, y: ds.values[idx] })),
+                    // For scatter we want solid filled circles; for dashed lines use NO background fill
+                    borderColor: color,
+                    backgroundColor: isScatter ? color : (isDashed ? 'transparent' : color + '15'),
+                    pointBackgroundColor: color,
+                    pointBorderColor: color,
+                    pointBorderWidth: isScatter ? 1 : 0,
+                    borderWidth: 2,
+                    borderDash: isDashed ? [5, 5] : [],
+                    tension: isScatter ? 0 : 0.3,
+                    // If scatter, hide connecting lines and show points; else show line and hide points
+                    showLine: !isScatter,
+                    pointRadius: isScatter ? 3 : 0,
+                    pointHitRadius: isScatter ? 8 : 6,
+                    pointHoverRadius: isScatter ? 5 : 4,
+                    fill: isDashed ? false : true,
+                    yAxisID: i === 0 ? 'y' : (i === 1 ? 'y1' : 'y2')
+                };
+            })
         };
     const options = {
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'nearest', intersect: false },
             plugins: {
-                legend: { position: 'top', labels: { color: textColor, boxWidth: 18, boxHeight: 12, padding: 10 } },
-                tooltip: { enabled: true }
+                legend: { 
+                    display: false,
+                    labels: {
+                        generateLabels: (chart) => {
+                            const datasets = chart.data.datasets;
+                            return datasets.map((dataset, i) => ({
+                                text: dataset.label,
+                                fillStyle: 'transparent',
+                                strokeStyle: dataset.borderColor,
+                                lineWidth: 2,
+                                lineDash: dataset.borderDash || [],
+                                hidden: !chart.isDatasetVisible(i),
+                                datasetIndex: i,
+                                fontColor: textColor
+                            }));
+                        }
+                    }
+                },
+                htmlLegend: {
+                    containerID: `legend-container-${id}`
+                },
+                tooltip: { 
+                    enabled: true,
+                    callbacks: {
+                        title: items => {
+                            if (!items?.length) return '';
+                            const ms = items[0].parsed.x; // epoch milliseconds
+                            const d = new Date(ms);
+                            if (isNaN(d)) return 'Invalid Date';
+                            return d.toISOString().replace('T',' ').replace(/\.\d{3}Z$/,' UTC');
+                        },
+                        label: item => {
+                            const val = item.parsed.y;
+                            const dsLabel = item.dataset?.label || 'Value';
+                            return `${dsLabel}: ${val == null ? '—' : val}`;
+                        }
+                    }
+                }
             },
             layout: { 
                 padding: { 
@@ -458,7 +691,7 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                     right: 10
                 } 
             },
-            elements: { point: { radius: 0 } },
+            elements: { point: { radius: isScatter ? 3 : 0 } },
             scales: {
                 x: { 
                     type: 'time',
@@ -496,6 +729,7 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
             }
         };
     return <div style={{width:'100%',height:'100%',background:chartBg,borderRadius:4,position:'relative',minHeight:0}}>
+            <div id={`legend-container-${id}`} style={{padding:'10px 10px 5px 10px', color: textColor}}></div>
             <Line key={`line-${id}-${themeKey}`} data={data} options={options} style={{width:'100%',height:'100%'}} />
         </div>;
     };
@@ -529,21 +763,21 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
     };
 
     return (
-    <div className="dashboard-view d-flex flex-column" style={{height:'calc(100vh - 56px)',overflow:'hidden',background:'var(--color-background)',color:'var(--color-text)'}}>
-            {/* Inline styles for overlay (could be moved to Dashboard.css) */}
+    <>
+    <div className="dashboard-view d-flex flex-column" style={{height:'calc(100vh - 56px)',overflow:'hidden',background:'var(--color-background)',color:'var(--color-text)',position:'relative',zIndex: expandedStationId ? 1 : 'auto'}}>
+            {/* Inline styles for bottom offcanvas */}
             <style>{`
-                .rtm-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.66); backdrop-filter: blur(6px); z-index: 1050; display: flex; align-items: center; justify-content: center; padding: 2rem; animation: rtmFade .25s ease; }
-                @keyframes rtmFade { from { opacity: 0;} to { opacity: 1;} }
-                .rtm-overlay-card { width: min(1400px, 95vw); height: min(85vh, 900px); background: var(--color-surface); color: var(--color-text); border-radius: 18px; box-shadow: 0 10px 40px -5px rgba(0,0,0,.55), 0 0 0 1px var(--color-border,#334155); display:flex; flex-direction:column; position:relative; animation: rtmPop .35s cubic-bezier(.34,1.56,.64,1); overflow:hidden; }
-                @keyframes rtmPop { 0% { transform: scale(.92) translateY(12px); opacity:0;} 100% { transform: scale(1) translateY(0); opacity:1;} }
-                .rtm-overlay-header { padding: .85rem 1.1rem; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--color-border,#334155); background: linear-gradient(135deg,var(--color-surface) 0%, rgba(255,255,255,0.02) 100%); }
-                .rtm-overlay-title { font-weight:600; font-size:1rem; letter-spacing:.5px; display:flex; align-items:center; gap:.5rem; }
-                .rtm-overlay-close { background: transparent; border: 1px solid var(--color-border,#475569); color: var(--color-text); width: 34px; height: 34px; border-radius: 8px; font-size: 1.25rem; line-height: 1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all .18s ease; }
-                .rtm-overlay-close:hover { background: var(--color-chart-bg,#1e293b); transform: rotate(90deg); }
-                .rtm-overlay-body { flex:1; padding: .75rem .9rem 1rem; display:flex; }
-                .rtm-overlay-body > div { flex:1; }
-                .rtm-overlay-footer { padding: .4rem .9rem .65rem; border-top:1px solid var(--color-border,#334155); font-size:.7rem; text-align:right; opacity:.65; }
-                @media (max-width: 900px) { .rtm-overlay-card { height: 90vh; width: 100vw; border-radius:14px; padding:0; } .rtm-overlay { padding: .75rem; } }
+                .rtm-offcanvas { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-surface,#1e293b); color: var(--color-text); box-shadow: 0 -4px 20px rgba(0,0,0,.3); z-index: 12000; transition: transform .3s ease; border-top: 1px solid var(--color-border,#334155); }
+                .rtm-offcanvas.show { transform: translateY(0); }
+                .rtm-offcanvas.hide { transform: translateY(100%); }
+                .rtm-drag-handle { height: 12px; cursor: ns-resize; background: var(--color-border,#475569); border-top-left-radius: 8px; border-top-right-radius: 8px; text-align: center; user-select: none; margin: -8px 0 0 0; display: flex; align-items: center; justify-content: center; }
+                .rtm-drag-handle:hover { background: var(--color-border,#64748b); }
+                .rtm-drag-handle-bar { width: 40px; height: 4px; background: var(--color-text,#94a3b8); border-radius: 2px; opacity: 0.5; }
+                .rtm-offcanvas-header { padding: .75rem 1rem; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--color-border,#334155); background: var(--color-surface); }
+                .rtm-offcanvas-title { font-weight:600; font-size:1rem; display:flex; align-items:center; gap:.5rem; }
+                .rtm-offcanvas-close { background: transparent; border: 1px solid var(--color-border,#475569); color: var(--color-text); width: 32px; height: 32px; border-radius: 6px; font-size: 1.25rem; line-height: 1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all .18s ease; }
+                .rtm-offcanvas-close:hover { background: var(--color-chart-bg,#1e293b); transform: rotate(90deg); }
+                .rtm-offcanvas-body { padding: 1rem; overflow: auto; }
             `}</style>
             <div ref={controlsRef} className="dashboard-controls" style={{padding:'0.5rem 1rem',background:'var(--color-surface)',borderBottom:'1px solid var(--color-border, #dee2e6)',flexShrink:0}}>
                 <div className="d-flex align-items-center gap-3">
@@ -557,9 +791,25 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                         <span style={{position:'relative',top:1}}>Back to Selection</span>
                     </Button>
                     {renderLiveModeIndicator()}
-                    <div className="data-limit-control d-flex align-items-center">
-                        <span style={{fontSize:'0.875rem',marginRight:8}}>Data Points:</span>
-                        <Form.Control type="number" value={dataLimit} onChange={handleLimitChange} min="1" max="1000" style={{width:70,height:30,fontSize:'0.875rem',padding:'0.25rem 0.5rem'}} />
+                    <div className="hour-window-control d-flex align-items-center">
+                        <Form.Label htmlFor="hour-window-select" className="mb-0 me-2" style={{fontSize:'0.875rem'}}>Data Filter</Form.Label>
+                        <Form.Select
+                            id="hour-window-select"
+                            value={hourWindow}
+                            onChange={e => {
+                                const next = Number(e.target.value);
+                                setHourWindow(next);
+                            }}
+                            size="sm"
+                            style={{width:130,height:30,fontSize:'0.75rem'}}
+                            title="Select hour window"
+                        >
+                            <option value="12">12 Hours</option>
+                            <option value="18">18 Hours</option>
+                            <option value="24">24 Hours</option>
+                            <option value="48">48 Hours</option>
+                            <option value="72">72 Hours</option>
+                        </Form.Select>
                         <Button variant="outline-primary" size="sm" style={{marginLeft:10}} onClick={handleShare}>Share</Button>
                         {shareStatus && <span style={{marginLeft:6,fontSize:12}}>{shareStatus}</span>}
                     </div>
@@ -610,7 +860,13 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                                             <div>
                                                 <FaWaveSquare className="me-2" />
                                                 <strong>{st.label}</strong>
-                                                <div className="small" style={{color:'var(--color-text)'}}>Last update: {new Date(chartData[id]?.lastUpdated || st.latest_date).toLocaleString()}</div>
+                                                <div className="small" style={{color:'var(--color-text)'}}>Last update: {(() => { 
+                                                    const raw = chartData[id]?.lastUpdated || st.latest_date; 
+                                                    const d = new Date(raw); 
+                                                    if (isNaN(d)) return 'N/A';
+                                                    // Format as UTC "YYYY-MM-DD HH:MM:SS UTC"
+                                                    return d.toISOString().replace('T',' ').replace(/\.\d{3}Z$/,' UTC');
+                                                })()}</div>
                                             </div>
                                         </div>
                                         <Badge bg={active? 'success':'danger'}>{active?'Active':'Inactive'}</Badge>
@@ -625,24 +881,28 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                     })}
                 </Row>
             </Container>
+            </div>
             {expandedStationId && (
-                <div className="rtm-overlay" onClick={e => { if (e.target.classList.contains('rtm-overlay')) handleCloseExpand(); }}>
-                    <div className="rtm-overlay-card">
-                        <div className="rtm-overlay-header">
-                            <div className="rtm-overlay-title">
-                                {getStationDetails(expandedStationId)?.label || expandedStationId}
-                            </div>
-                            <button type="button" className="rtm-overlay-close" onClick={handleCloseExpand} aria-label="Close expanded chart">×</button>
+                <div className={`rtm-offcanvas ${expandedStationId ? 'show' : 'hide'}`} style={{ height: offcanvasHeight }}>
+                    <div 
+                        className="rtm-drag-handle" 
+                        onMouseDown={onMouseDown}
+                        title="Drag to resize"
+                    >
+                        <div className="rtm-drag-handle-bar"></div>
+                    </div>
+                    <div className="rtm-offcanvas-header">
+                        <div className="rtm-offcanvas-title">
+                            <FaWaveSquare className="me-2" />
+                            {getStationDetails(expandedStationId)?.label || expandedStationId}
                         </div>
-                        <div className="rtm-overlay-body">
-                            {renderChart(expandedStationId)}
-                        </div>
-                        <div className="rtm-overlay-footer">
-                            <small>Double-click charts to expand. Press Esc or click outside to close.</small>
-                        </div>
+                        <button type="button" className="rtm-offcanvas-close" onClick={handleCloseExpand} aria-label="Close expanded chart">×</button>
+                    </div>
+                    <div className="rtm-offcanvas-body" style={{ height: `calc(${offcanvasHeight}px - 80px)` }}>
+                        {renderChart(expandedStationId)}
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 }

@@ -340,8 +340,8 @@ const RealtimeComponent = ({
         const layout = {
             autosize: true,
             height: 300,
-            margin: { t: 40, l: 60, r: 60, b: 60 },
-            legend: { orientation: 'h', y: -0.2 },
+            margin: { t: 60, l: 60, r: 60, b: 60 },
+            legend: { orientation: 'h', y: 1.15, yanchor: 'bottom', x: 0.5, xanchor: 'center' },
             xaxis: { title: 'Time', tickangle: -45 },
             yaxis: { title: 'Wave Height (m)', side: 'left' },
             yaxis2: {

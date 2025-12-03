@@ -147,6 +147,35 @@ export default function SearchComponent({
     };
 
 
+    // Helper: determine color for a given monitoring type (by id or value)
+    const getTypeColor = (typeIdOrValue) => {
+        let id = typeof typeIdOrValue === 'number' ? typeIdOrValue : undefined;
+        if (id === undefined && typeIdOrValue) {
+            const mt = monitoringTypes.find(m => m.value === typeIdOrValue);
+            id = mt?.id;
+        }
+        let circleColor = "#01dddd"; // default
+        if (id === 3) {
+            circleColor = "#3f51b5"; // light purple
+        } else if (id === 4) {
+            circleColor = "#fe7e0f"; // orange
+        }
+        return circleColor;
+    };
+
+    // Consistent circle size/style across UI
+    const CIRCLE_SIZE = 12;
+    const circleBaseStyle = {
+        display: 'inline-block',
+        width: CIRCLE_SIZE,
+        height: CIRCLE_SIZE,
+        borderRadius: '50%',
+        border: '1.5px solid #fff',
+        boxShadow: '0 0 2px rgba(0,0,0,0.2)',
+        flexShrink: 0
+    };
+
+
     const removeStation = id => setSelectedStations(selectedStations.filter(s=>s!==id));
     const handleSubmit = () => setDashboardGenerated(true);
     const getStationDetails = id => buoyOptions.find(b=>b.spotter_id===id)||{};
@@ -240,16 +269,30 @@ export default function SearchComponent({
                             {typesError && <div className="text-danger small">{typesError}</div>}
                             {!typesLoading && !typesError && (
                                 <div className="d-flex flex-column gap-1" style={{maxHeight:180,overflowY:'auto'}}>
-                                    {monitoringTypes.map(t => (
-                                        <Form.Check
-                                            key={t.id ?? t.value}
-                                            type="checkbox"
-                                            id={`filter-${t.id ?? t.value}`}
-                                            label={<span style={{color:'var(--color-text)',fontWeight:500}}>{t.value}</span>}
-                                            checked={selectedTypeFilters.includes(t.value)}
-                                            onChange={() => toggleTypeFilter(t.value)}
-                                        />
-                                    ))}
+                                    {monitoringTypes.map((t) => {
+                                        const circleColor = getTypeColor(t.id);
+                                        return (
+                                            <Form.Check
+                                                key={t.id ?? t.value}
+                                                type="checkbox"
+                                                id={`filter-${t.id ?? t.value}`}
+                                                label={
+                                                    <span style={{color:'var(--color-text)',fontWeight:500,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                                                        <span>{t.value}</span>
+                                                        <span
+                                                            style={{
+                                                                ...circleBaseStyle,
+                                                                background: circleColor,
+                                                                marginLeft: 8
+                                                            }}
+                                                        />
+                                                    </span>
+                                                }
+                                                checked={selectedTypeFilters.includes(t.value)}
+                                                onChange={() => toggleTypeFilter(t.value)}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             )}
                             {/* <div className="mt-2 small" style={{color:'var(--color-text)',opacity:0.7}}>{selectedTypeFilters.length ? `${selectedTypeFilters.length} type filter(s) active` : 'No type filters (showing all)'}</div> */}
@@ -269,39 +312,50 @@ export default function SearchComponent({
                         {loading && <div className="d-flex align-items-center"><Spinner animation="border" size="sm" className="me-2"/>Loading stations...</div>}
                         {error && <div className="text-danger small mt-2">{error}</div>}
                         <div className="mt-2 d-flex flex-wrap gap-2" style={{maxWidth:'100%'}}>
-                            {selectedStations.map(id => (
-                                <Badge
-                                    key={id}
-                                    pill
-                                    bg="primary"
-                                    className="d-inline-flex align-items-center"
-                                    style={{
-                                        fontSize:'1rem',
-                                        background:'var(--color-primary,#2563eb)',
-                                        color:'var(--color-on-primary,#fff)',
-                                        boxShadow:'0 2px 8px rgba(0,0,0,0.08)',
-                                        maxWidth:'100%',
-                                        overflow:'hidden'
-                                    }}
-                                    title={getStationDetails(id).label}
-                                >
-                                    <span style={{
-                                        overflow:'hidden',
-                                        textOverflow:'ellipsis',
-                                        whiteSpace:'nowrap',
-                                        minWidth:0,
-                                        flex:'1 1 auto'
-                                    }}>
-                                        {getStationDetails(id).label}
-                                    </span>
-                                    <FaTimes
-                                        className="ms-2 remove-station-icon"
-                                        style={{cursor:'pointer',fontSize:'1.1em',opacity:0.9,color:'#ef4444',flex:'0 0 auto'}}
-                                        onClick={()=>removeStation(id)}
-                                        title="Remove"
-                                    />
-                                </Badge>
-                            ))}
+                            {selectedStations.map(id => {
+                                const details = getStationDetails(id);
+                                const circleColor = getTypeColor(details.type_value);
+                                return (
+                                    <Badge
+                                        key={id}
+                                        pill
+                                        bg="primary"
+                                        className="d-inline-flex align-items-center"
+                                        style={{
+                                            fontSize:'1rem',
+                                            background:'var(--color-primary,#2563eb)',
+                                            color:'var(--color-on-primary,#fff)',
+                                            boxShadow:'0 2px 8px rgba(0,0,0,0.08)',
+                                            maxWidth:'100%',
+                                            overflow:'hidden'
+                                        }}
+                                        title={details.label}
+                                    >
+                                        <span
+                                            style={{
+                                                ...circleBaseStyle,
+                                                background: circleColor,
+                                                marginRight: 8
+                                            }}
+                                        />
+                                        <span style={{
+                                            overflow:'hidden',
+                                            textOverflow:'ellipsis',
+                                            whiteSpace:'nowrap',
+                                            minWidth:0,
+                                            flex:'1 1 auto'
+                                        }}>
+                                            {details.label}
+                                        </span>
+                                        <FaTimes
+                                            className="ms-2 remove-station-icon"
+                                            style={{cursor:'pointer',fontSize:'1.1em',opacity:0.9,color:'#ef4444',flex:'0 0 auto'}}
+                                            onClick={()=>removeStation(id)}
+                                            title="Remove"
+                                        />
+                                    </Badge>
+                                );
+                            })}
                             {!selectedStations.length && !loading && <span className="small" style={{color:'var(--color-text)',opacity:0.6}}>None selected yet</span>}
                         </div>
                         {selectedStations.length >= MAX_SELECTION && <Alert variant="info" className="mt-2 p-2" style={{background:'var(--color-accent,#e0f2fe)',color:'var(--color-primary,#2563eb)',border:'none'}}>Maximum of {MAX_SELECTION} stations selected</Alert>}
