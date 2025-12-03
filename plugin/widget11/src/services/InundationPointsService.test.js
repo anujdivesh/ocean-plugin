@@ -138,11 +138,14 @@ describe('InundationPointsService', () => {
       InundationPointsService.showImageModal('http://example.com/image.png');
       const modal = document.getElementById('inundation-image-modal');
       
-      // Simulate click on modal
+      expect(modal.style.display).toBe('flex');
+      
+      // Simulate click on modal backdrop
       modal.click();
       
-      // Modal should be removed
-      expect(document.getElementById('inundation-image-modal')).not.toBeInTheDocument();
+      // Modal should be hidden (not removed)
+      expect(modal.style.display).toBe('none');
+      expect(document.body.style.overflow).toBe('');
     });
   });
 });

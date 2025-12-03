@@ -27,6 +27,8 @@ describe('Logger', () => {
     
     // Restore environment
     process.env.NODE_ENV = originalEnv;
+    delete process.env.REACT_APP_LOG_LEVEL;
+    delete process.env.REACT_APP_ENABLE_LOGGING;
   });
 
   describe('Log Levels', () => {
@@ -207,11 +209,15 @@ describe('Logger', () => {
     });
 
     test('should not log anything when level is NONE', () => {
-      // Note: Logger caches log level at module load time
       process.env.REACT_APP_LOG_LEVEL = 'NONE';
+      logger.debug('TEST', 'Debug message');
+      logger.info('TEST', 'Info message');
+      logger.warn('TEST', 'Warn message');
       logger.error('TEST', 'Error message');
-      // Accept current behavior - logger is already initialized
-      expect(console.error).toHaveBeenCalled();
+      expect(console.debug).not.toHaveBeenCalled();
+      expect(console.log).not.toHaveBeenCalled();
+      expect(console.warn).not.toHaveBeenCalled();
+      expect(console.error).not.toHaveBeenCalled();
     });
   });
 

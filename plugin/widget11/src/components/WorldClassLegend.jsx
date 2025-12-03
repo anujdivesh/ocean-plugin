@@ -7,7 +7,6 @@
 import React from 'react';
 import './WorldClassLegend.css';
 import wmsStyleManager, { WMSStylePresets } from '../utils/WMSStyleManager';
-import DynamicColorManager from '../utils/DynamicColorManager';
 
 const EPSILON = 1e-6;
 const selectTickValues = (values, limit = 5) => {
@@ -57,7 +56,6 @@ const WorldClassLegend = ({
   const legendSize = 'normal';
   const setLegendSize = () => {}; // No-op function
   const legendBodyId = React.useMemo(() => `legend-body-${Math.random().toString(36).substr(2, 9)}`, []);
-  const dynamicColorManager = React.useMemo(() => new DynamicColorManager(), []);
   
   if (!selectedLayer) return null;
 
@@ -98,19 +96,18 @@ const WorldClassLegend = ({
 
       const gradientMinValue = gradientStopsSource[0]?.value ?? 0;
       const effectiveRange = Math.max(maxValue - gradientMinValue, EPSILON);
-      
-      // FIXED: Always show full viridis range for better visual understanding
-      // Instead of limiting to active threshold, map the active range to full viridis
-      const normalizedStart = 0; // Always start from beginning of viridis
-      const normalizedEnd = 1; // Always use full viridis range
-      const valueSpan = Math.max(maxValue - gradientMinValue, 0);
-      const gradientStopCount = Math.max(2, Math.min(128, Math.ceil(Math.max(valueSpan, 1) * 32)));
-      const viridisGradient = dynamicColorManager.getViridisGradientSlice(normalizedStart, normalizedEnd, gradientStopCount);
-      const denominator = Math.max(viridisGradient.length - 1, 1);
-      const gradientStops = viridisGradient.map((color, index) => {
-        const percent = (index / denominator) * 100;
-        return `${color} ${percent.toFixed(2)}%`;
-      });
+      const normalizeRatio = (value) => {
+        if (!Number.isFinite(value)) {
+          return 1;
+        }
+        return Math.max(0, Math.min(1, (value - gradientMinValue) / effectiveRange));
+      };
+      const gradientStops = wmsStyleManager.getGradientStops(
+        WMSStylePresets.WAVE_HEIGHT.colorMapping,
+        gradientMinValue,
+        maxValue,
+        { preserveFullScale: true }
+      );
 
       const ranges = [];
       let previousValue = 0;
@@ -131,8 +128,10 @@ const WorldClassLegend = ({
         });
         const rangeMidpoint = previousValue + (upperBound - previousValue) / 2;
         const referenceValue = Number.isFinite(rangeMidpoint) ? rangeMidpoint : upperBound;
-        const normalizedMidpoint = Math.max(0, Math.min(1, (referenceValue - gradientMinValue) / effectiveRange));
-        const rangeColor = dynamicColorManager.interpolateViridis(normalizedMidpoint);
+        const rangeColor = wmsStyleManager.samplePaletteColor(
+          WMSStylePresets.WAVE_HEIGHT.colorMapping,
+          normalizeRatio(referenceValue)
+        );
 
         ranges.push({
           min: previousValue,
@@ -154,8 +153,10 @@ const WorldClassLegend = ({
           dataMax: maxValue,
           location: variable?.includes('cook') ? 'Cook Islands' : 'Global'
         });
-        const normalizedFallback = Math.max(0, Math.min(1, (maxValue - gradientMinValue) / effectiveRange));
-        const fallbackColor = dynamicColorManager.interpolateViridis(normalizedFallback);
+        const fallbackColor = wmsStyleManager.samplePaletteColor(
+          WMSStylePresets.WAVE_HEIGHT.colorMapping,
+          normalizeRatio(maxValue)
+        );
         ranges.push({
           min: 0,
           max: maxValue,
@@ -172,10 +173,10 @@ const WorldClassLegend = ({
       tickCandidates.add(maxValue);
 
       if (maxValue >= 14 - EPSILON) {
-        const extremeColorNormalized = maxValue === gradientMinValue
-          ? 1
-          : Math.max(0, Math.min(1, (14 - gradientMinValue) / effectiveRange));
-        const extremeColor = dynamicColorManager.interpolateViridis(extremeColorNormalized);
+        const extremeColor = wmsStyleManager.samplePaletteColor(
+          WMSStylePresets.WAVE_HEIGHT.colorMapping,
+          normalizeRatio(14)
+        );
         const description = wmsStyleManager.getWaveHeightDescription(14, Infinity, { 
           dataMax: maxValue,
           location: variable?.includes('cook') ? 'Cook Islands' : 'Global'
@@ -199,10 +200,10 @@ const WorldClassLegend = ({
       return {
         title: "Significant Wave Height",
         subtitle: activeThreshold === null
-          ? "Wave state categories (Viridis)"
-          : `Viridis ramp active up to ${wmsStyleManager.formatWaveHeightValue(maxValue)} m`,
+          ? "Wave state categories (x-Sst jet palette)"
+          : `x-Sst ramp active up to ${wmsStyleManager.formatWaveHeightValue(maxValue)} m`,
         unit: "meters (m)",
-        palette: "Viridis (Perceptually Uniform)",
+        palette: "x-Sst (jet-style SST palette)",
         displayType: 'gradient',
         gradientStops,
         minValue: gradientMinValue,

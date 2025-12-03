@@ -44,6 +44,83 @@ class InundationPointsService {
     this.cacheExpiry = 5 * 60 * 1000; // 5 minutes
     
     this.log('InundationPointsService initialized');
+    
+    // Create image modal for expand functionality
+    this.setupImageModal();
+  }
+  
+  /**
+   * Create and setup the image modal for expand functionality
+   */
+  setupImageModal() {
+    // Only create if not already exists
+    if (document.getElementById('inundation-image-modal')) return;
+    
+    const modal = document.createElement('div');
+    modal.id = 'inundation-image-modal';
+    modal.style.cssText = `
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(0, 0, 0, 0.9);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    `;
+    
+    modal.innerHTML = `
+      <div style="position: relative; max-width: 95vw; max-height: 95vh;">
+        <button 
+          onclick="InundationPointsService.closeImageModal()"
+          style="
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            color: #333;
+            font-size: 24px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+          "
+          title="Close (Esc)"
+        >&times;</button>
+        <img 
+          id="inundation-modal-img" 
+          src="" 
+          alt="Expanded Forecast"
+          style="
+            max-width: 100%;
+            max-height: 95vh;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+          "
+        />
+      </div>
+    `;
+    
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        InundationPointsService.closeImageModal();
+      }
+    });
+    
+    document.body.appendChild(modal);
+    
+    // Close on Esc key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        InundationPointsService.closeImageModal();
+      }
+    });
   }
   
   /**
@@ -66,26 +143,84 @@ class InundationPointsService {
     // Validate and sanitize the image URL
     if (!imageSrc || typeof imageSrc !== 'string') return;
     
-    // Check if modal already exists, if not create it
+    // Get or create modal
     let modal = document.getElementById('inundation-image-modal');
     if (!modal) {
+      // Modal should already exist from setupImageModal, but create if missing
       modal = document.createElement('div');
       modal.id = 'inundation-image-modal';
-      modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: var(--z-modals, 2000); display: flex; align-items: center; justify-content: center; cursor: zoom-out;';
-      modal.onclick = () => modal.remove();
+      modal.style.cssText = `
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(0, 0, 0, 0.9);
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      `;
+      modal.innerHTML = `
+        <div style="position: relative; max-width: 95vw; max-height: 95vh;">
+          <button 
+            onclick="InundationPointsService.closeImageModal()"
+            style="
+              position: absolute;
+              top: -40px;
+              right: 0;
+              background: rgba(255,255,255,0.9);
+              border: none;
+              color: #333;
+              font-size: 24px;
+              width: 36px;
+              height: 36px;
+              border-radius: 50%;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              z-index: 10001;
+            "
+            title="Close (Esc)"
+          >&times;</button>
+          <img 
+            id="inundation-modal-img" 
+            src="" 
+            alt="Expanded Forecast"
+            style="
+              max-width: 100%;
+              max-height: 95vh;
+              border-radius: 8px;
+              box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            "
+          />
+        </div>
+      `;
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          InundationPointsService.closeImageModal();
+        }
+      });
       document.body.appendChild(modal);
     }
     
-    // Remove existing image if present, then create new image using DOM methods (safe from XSS)
-    const existingImg = modal.querySelector('img');
-    if (existingImg) {
-      existingImg.remove();
+    // Set image source and show modal
+    const img = modal.querySelector('#inundation-modal-img') || modal.querySelector('img');
+    if (img) {
+      img.src = imageSrc;
     }
-    const img = document.createElement('img');
-    img.src = imageSrc;
-    img.style.cssText = 'max-width: 95vw; max-height: 95vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);';
-    img.alt = 'Inundation Forecast - Expanded View';
-    modal.appendChild(img);
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
+  }
+  
+  /**
+   * Close the image modal
+   */
+  static closeImageModal() {
+    const modal = document.getElementById('inundation-image-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = ''; // Restore scrolling
+    }
   }
   
   /**
@@ -352,15 +487,20 @@ class InundationPointsService {
       // Expandable image - click to view full size in modal
       content += `
         <div style="margin-top: 12px;">
-          <div style="position: relative;">
+          <div 
+            style="position: relative; cursor: pointer;"
+            onclick="InundationPointsService.showImageModal('${imageUrl}')"
+            title="Click to expand image"
+          >
             <img src="${imageUrl}" 
                  alt="Inundation Forecast" 
                  class="inundation-forecast-img"
-                 style="width: 100%; max-width: 600px; height: auto; border-radius: 4px; cursor: zoom-in; transition: opacity 0.2s;"
-                 onclick="InundationPointsService.showImageModal(this.src)"
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                 style="width: 100%; max-width: 600px; height: auto; border-radius: 4px; transition: opacity 0.2s, transform 0.2s;"
+                 onmouseover="this.style.opacity='0.9'; this.style.transform='scale(0.98)'"
+                 onmouseout="this.style.opacity='1'; this.style.transform='scale(1)'"
+                 onerror="this.parentElement.style.display='none'; this.parentElement.nextElementSibling.style.display='block';"
             />
-            <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; pointer-events: none;">
+            <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
               🔍 Click to expand
             </div>
           </div>

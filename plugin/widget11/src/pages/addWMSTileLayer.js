@@ -73,6 +73,12 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
         }
     });
 
+    // Add cache-busting parameter to force fresh tiles (especially for style changes)
+    // This helps bypass Cloudflare CDN caching of old tiles with different styles
+    if (!finalOptions._v) {
+        finalOptions._v = Date.now();
+    }
+
     // For ncWMS servers, we need to create a custom WMS layer that handles the coordinate transformation
     let wmsLayer;
     

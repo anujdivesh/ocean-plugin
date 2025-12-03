@@ -90,7 +90,7 @@ export class IntelligentVisualizationSystem {
   getDefaultVisualization(layerName) {
     const defaults = {
       'cook_forecast/hs': {
-        colorScheme: { palette: 'psu-viridis', style: 'default-scalar/psu-viridis' },
+        colorScheme: { palette: 'x-Sst', style: 'default-scalar/x-Sst' },
         adaptiveRanges: { min: 0, max: 4, unit: 'm' },
         weatherPattern: { type: 'UNKNOWN', confidence: 0 },
         temporalContext: { trend: 'stable', variability: 'normal' }
@@ -249,7 +249,8 @@ class ColorSchemeOptimizer {
   constructor() {
     this.colorSchemes = {
       // Scientific color schemes
-      VIRIDIS: { name: 'psu-viridis', perceptual: 'uniform', colorblind: 'safe' },
+      VIRIDIS: { name: 'x-Sst', perceptual: 'uniform', colorblind: 'safe' },
+      X_SST: { name: 'x-Sst', perceptual: 'uniform', colorblind: 'safe' },
       PLASMA: { name: 'psu-plasma', perceptual: 'uniform', colorblind: 'safe' },
       INFERNO: { name: 'psu-inferno', perceptual: 'uniform', colorblind: 'safe' },
       MAGMA: { name: 'psu-magma', perceptual: 'uniform', colorblind: 'safe' },
@@ -295,7 +296,7 @@ class ColorSchemeOptimizer {
     if (layerName.includes('hs')) {
       // Wave height - prioritize safety and clarity
       if (weatherPattern.riskLevel >= 5) return this.colorSchemes.STORM_WARNING;
-      if (weatherPattern.primary === 'CALM') return this.colorSchemes.VIRIDIS;
+      if (weatherPattern.primary === 'CALM') return this.colorSchemes.X_SST;
       return this.colorSchemes.PLASMA;
     } else if (layerName.includes('tm02') || layerName.includes('tpeak')) {
       // Wave periods - emphasize sea-state continuum
@@ -305,7 +306,7 @@ class ColorSchemeOptimizer {
       return this.colorSchemes.OCEAN_HALINE;
     }
     
-    return this.colorSchemes.VIRIDIS; // Safe default
+    return this.colorSchemes.X_SST; // Safe default
   }
 
   optimizeForConditions(baseScheme, stats, weatherPattern, temporalContext) {

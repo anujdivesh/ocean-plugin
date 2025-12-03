@@ -1,0 +1,50 @@
+/* Multi-Island Controls Panel
+   Dedicated container to stack IslandSelector + InundationControl
+   without overlapping native map controls (zoom, attribution, legend).
+*/
+
+.multi-island-controls-panel {
+  position: absolute;
+  top: 210px;
+  left: 15px;
+  z-index: var(--z-sidebar, 10);
+  padding: 14px;
+  border-radius: 18px;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  /*background: rgba(5, 12, 32, 0.9);
+  border: 1px solid rgba(112, 216, 255, 0.15);
+  box-shadow: 0 20px 60px rgba(2, 6, 23, 0.65);
+  backdrop-filter: blur(12px);*/
+}
+
+/* If the legend or other overlays are moved or hidden, we can reduce offset.
+   Provide a utility modifier for future dynamic class toggling. */
+.multi-island-controls-panel.compact {
+  top: 100px;
+}
+
+/* Mobile: reduce vertical offset and width, move to right to avoid mobile
+   base map attribution often in bottom-left */
+@media (max-width: 768px) {
+  .multi-island-controls-panel {
+    top: 120px;
+    left: 12px;
+    right: 12px; /* Allow full-width if needed */
+    max-width: calc(100vw - 24px);
+    padding: 12px;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .multi-island-controls-panel {
+    top: 100px;
+    padding: 10px;
+    gap: 10px;
+  }
+}

@@ -14,8 +14,8 @@ import {
   DataInfo, 
   //StatusBar 
 } from './shared/UIComponents';
-import wmsStyleManager from '../utils/WMSStyleManager';
-import { Waves, Wind, Navigation, Activity, Info, Settings, Timer, Triangle,  BadgeInfo , CloudRain, FastForward} from 'lucide-react';
+import wmsStyleManager, { WMSStylePresets } from '../utils/WMSStyleManager';
+import { Waves, Wind, Navigation, Activity, Info, Settings, Timer, Triangle,  BadgeInfo , CloudRain, FastForward, X } from 'lucide-react';
 import FancyIcon from './FancyIcon';
 import '../styles/fancyIcons.css';
 
@@ -125,7 +125,8 @@ WAVE_FORECAST_LAYERS,
   setShowBottomCanvas,
   isUpdatingVisualization,
   currentSliderDateStr,
-  minIndex
+  minIndex,
+  islandSelector
 }) => {
   const [metadataVisible, setMetadataVisible] = useState(false); // Metadata panel state
   const [detailedMetadataVisible, setDetailedMetadataVisible] = useState(false); // Detailed metadata state
@@ -151,8 +152,16 @@ WAVE_FORECAST_LAYERS,
         Number((minVal + (maxVal - minVal) * i / (tickCount - 1)).toFixed(1))
       );
       
+      const paletteGradient = wmsStyleManager.buildCssGradientFromMapping(
+        WMSStylePresets.WAVE_HEIGHT.colorMapping,
+        minVal,
+        maxVal,
+        'to top',
+        { preserveFullScale: true }
+      ) || 'linear-gradient(to top, rgb(0, 0, 143), rgb(0, 0, 255), rgb(0, 255, 255), rgb(0, 255, 0), rgb(255, 255, 0), rgb(255, 127, 0), rgb(255, 0, 0))';
+
       return {
-        gradient: 'linear-gradient(to top, rgb(68, 1, 84), rgb(59, 82, 139), rgb(33, 145, 140), rgb(94, 201, 98), rgb(253, 231, 37))',
+        gradient: paletteGradient,
         min: minVal,
         max: maxVal,
         units: 'm',
@@ -292,90 +301,53 @@ WAVE_FORECAST_LAYERS,
     if (variable.includes('hs') || variable.includes('wave_height')) {
       // Parse actual WMS data range
       const colorRange = parseColorRange(selectedLegendLayer.colorscalerange);
-      const dataMin = colorRange?.min ?? 0.17; // Cook Islands minimum
-      const dataMax = colorRange?.max ?? 1.66; // Cook Islands maximum
+      const dataMin = Number.isFinite(colorRange?.min) ? Math.max(0, colorRange.min) : 0;
+      const dataMax = Number.isFinite(colorRange?.max) ? colorRange.max : 4;
       
       const effectiveMax = Number.isFinite(selectedLegendLayer.activeBeaufortMax)
         ? selectedLegendLayer.activeBeaufortMax
         : dataMax;
       
-      // Generate actual Viridis colors based on real data range
-      const generateViridisColor = (value, min, max) => {
-        const normalized = Math.max(0, Math.min(1, (value - min) / (max - min)));
-        // Viridis color interpolation (accurate to WMS server)
-        if (normalized <= 0.25) {
-          const t = normalized / 0.25;
-          return `rgb(${Math.round(68 + (59-68)*t)}, ${Math.round(1 + (82-1)*t)}, ${Math.round(84 + (139-84)*t)})`;
-        } else if (normalized <= 0.5) {
-          const t = (normalized - 0.25) / 0.25;
-          return `rgb(${Math.round(59 + (31-59)*t)}, ${Math.round(82 + (158-82)*t)}, ${Math.round(139 + (137-139)*t)})`;
-        } else if (normalized <= 0.75) {
-          const t = (normalized - 0.5) / 0.25;
-          return `rgb(${Math.round(31 + (176-31)*t)}, ${Math.round(158 + (202-158)*t)}, ${Math.round(137 + (99-137)*t)})`;
-        } else {
-          const t = (normalized - 0.75) / 0.25;
-          return `rgb(${Math.round(176 + (253-176)*t)}, ${Math.round(202 + (231-202)*t)}, ${Math.round(99 + (37-99)*t)})`;
+      const paletteMapping = WMSStylePresets.WAVE_HEIGHT.colorMapping;
+      const paletteStops = wmsStyleManager.getColorStops(paletteMapping);
+      if (!paletteStops.length) {
+        return [];
+      }
+      
+      const ranges = [];
+      let previous = Math.min(dataMin, paletteStops[0].value);
+      const maxPaletteValue = paletteStops[paletteStops.length - 1].value;
+      
+      const appendRange = (start, end, colorValueOverride) => {
+        if (end <= start + EPSILON) {
+          return;
         }
+        const effectiveEnd = Number.isFinite(end) ? end : Infinity;
+        const colorSampleValue = Number.isFinite(colorValueOverride)
+          ? colorValueOverride
+          : Number.isFinite(end) ? end : maxPaletteValue;
+        
+        ranges.push({
+          min: start,
+          max: end,
+          label: wmsStyleManager.getWaveHeightLabel(effectiveEnd),
+          value: wmsStyleManager.formatWaveHeightRange(start, end),
+          description: wmsStyleManager.getWaveHeightDescription(start, effectiveEnd, { 
+            dataMax: Math.max(effectiveMax, maxPaletteValue),
+            location: selectedLegendLayer.value?.includes('cook') ? 'Cook Islands' : 'Global'
+          }),
+          color: wmsStyleManager.getColorForValue(paletteMapping, colorSampleValue)
+        });
       };
       
-      // Create appropriate number of color stops based on data range
-      const numStops = Math.max(2, Math.min(5, Math.ceil(effectiveMax * 2))); // Adaptive number of stops
-      const colorStops = [];
+      paletteStops.forEach(stop => {
+        const upper = stop.value;
+        appendRange(previous, upper);
+        previous = Math.max(previous, upper);
+      });
       
-      for (let i = 0; i < numStops; i++) {
-        const value = dataMin + (effectiveMax - dataMin) * (i / (numStops - 1));
-        colorStops.push({
-          value: value,
-          color: generateViridisColor(value, dataMin, effectiveMax)
-        });
-      }
-
-      const ranges = [];
-      let previous = 0;
-
-      for (const stop of colorStops) {
-        if (!Number.isFinite(stop.value)) {
-          continue;
-        }
-        const upper = Math.min(stop.value, effectiveMax);
-        if (upper <= previous + EPSILON) {
-          continue;
-        }
-
-        ranges.push({
-          min: previous,
-          max: upper,
-          label: wmsStyleManager.getWaveHeightLabel(upper),
-          value: `${wmsStyleManager.formatWaveHeightValue(previous)}–${wmsStyleManager.formatWaveHeightValue(upper)} m`,
-          description: wmsStyleManager.getWaveHeightDescription(previous, upper, { 
-            dataMax: effectiveMax,
-            location: selectedLegendLayer.value?.includes('cook') ? 'Cook Islands' : 'Global'
-          }),
-          color: stop.color
-        });
-
-        previous = upper;
-
-        if (stop.value >= effectiveMax - EPSILON) {
-          break;
-        }
-      }
-
-      if (effectiveMax > previous + EPSILON) {
-        const lastColor = colorStops[colorStops.length - 1]?.color || '#ffffff';
-        ranges.push({
-          min: previous,
-          max: effectiveMax,
-          label: wmsStyleManager.getWaveHeightLabel(effectiveMax),
-          value: `${wmsStyleManager.formatWaveHeightValue(previous)}–${wmsStyleManager.formatWaveHeightValue(effectiveMax)} m`,
-          description: wmsStyleManager.getWaveHeightDescription(previous, effectiveMax, { 
-            dataMax: effectiveMax,
-            location: selectedLegendLayer.value?.includes('cook') ? 'Cook Islands' : 'Global'
-          }),
-          color: lastColor
-        });
-      }
-
+      appendRange(previous, Infinity, maxPaletteValue);
+      
       return ranges;
     }
 
@@ -645,16 +617,32 @@ WAVE_FORECAST_LAYERS,
           
           {metadataVisible && selectedLayer && metadataRanges.length > 0 && (
             <div className="range-metadata-panel">
-              <h4>
-                <FancyIcon 
-                  icon={getLayerIcon(selectedLayer).icon} 
-                  animationType="wave" 
-                  size={18} 
-                  color={getLayerIcon(selectedLayer).color} 
-                />
-                {selectedLayer.label || 'Wave Data'}
-                <span className="wmo-code">({layerMetadata.wmoCode})</span>
-              </h4>
+              <div className="metadata-panel-header">
+                <h4>
+                  <FancyIcon 
+                    icon={getLayerIcon(selectedLayer).icon} 
+                    animationType="wave" 
+                    size={18} 
+                    color={getLayerIcon(selectedLayer).color} 
+                  />
+                  {selectedLayer.label || 'Wave Data'}
+                  <span className="wmo-code">({layerMetadata.wmoCode})</span>
+                </h4>
+                <button
+                  type="button"
+                  className="metadata-close"
+                  onClick={() => setMetadataVisible(false)}
+                  aria-label="Close range info panel"
+                  title="Close range info"
+                >
+                  <FancyIcon 
+                    icon={X}
+                    animationType="pulse"
+                    size={14}
+                    color="#ffffff"
+                  />
+                </button>
+              </div>
               
               {metadataRanges.map((range, index) => (
                 <div
@@ -765,6 +753,15 @@ WAVE_FORECAST_LAYERS,
 
         <div className="controls-panel">
           <div className="forecast-controls">
+        {islandSelector && (
+          <ControlGroup
+            icon={<FancyIcon icon={Activity} animationType="shimmer" color="#00bcd4" />}
+            title="Location"
+            ariaLabel="Island selection"
+          >
+            {islandSelector}
+          </ControlGroup>
+        )}
         <ControlGroup
           icon={<FancyIcon icon={Activity} animationType="shimmer" color="#00bcd4" />}
           title={UI_CONFIG.SECTIONS.FORECAST_VARIABLES.title}

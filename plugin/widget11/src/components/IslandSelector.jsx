@@ -4,9 +4,10 @@
  * Provides island selection UI with "Tuvalu" whole domain option
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { Dropdown, Badge, Card } from 'react-bootstrap';
+import { Dropdown } from 'react-bootstrap';
+import { TreePalm } from 'lucide-react';
 import multiIslandManager from '../services/MultiIslandManager';
 import TuvaluConfig from '../config/TuvaluConfig';
 import logger from '../utils/logger';
@@ -25,11 +26,13 @@ const TUVALU_WHOLE_DOMAIN = {
 const IslandSelector = ({
   onIslandChange,
   currentIsland,
-  islandManager = multiIslandManager // Dependency injection with default
+  islandManager = multiIslandManager, // Dependency injection with default
+  // Persist selection control removed
+  variant = 'full'
 }) => {
   const [islands, setIslands] = useState([]);
   const [selectedIsland, setSelectedIsland] = useState(null);
-  const [showProfiles, setShowProfiles] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const allIslands = islandManager.getAllIslands();
@@ -44,6 +47,27 @@ const IslandSelector = ({
       }
     }
   }, [currentIsland, islandManager]);
+
+  const regionStats = useMemo(() => {
+    const stats = { north: 0, central: 0, south: 0 };
+    islands.forEach((island) => {
+      if (island.lat > -7.0) stats.north += 1;
+      else if (island.lat > -9.0) stats.central += 1;
+      else stats.south += 1;
+    });
+    return stats;
+  }, [islands]);
+
+  // selection lock feature removed
+  const isCompact = variant === 'compact';
+
+  const currentSummary = selectedIsland
+    ? selectedIsland.isWholeDomain
+      ? 'National scale (Tuvalu.nc) active'
+      : `${selectedIsland.name} high-resolution grid`
+    : 'Explore Tuvalu’s nine atolls in high resolution';
+
+  // selection lock feature removed
 
   const handleIslandSelect = (island) => {
     // Only set current island in manager for individual islands, not whole domain
@@ -75,17 +99,96 @@ const IslandSelector = ({
     return 'South';
   };
 
+  const getRegionClass = (lat) => {
+    if (lat > -7.0) return 'region-pill--north';
+    if (lat > -9.0) return 'region-pill--central';
+    return 'region-pill--south';
+  };
+
+  const modeSummary = selectedIsland?.isWholeDomain
+    ? {
+        label: 'National Domain',
+        caption: 'Tuvalu.nc',
+        accent: 'mode-chip--domain'
+      }
+    : selectedIsland
+      ? {
+          label: `${selectedIsland.name} Focus`,
+          caption: selectedIsland.dataset,
+          accent: 'mode-chip--island'
+        }
+      : {
+          label: 'Awaiting Selection',
+          caption: 'Choose any atoll',
+          accent: 'mode-chip--idle'
+        };
+
   return (
-    <div className="island-selector-container">
+    <div className={`island-selector-container ${isCompact ? 'compact' : ''}`}>
+      {!isCompact && (
+        <>
+          <div className="island-selector-header">
+            <div>
+              <span className="selector-eyebrow">Tuvalu Marine Network</span>
+              <h4 className="selector-title">Island Command Center</h4>
+              <p className="selector-description">{currentSummary}</p>
+            </div>
+            {/* selection lock removed */}
+          </div>
+
+          <div className="island-selector-stats">
+            <div className="stat-block">
+              <span className="stat-label">North</span>
+              <strong className="stat-value">{regionStats.north}</strong>
+            </div>
+            <div className="stat-block">
+              <span className="stat-label">Central</span>
+              <strong className="stat-value">{regionStats.central}</strong>
+            </div>
+            <div className="stat-block">
+              <span className="stat-label">South</span>
+              <strong className="stat-value">{regionStats.south}</strong>
+            </div>
+            <div className="stat-block highlight">
+              <span className="stat-label">Total</span>
+              <strong className="stat-value">{islands.length}</strong>
+            </div>
+          </div>
+
+          <div className={`selector-mode-chip ${modeSummary.accent}`}>
+            <div>
+              <span className="mode-label">{modeSummary.label}</span>
+              <span className="mode-caption">{modeSummary.caption}</span>
+            </div>
+            {!selectedIsland?.isWholeDomain && selectedIsland?.dataset && (
+              <span className="mode-pill">High-Res</span>
+            )}
+          </div>
+        </>
+      )}
+
+      {isCompact && (
+        <div className="compact-location-header">
+          <div className="compact-text">
+            <span className="selector-eyebrow">Active Dataset</span>
+            <p className="selector-description">{currentSummary}</p>
+          </div>
+          {/* selection lock mini removed */}
+        </div>
+      )}
+
       {/* Main Island Selector */}
-      <Dropdown className="island-dropdown">
+      <Dropdown className="island-dropdown" show={menuOpen} onToggle={(isOpen) => setMenuOpen(isOpen)}>
         <Dropdown.Toggle variant="primary" id="island-selector">
-          🏝️ {selectedIsland ? selectedIsland.name : 'Select Island'}
-          {selectedIsland?.isCapital && <Badge bg="warning" className="ms-2">Capital</Badge>}
-          {selectedIsland?.isWholeDomain && <Badge bg="info" className="ms-2">All Islands</Badge>}
+          <span className="selector-icon">
+            <TreePalm size={18} strokeWidth={2} />
+          </span>
+          {selectedIsland ? selectedIsland.name : 'Select Island'}
+          {selectedIsland?.isCapital && <span className="capital-pill ms-2">Capital</span>}
+          {selectedIsland?.isWholeDomain && <span className="region-pill region-pill--domain ms-2">All Islands</span>}
         </Dropdown.Toggle>
 
-        <Dropdown.Menu>
+        <Dropdown.Menu className={menuOpen ? 'show' : ''}>
           {/* Tuvalu whole domain option at the top */}
           <Dropdown.Header>Tuvalu Domain</Dropdown.Header>
           <Dropdown.Item
@@ -95,7 +198,7 @@ const IslandSelector = ({
             <div className="d-flex justify-content-between align-items-center">
               <span>
                 🌊 Tuvalu
-                <Badge bg="info" size="sm" className="ms-2">Whole Domain</Badge>
+                <span className="region-pill region-pill--domain ms-2">Whole Domain</span>
               </span>
             </div>
           </Dropdown.Item>
@@ -111,59 +214,22 @@ const IslandSelector = ({
               <div className="d-flex justify-content-between align-items-center">
                 <span>
                   {island.name}
-                  {island.isCapital && <Badge bg="warning" size="sm" className="ms-2">Capital</Badge>}
+                  {island.isCapital && <span className="capital-pill ms-2">Capital</span>}
                 </span>
-                <Badge 
-                  bg="light" 
-                  text="dark"
-                  style={{ 
-                    backgroundColor: getRegionColor(island.lat),
-                    color: 'white'
-                  }}
+                <span 
+                  className={`region-pill ${getRegionClass(island.lat)}`}
+                  style={{ backgroundColor: getRegionColor(island.lat) }}
                 >
                   {getRegionName(island.lat)}
-                </Badge>
+                </span>
               </div>
             </Dropdown.Item>
           ))}
-          <Dropdown.Divider />
-          <Dropdown.Item onClick={() => setShowProfiles(!showProfiles)}>
-            📊 {showProfiles ? 'Hide' : 'Show'} Island Profiles
-          </Dropdown.Item>
       </Dropdown.Menu>
     </Dropdown>
 
     
   
-
-      {/* Island Profiles */}
-      {showProfiles && selectedIsland && (
-        <div className="island-profile mt-3">
-          <Card>
-            <Card.Header>
-              <strong>{selectedIsland.name} Profile</strong>
-            </Card.Header>
-            <Card.Body>
-              {selectedIsland.isWholeDomain ? (
-                <>
-                  <p><strong>Coverage:</strong> All 9 Tuvalu Atolls</p>
-                  <p><strong>Dataset:</strong> Tuvalu.nc (Full Domain)</p>
-                  <Badge bg="info">National Scale View</Badge>
-                </>
-              ) : (
-                <>
-                  <p><strong>Coordinates:</strong> {selectedIsland.lat.toFixed(4)}°S, {selectedIsland.lon.toFixed(4)}°E</p>
-                  <p><strong>Region:</strong> {getRegionName(selectedIsland.lat)}</p>
-                  <p><strong>Dataset:</strong> {selectedIsland.dataset}</p>
-                  {selectedIsland.isCapital && (
-                    <Badge bg="warning">Capital of Tuvalu</Badge>
-                  )}
-                </>
-              )}
-            </Card.Body>
-          </Card>
-        </div>
-      )}
     </div>
   );
 };
@@ -175,7 +241,10 @@ IslandSelector.propTypes = {
     getAllIslands: PropTypes.func,
     getIslandByName: PropTypes.func,
     setCurrentIsland: PropTypes.func
-  })
+  }),
+  persistIslandSelection: PropTypes.bool,
+  onPersistToggle: PropTypes.func,
+  variant: PropTypes.oneOf(['full', 'compact'])
 };
 
 export default IslandSelector;

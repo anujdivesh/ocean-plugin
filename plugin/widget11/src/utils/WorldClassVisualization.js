@@ -250,7 +250,7 @@ class WorldClassVisualization {
       } else if (variable === 'tm02') {
         selectedPalette = "spectral"; // Use spectral for mean periods
       } else if (variable === 'hs') {
-        selectedPalette = "viridis"; // Use viridis for wave height
+        selectedPalette = "x-Sst"; // Use x-Sst (jet-style) for wave height
       } else {
         selectedPalette = "plasma"; // Default for other variables
       }
