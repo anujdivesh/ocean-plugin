@@ -8,38 +8,29 @@ import ErrorBoundary from './components/ErrorBoundary';
 import './utils/NotificationManager'; // Initialize notification system
 import { initConsoleErrorSuppressor } from './utils/ConsoleErrorSuppressor';
 import logger from './utils/logger';
-// import TokenError from './components/TokenError'; // DISABLED for development
-// import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator'; // DISABLED for development
+import TokenError from './components/TokenError';
+import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator';
 
 function App() {
-  // SECURITY WARNING: Authentication is DISABLED for development/testing only.
-  // DO NOT deploy to production without re-enabling authentication.
-  // TODO: Add environment check: process.env.NODE_ENV === 'production' should require auth
-  // const [isAuthenticated, setIsAuthenticated] = useState(false);
-  // const [isLoading, setIsLoading] = useState(true);
-  // const [errorType, setErrorType] = useState(null);
-  const [widgetData] = useState(null);
-  const [validCountries] = useState(['TUV']); // Tuvalu by default
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorType, setErrorType] = useState(null);
+  const [widgetData, setWidgetData] = useState(null);
+  const [validCountries, setValidCountries] = useState(['TUV']); // Tuvalu by default
 
   useEffect(() => {
-    // Authentication DISABLED for development
     const initializeApp = async () => {
-      logger.info('APP', 'Initializing Tuvalu Multi-Island Widget (authentication disabled)...');
-      
-      // Initialize console error suppressor for known WMS server issues
+      logger.info('APP', 'Initializing Tuvalu Multi-Island Widget (authentication enabled)...');
       initConsoleErrorSuppressor();
-      
-      /* AUTHENTICATION COMMENTED OUT
-      // Check if token exists in URL first
+
       const token = extractTokenFromURL('token');
-      
       if (!token) {
         logger.warn('APP', 'No token found in URL');
         setErrorType('no_token');
         setIsLoading(false);
         return;
       }
-      
+
       try {
         const validationResult = await validateTokenOnLoad(
           () => {
@@ -53,20 +44,18 @@ function App() {
           },
           () => {
             logger.warn('APP', 'Country validation failed - page should not load');
-            // Country validation failed, so we should not show the app
             setIsAuthenticated(false);
             setErrorType('invalid_country');
           }
         );
-        
-        // Store widget data and valid countries if available
+
         if (validationResult.widgetData) {
           setWidgetData(validationResult.widgetData);
         }
         if (validationResult.validCountries) {
           setValidCountries(validationResult.validCountries);
         }
-        
+
         logger.info('APP', 'Validation result:', validationResult);
         setIsLoading(false);
       } catch (error) {
@@ -74,13 +63,11 @@ function App() {
         setErrorType('network_error');
         setIsLoading(false);
       }
-      */
     };
 
     initializeApp();
   }, []);
 
-  /* AUTHENTICATION LOADING STATE COMMENTED OUT
   // Show loading state while validating token
   if (isLoading) {
     return (
@@ -111,7 +98,6 @@ function App() {
   if (!isAuthenticated || errorType) {
     return <TokenError errorType={errorType || 'invalid_token'} />;
   }
-  */
 
   return (
     <ErrorBoundary userMessage="The Tuvalu Marine Forecast application encountered an unexpected error. Please try refreshing the page.">
