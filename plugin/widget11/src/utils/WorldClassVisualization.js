@@ -67,35 +67,35 @@ class WorldClassVisualization {
         // Tuned ranges for Tuvalu and similar tropical archipelagos
         // Using x-Sst palette (similar to CK model) for better wave height visualization
         calm: {
-          range: "0,1.5",
+          range: "0,4",
           palette: "x-Sst",
           bands: 80,
           opacity: 0.72,
           description: "Calm to slight seas"
         },
         moderate: {
-          range: "0,3.0",
+          range: "0,4",
           palette: "x-Sst",
           bands: 140,
           opacity: 0.8,
           description: "Moderate seas commonly observed around Tuvalu"
         },
         rough: {
-          range: "0,6.0",
+          range: "0,4",
           palette: "x-Sst",
           bands: 200,
           opacity: 0.85,
           description: "Rough to very rough swell events"
         },
         dangerous: {
-          range: "0,10.0",
+          range: "0,4",
           palette: "x-Sst",
           bands: 240,
           opacity: 0.9,
           description: "Dangerous gale/TC driven seas"
         },
         extreme: {
-          range: "0,15.0",
+          range: "0,4",
           palette: "x-Sst",
           bands: 260,
           opacity: 0.92,
