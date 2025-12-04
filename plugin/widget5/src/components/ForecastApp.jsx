@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import './ForecastApp.css';
 import '../styles/MapMarker.css';
 import useMapInteraction from '../hooks/useMapInteraction';
@@ -14,14 +14,11 @@ import {
   DataInfo, 
   //StatusBar 
 } from './shared/UIComponents';
-import wmsStyleManager from '../utils/WMSStyleManager';
 import { Waves, Wind, Navigation, Activity, Info, Settings, Timer, Triangle,  BadgeInfo , CloudRain, FastForward} from 'lucide-react';
 import FancyIcon from './FancyIcon';
 import '../styles/fancyIcons.css';
 
-const EPSILON = 1e-6;
-
-// Data-driven X-SST color interpolation (matches x-Sst palette on WMS server)
+// X-SST gradient for wave height visualization (matches WMS x-Sst palette)
 const X_SST_GRADIENT_RGB = [
   [49, 54, 149],
   [69, 117, 180],
@@ -85,121 +82,6 @@ const SPECTRAL_GRADIENT = `linear-gradient(to top, ${SPECTRAL_250_BANDS.map((col
   `${color} ${(i / (SPECTRAL_250_BANDS.length - 1) * 100).toFixed(2)}%`
 ).join(', ')})`;
 
-const X_SST_COLOR_STOPS = X_SST_GRADIENT_RGB.slice(0, -1).map((color, index) => ({
-  threshold: (index + 1) / (X_SST_GRADIENT_RGB.length - 1),
-  start: color,
-  end: X_SST_GRADIENT_RGB[index + 1]
-}));
-
-/**
- * Generate X-SST colors (matching inundation/wave height palette)
- * Uses data-driven approach with color stop arrays for maintainability
- */
-const generateXSstColor = (value, min, max) => {
-  const normalized = Math.max(0, Math.min(1, (value - min) / (max - min)));
-  
-  // Find the correct color stop interval
-  let prevThreshold = 0;
-  for (let i = 0; i < X_SST_COLOR_STOPS.length; i++) {
-    const stop = X_SST_COLOR_STOPS[i];
-    if (normalized <= stop.threshold || i === X_SST_COLOR_STOPS.length - 1) {
-      // Guard against division by zero when thresholds are equal
-      const range = stop.threshold - prevThreshold;
-      const t = range > 0 ? (normalized - prevThreshold) / range : 0;
-      const r = Math.round(stop.start[0] + (stop.end[0] - stop.start[0]) * t);
-      const g = Math.round(stop.start[1] + (stop.end[1] - stop.start[1]) * t);
-      const b = Math.round(stop.start[2] + (stop.end[2] - stop.start[2]) * t);
-      return `rgb(${r}, ${g}, ${b})`;
-    }
-    prevThreshold = stop.threshold;
-  }
-  // Fallback (should not reach here)
-  const lastColor = X_SST_GRADIENT_RGB[X_SST_GRADIENT_RGB.length - 1];
-  return `rgb(${lastColor.join(', ')})`;
-};
-
-/**
- * Determines the appropriate icon for a layer based on its properties
- * Matches the icons used in the variable buttons for consistency
- * @param {Object} layer - The layer object
- * @returns {Object} Icon component and color
- */
-const getLayerIcon = (layer) => {
-  if (!layer) return { icon: Waves, color: '#00bcd4' };
-  
-  const layerName = layer.value?.toLowerCase() || '';
-  const layerLabel = layer.label?.toLowerCase() || '';
-  
-  // Inundation layers
-  if (layerName.includes('inun') || layerLabel.includes('inundation')) {
-    return { icon: CloudRain, color: '#2196f3' }; // Blue (matches button)
-  }
-  
-  // Wave height layers
-  if (layerName.includes('hs') || layerLabel.includes('wave height')) {
-    return { icon: Waves, color: '#00bcd4' }; // Cyan (matches button)
-  }
-  
-  // Mean wave period (tm02)
-  if (layerName.includes('tm02') || (layerLabel.includes('mean') && layerLabel.includes('period'))) {
-    return { icon: Timer, color: '#ff9800' }; // Orange (matches button)
-  }
-  
-  // Peak wave period (tpeak)
-  if (layerName.includes('tpeak') || (layerLabel.includes('peak') && layerLabel.includes('period'))) {
-    return { icon: Triangle, color: '#4caf50' }; // Green (matches button)
-  }
-  
-  // Wave direction layers
-  if (layerName.includes('dirm') || layerLabel.includes('direction')) {
-    return { icon: Navigation, color: '#9c27b0' }; // Purple (matches button)
-  }
-  
-  // Wind layers
-  if (layerName.includes('wind') || layerLabel.includes('wind')) {
-    return { icon: Wind, color: '#795548' }; // Brown (matches button)
-  }
-  
-  // Default to activity icon
-  return { icon: Activity, color: '#607d8b' }; // Grey for unknown
-};
-
-
-const MEAN_PERIOD_METADATA = [
-  { min: 0, max: 6, label: 'Wind Waves', value: '0–6 s', description: 'Locally generated wind waves with short periods', color: '#D53E4F' },
-  { min: 6, max: 10, label: 'Young Swell', value: '6–10 s', description: 'Developing swell with moderate periods', color: '#FDAE61' },
-  { min: 10, max: 14, label: 'Mature Swell', value: '10–14 s', description: 'Well-developed swell waves', color: '#ABDDA4' },
-  { min: 14, max: 18, label: 'Long Swell', value: '14–18 s', description: 'Long-period swell from distant sources', color: '#66C2A5' },
-  { min: 18, max: 20, label: 'Ultra-Long Swell', value: '18–20 s', description: 'Extreme long-period waves', color: '#5E4FA2' }
-];
-
-const PEAK_PERIOD_METADATA = [
-  { min: 9, max: 10, label: 'Short Peak', value: '9–10 s', description: 'Short-period spectral peaks', color: '#46039F' },
-  { min: 10, max: 11.5, label: 'Moderate Peak', value: '10–11.5 s', description: 'Moderate-period spectral concentration', color: '#7201A8' },
-  { min: 11.5, max: 13, label: 'Long Peak', value: '11.5–13 s', description: 'Long-period dominant waves', color: '#CC4778' },
-  { min: 13, max: 14, label: 'Extended Peak', value: '13–14 s', description: 'Extended long-period peaks', color: '#F0F921' }
-];
-
-const INUNDATION_METADATA = [
-  { min: -0.05, max: 0, label: 'Dry Ground', value: '≤ 0.0 m', description: 'No surface water present', color: '#00008f' },
-  { min: 0, max: 0.15, label: 'Minor Ponding', value: '0–0.15 m', description: 'Shallow nuisance water on low-lying surfaces', color: '#0000ff' },
-  { min: 0.15, max: 0.4, label: 'Shallow Flooding', value: '0.15–0.40 m', description: 'Curb-deep flooding across roads and properties', color: '#00ffff' },
-  { min: 0.4, max: 0.8, label: 'Significant Flooding', value: '0.40–0.80 m', description: 'Knee-to-waist depth inundation impacting structures', color: '#00ff00' },
-  { min: 0.8, max: 1.2, label: 'Deep Flooding', value: '0.80–1.20 m', description: 'Substantial inundation with unsafe currents', color: '#ffff00' },
-  { min: 1.2, max: 1.6, label: 'Extreme Flooding', value: '≥ 1.20 m', description: 'Life-threatening inundation requiring evacuation', color: '#ff0000' }
-];
-
-const DIRECTION_METADATA = [
-  { value: 'N (↑)', label: 'North', description: 'Flowing toward the north', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'NE (↗)', label: 'Northeast', description: 'Flowing toward the northeast', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'E (→)', label: 'East', description: 'Flowing toward the east', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'SE (↘)', label: 'Southeast', description: 'Flowing toward the southeast', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'S (↓)', label: 'South', description: 'Flowing toward the south', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'SW (↙)', label: 'Southwest', description: 'Flowing toward the southwest', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'W (←)', label: 'West', description: 'Flowing toward the west', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'NW (↖)', label: 'Northwest', description: 'Flowing toward the northwest', color: 'rgba(255, 255, 255, 0.3)' }
-];
-
 const ForecastApp = ({ 
   WAVE_FORECAST_LAYERS,
   ALL_LAYERS,
@@ -224,8 +106,6 @@ const ForecastApp = ({
   currentSliderDateStr,
   minIndex
 }) => {
-  const [metadataVisible, setMetadataVisible] = useState(false); // Metadata panel state
-  const [detailedMetadataVisible, setDetailedMetadataVisible] = useState(false); // Detailed metadata state
   const lastZoomedLayerRef = useRef(null);
   const selectedLayer = useMemo(() => {
     return ALL_LAYERS.find(l => l.value === selectedWaveForecast) || null;
@@ -244,6 +124,10 @@ const ForecastApp = ({
     }
 
     const map = mapInstance.current;
+    // Check if this is a static inundation layer that requires higher zoom level
+    const layer = ALL_LAYERS.find(l => l.value === layerValue);
+    const isInundation = layer?.isStatic || false;
+    
     map.fitBounds(
       [
         layerBounds.southWest,
@@ -251,13 +135,13 @@ const ForecastApp = ({
       ],
       {
         padding: [20, 20],
-        maxZoom: 14,
+        maxZoom: isInundation ? 16 : 14, // Higher zoom for inundation layers
         animate: true
       }
     );
     lastZoomedLayerRef.current = layerValue;
-    console.log('🏝️ Zoomed to layer bounds for:', layerValue);
-  }, [mapInstance]);
+    console.log('🏝️ Zoomed to layer bounds for:', layerValue, isInundation ? '(Inundation - higher zoom)' : '');
+  }, [mapInstance, ALL_LAYERS]);
 
   useEffect(() => {
     zoomToLayerBounds(selectedWaveForecast);
@@ -732,142 +616,7 @@ const ForecastApp = ({
               })()}
             </div>
           )}
-          
-          {/* Metadata Panel - Bottom Left */}
-          <button
-            type="button"
-            className="metadata-toggle"
-            onClick={() => setMetadataVisible(prev => !prev)}
-            title={metadataVisible ? "Hide Range Info" : "Show Range Info"}
-            aria-label={metadataVisible ? "Hide Range Info" : "Show Range Info"}
-          >
-            <FancyIcon 
-              icon={BadgeInfo} 
-              animationType="pulse" 
-              size={16} 
-              color="#00bcd4" 
-            />
-            {metadataVisible ? " Hide" : " Info"}
-          </button>
-          
-          {metadataVisible && selectedLayer && metadataRanges.length > 0 && (
-            <div className="range-metadata-panel">
-              <h4>
-                <FancyIcon 
-                  icon={getLayerIcon(selectedLayer).icon} 
-                  animationType="wave" 
-                  size={18} 
-                  color={getLayerIcon(selectedLayer).color} 
-                />
-                {selectedLayer.label || 'Wave Data'}
-                <span className="wmo-code">({layerMetadata.wmoCode})</span>
-              </h4>
-              
-              {metadataRanges.map((range, index) => (
-                <div
-                  key={`${range.label}-${index}`}
-                  className="range-item"
-                >
-                  <div className="range-item-left">
-                    <div
-                      className="range-color"
-                      style={{ backgroundColor: range.color || 'rgba(255, 255, 255, 0.2)' }}
-                    ></div>
-                    <div className="range-content">
-                      <span className="range-label">{range.label}</span>
-                      <span className="range-description">{range.description}</span>
-                    </div>
-                  </div>
-                  <span className="range-value">{range.value}</span>
-                </div>
-              ))}
-              
-              {/* Essential Info Summary */}
-              <div className="metadata-section">
-                <div className="metadata-summary">
-                  <div className="metadata-item">
-                    <span className="metadata-label">Source:</span>
-                    <span className="metadata-value">{layerMetadata.provider}</span>
-                  </div>
-                  <div className="metadata-item">
-                    <span className="metadata-label">Coverage:</span>
-                    <span className="metadata-value">{layerMetadata.coverage}</span>
-                  </div>
-                  <div className="metadata-item">
-                    <span className="metadata-label">Units:</span>
-                    <span className="metadata-value">{layerMetadata.units}</span>
-                  </div>
-                </div>
-                
-                <button 
-                  className="metadata-details-toggle"
-                  onClick={() => setDetailedMetadataVisible(prev => !prev)}
-                  title={detailedMetadataVisible ? "Hide Technical Details" : "Show Technical Details"}
-                  aria-label={detailedMetadataVisible ? "Hide Technical Details" : "Show Technical Details"}
-                >
-                  <FancyIcon 
-                    icon={Settings} 
-                    animationType="spin" 
-                    size={14} 
-                    color="#9c27b0" 
-                  />
-                  {detailedMetadataVisible ? " Less" : " Details"}
-                </button>
-                
-                {detailedMetadataVisible && (
-                  <div className="metadata-details">
-                    <div className="metadata-item">
-                      <span className="metadata-label">Model:</span>
-                      <span className="metadata-value">{layerMetadata.model}</span>
-                    </div>
-                    <div className="metadata-item">
-                      <span className="metadata-label">Resolution:</span>
-                      <span className="metadata-value">{layerMetadata.resolution}</span>
-                    </div>
-                    <div className="metadata-item">
-                      <span className="metadata-label">Schedule:</span>
-                      <span className="metadata-value">{layerMetadata.schedule}</span>
-                    </div>
-                    <div className="metadata-item">
-                      <span className="metadata-label">Valid Time:</span>
-                      <span className="metadata-value">{layerMetadata.validTime}</span>
-                    </div>
-                    <div className="metadata-item">
-                      <span className="metadata-label">WMO Standard:</span>
-                      <span className="metadata-value">
-                        {layerMetadata.wmoCode}
-                        <span className={`confidence-indicator confidence-${layerMetadata.confidence.toLowerCase()}`}></span>
-                      </span>
-                    </div>
-                    {layerMetadata.period && (
-                      <div className="metadata-item">
-                        <span className="metadata-label">Wave Period:</span>
-                        <span className="metadata-value">{layerMetadata.period}</span>
-                      </div>
-                    )}
-                    {layerMetadata.direction && (
-                      <div className="metadata-item">
-                        <span className="metadata-label">Direction:</span>
-                        <span className="metadata-value">{layerMetadata.direction}</span>
-                      </div>
-                    )}
-                    {layerMetadata.components && (
-                      <div className="metadata-item">
-                        <span className="metadata-label">Components:</span>
-                        <span className="metadata-value">{layerMetadata.components}</span>
-                      </div>
-                    )}
-                    {layerMetadata.datum && (
-                      <div className="metadata-item">
-                        <span className="metadata-label">Datum:</span>
-                        <span className="metadata-value">{layerMetadata.datum}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+
         </div>
 
         <div className="controls-panel">
@@ -905,6 +654,7 @@ const ForecastApp = ({
             playIcon={<FancyIcon icon={Navigation} animationType="bounce" size={16} color="#4caf50" />}
             pauseIcon={<FancyIcon icon={Activity} animationType="pulse" size={16} color="#ff5722" />}
             minIndex={minIndex}
+            disabled={selectedLayer?.isStatic || false}
           />
           
           {/* ✅ Warm-up Period Notice */}
