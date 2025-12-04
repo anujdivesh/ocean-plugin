@@ -16,51 +16,56 @@ function App() {
   const [validCountries, setValidCountries] = useState(['COK']); // Cook Islands by default
 
   useEffect(() => {
-    // Authentication enabled for widget5
+    // Authentication DISABLED for widget5
     const initializeApp = async () => {
-      console.log('Initializing app with token and country validation...');
+      console.log('Initializing app WITHOUT token validation...');
       initConsoleErrorSuppressor();
-      const token = extractTokenFromURL('token');
+      
+      // Skip authentication - directly set authenticated state
+      setIsAuthenticated(true);
+      setIsLoading(false);
+      
+      // const token = extractTokenFromURL('token');
 
-      if (!token) {
-        console.log('No token found in URL');
-        setErrorType('no_token');
-        setIsLoading(false);
-        return;
-      }
+      // if (!token) {
+      //   console.log('No token found in URL');
+      //   setErrorType('no_token');
+      //   setIsLoading(false);
+      //   return;
+      // }
 
-      try {
-        const validationResult = await validateTokenOnLoad(
-          () => {
-            console.log('Authentication successful - app can load');
-            setIsAuthenticated(true);
-          },
-          () => {
-            console.log('Authentication failed - app will not load');
-            setIsAuthenticated(false);
-            setErrorType('invalid_token');
-          },
-          () => {
-            console.log('Country validation failed - page should not load');
-            setIsAuthenticated(false);
-            setErrorType('invalid_country');
-          }
-        );
+      // try {
+      //   const validationResult = await validateTokenOnLoad(
+      //     () => {
+      //       console.log('Authentication successful - app can load');
+      //       setIsAuthenticated(true);
+      //     },
+      //     () => {
+      //       console.log('Authentication failed - app will not load');
+      //       setIsAuthenticated(false);
+      //       setErrorType('invalid_token');
+      //     },
+      //     () => {
+      //       console.log('Country validation failed - page should not load');
+      //       setIsAuthenticated(false);
+      //       setErrorType('invalid_country');
+      //     }
+      //   );
 
-        if (validationResult.widgetData) {
-          setWidgetData(validationResult.widgetData);
-        }
-        if (validationResult.validCountries) {
-          setValidCountries(validationResult.validCountries);
-        }
+      //   if (validationResult.widgetData) {
+      //     setWidgetData(validationResult.widgetData);
+      //   }
+      //   if (validationResult.validCountries) {
+      //     setValidCountries(validationResult.validCountries);
+      //   }
 
-        console.log('Validation result:', validationResult);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Network error during validation:', error);
-        setErrorType('network_error');
-        setIsLoading(false);
-      }
+      //   console.log('Validation result:', validationResult);
+      //   setIsLoading(false);
+      // } catch (error) {
+      //   console.error('Network error during validation:', error);
+      //   setErrorType('network_error');
+      //   setIsLoading(false);
+      // }
     };
 
     initializeApp();

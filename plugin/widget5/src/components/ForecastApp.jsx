@@ -34,7 +34,56 @@ const X_SST_GRADIENT_RGB = [
   [215, 48, 39]
 ];
 
-const X_SST_GRADIENT = `linear-gradient(to top, ${X_SST_GRADIENT_RGB.map(rgb => `rgb(${rgb.join(', ')})`).join(', ')})`;
+// Spectral divergent palette for mean wave period (div-Spectral from ColorBrewer)
+const SPECTRAL_GRADIENT_RGB = [
+  [158, 1, 66],      // Dark red
+  [213, 62, 79],     // Red
+  [244, 109, 67],    // Orange-red
+  [253, 174, 97],    // Orange
+  [254, 224, 139],   // Yellow-orange
+  [255, 255, 191],   // Pale yellow
+  [230, 245, 152],   // Yellow-green
+  [171, 221, 164],   // Light green
+  [102, 194, 165],   // Cyan-green
+  [50, 136, 189],    // Blue
+  [94, 79, 162]      // Purple
+];
+
+// Generate gradient bands for any palette
+const generateGradientBands = (paletteRGB, bands = 250) => {
+  const colors = [];
+  for (let i = 0; i < bands; i++) {
+    const normalized = i / (bands - 1);
+    const maxIndex = paletteRGB.length - 1;
+    const index = normalized * maxIndex;
+    const lowerIndex = Math.floor(index);
+    const upperIndex = Math.min(Math.ceil(index), maxIndex);
+    const fraction = index - lowerIndex;
+    
+    const lower = paletteRGB[lowerIndex];
+    const upper = paletteRGB[upperIndex];
+    
+    const r = Math.round(lower[0] + (upper[0] - lower[0]) * fraction);
+    const g = Math.round(lower[1] + (upper[1] - lower[1]) * fraction);
+    const b = Math.round(lower[2] + (upper[2] - lower[2]) * fraction);
+    
+    colors.push(`rgb(${r}, ${g}, ${b})`);
+  }
+  return colors;
+};
+
+// Generate 250-band gradients
+const X_SST_250_BANDS = generateGradientBands(X_SST_GRADIENT_RGB, 250);
+const SPECTRAL_250_BANDS = generateGradientBands(SPECTRAL_GRADIENT_RGB, 250);
+
+// Create gradient with explicit percentage stops for better color distribution
+const X_SST_GRADIENT = `linear-gradient(to top, ${X_SST_250_BANDS.map((color, i) => 
+  `${color} ${(i / (X_SST_250_BANDS.length - 1) * 100).toFixed(2)}%`
+).join(', ')})`;
+
+const SPECTRAL_GRADIENT = `linear-gradient(to top, ${SPECTRAL_250_BANDS.map((color, i) => 
+  `${color} ${(i / (SPECTRAL_250_BANDS.length - 1) * 100).toFixed(2)}%`
+).join(', ')})`;
 
 const X_SST_COLOR_STOPS = X_SST_GRADIENT_RGB.slice(0, -1).map((color, index) => ({
   threshold: (index + 1) / (X_SST_GRADIENT_RGB.length - 1),
@@ -244,12 +293,13 @@ const ForecastApp = ({
     
     if (varLower.includes('tm02')) {
       // DYNAMIC DATA RANGE - Updates with actual mean period data
+      // Using Spectral divergent palette to match WMS layer (div-Spectral)
       const minVal = colorRange?.min ?? 0;
       const maxVal = colorRange?.max ?? 20;
       const ticks = [minVal, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal].map(v => Number(v.toFixed(1)));
       
       return {
-        gradient: 'linear-gradient(to top, rgb(0, 0, 255), rgb(0, 255, 255), rgb(0, 255, 0), rgb(255, 255, 0), rgb(255, 0, 0))',
+        gradient: SPECTRAL_GRADIENT,
         min: minVal,
         max: maxVal,
         units: 's',
@@ -374,8 +424,8 @@ const ForecastApp = ({
     if (variable.includes('hs') || variable.includes('wave_height')) {
       // Parse actual WMS data range
       const colorRange = parseColorRange(selectedLegendLayer.colorscalerange);
-      const dataMin = colorRange?.min ?? 0.17; // Cook Islands minimum
-      const dataMax = colorRange?.max ?? 1.66; // Cook Islands maximum
+      const dataMin = colorRange?.min ?? 0; // Cook Islands minimum
+      const dataMax = colorRange?.max ?? 4; // Cook Islands maximum
       
       const effectiveMax = Number.isFinite(selectedLegendLayer.activeBeaufortMax)
         ? selectedLegendLayer.activeBeaufortMax

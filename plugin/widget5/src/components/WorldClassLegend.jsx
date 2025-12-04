@@ -10,6 +10,38 @@ import wmsStyleManager, { WMSStylePresets } from '../utils/WMSStyleManager';
 import DynamicColorManager from '../utils/DynamicColorManager';
 
 const EPSILON = 1e-6;
+
+// X-SST color palette (matches WMS server x-Sst palette)
+const X_SST_GRADIENT_RGB = [
+  [49, 54, 149],
+  [69, 117, 180],
+  [116, 173, 209],
+  [171, 217, 233],
+  [224, 243, 248],
+  [254, 224, 144],
+  [253, 174, 97],
+  [244, 109, 67],
+  [215, 48, 39]
+];
+
+// Helper to interpolate X-SST colors
+const interpolateXSst = (normalized) => {
+  const t = Math.max(0, Math.min(1, normalized));
+  const maxIndex = X_SST_GRADIENT_RGB.length - 1;
+  const index = t * maxIndex;
+  const lowerIndex = Math.floor(index);
+  const upperIndex = Math.min(Math.ceil(index), maxIndex);
+  const fraction = index - lowerIndex;
+  
+  const lower = X_SST_GRADIENT_RGB[lowerIndex];
+  const upper = X_SST_GRADIENT_RGB[upperIndex];
+  
+  const r = Math.round(lower[0] + (upper[0] - lower[0]) * fraction);
+  const g = Math.round(lower[1] + (upper[1] - lower[1]) * fraction);
+  const b = Math.round(lower[2] + (upper[2] - lower[2]) * fraction);
+  
+  return `rgb(${r}, ${g}, ${b})`;
+};
 const selectTickValues = (values, limit = 5) => {
   if (!values || values.length === 0) {
     return [];
@@ -99,15 +131,21 @@ const WorldClassLegend = ({
       const gradientMinValue = gradientStopsSource[0]?.value ?? 0;
       const effectiveRange = Math.max(maxValue - gradientMinValue, EPSILON);
       
-      // FIXED: Always show full viridis range for better visual understanding
-      // Instead of limiting to active threshold, map the active range to full viridis
-      const normalizedStart = 0; // Always start from beginning of viridis
-      const normalizedEnd = 1; // Always use full viridis range
+      // Use X-SST palette to match WMS layer styling
+      const normalizedStart = 0;
+      const normalizedEnd = 1;
       const valueSpan = Math.max(maxValue - gradientMinValue, 0);
       const gradientStopCount = Math.max(2, Math.min(128, Math.ceil(Math.max(valueSpan, 1) * 32)));
-      const viridisGradient = dynamicColorManager.getViridisGradientSlice(normalizedStart, normalizedEnd, gradientStopCount);
-      const denominator = Math.max(viridisGradient.length - 1, 1);
-      const gradientStops = viridisGradient.map((color, index) => {
+      
+      // Generate X-SST gradient stops
+      const xSstGradient = [];
+      for (let i = 0; i < gradientStopCount; i++) {
+        const normalized = i / (gradientStopCount - 1);
+        xSstGradient.push(interpolateXSst(normalized));
+      }
+      
+      const denominator = Math.max(xSstGradient.length - 1, 1);
+      const gradientStops = xSstGradient.map((color, index) => {
         const percent = (index / denominator) * 100;
         return `${color} ${percent.toFixed(2)}%`;
       });
@@ -132,7 +170,7 @@ const WorldClassLegend = ({
         const rangeMidpoint = previousValue + (upperBound - previousValue) / 2;
         const referenceValue = Number.isFinite(rangeMidpoint) ? rangeMidpoint : upperBound;
         const normalizedMidpoint = Math.max(0, Math.min(1, (referenceValue - gradientMinValue) / effectiveRange));
-        const rangeColor = dynamicColorManager.interpolateViridis(normalizedMidpoint);
+        const rangeColor = interpolateXSst(normalizedMidpoint);
 
         ranges.push({
           min: previousValue,
@@ -155,7 +193,7 @@ const WorldClassLegend = ({
           location: variable?.includes('cook') ? 'Cook Islands' : 'Global'
         });
         const normalizedFallback = Math.max(0, Math.min(1, (maxValue - gradientMinValue) / effectiveRange));
-        const fallbackColor = dynamicColorManager.interpolateViridis(normalizedFallback);
+        const fallbackColor = interpolateXSst(normalizedFallback);
         ranges.push({
           min: 0,
           max: maxValue,
@@ -175,7 +213,7 @@ const WorldClassLegend = ({
         const extremeColorNormalized = maxValue === gradientMinValue
           ? 1
           : Math.max(0, Math.min(1, (14 - gradientMinValue) / effectiveRange));
-        const extremeColor = dynamicColorManager.interpolateViridis(extremeColorNormalized);
+        const extremeColor = interpolateXSst(extremeColorNormalized);
         const description = wmsStyleManager.getWaveHeightDescription(14, Infinity, { 
           dataMax: maxValue,
           location: variable?.includes('cook') ? 'Cook Islands' : 'Global'
@@ -199,10 +237,10 @@ const WorldClassLegend = ({
       return {
         title: "Significant Wave Height",
         subtitle: activeThreshold === null
-          ? "Wave state categories (Viridis)"
-          : `Viridis ramp active up to ${wmsStyleManager.formatWaveHeightValue(maxValue)} m`,
+          ? "Wave state categories (X-SST)"
+          : `X-SST palette active up to ${wmsStyleManager.formatWaveHeightValue(maxValue)} m`,
         unit: "meters (m)",
-        palette: "Viridis (Perceptually Uniform)",
+        palette: "X-SST (Oceanographic Standard)",
         displayType: 'gradient',
         gradientStops,
         minValue: gradientMinValue,
