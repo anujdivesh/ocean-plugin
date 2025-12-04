@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import './ForecastApp.css';
 import '../styles/MapMarker.css';
 import '../styles/InundationPoints.css';
@@ -15,57 +15,13 @@ import {
   //StatusBar 
 } from './shared/UIComponents';
 import wmsStyleManager, { WMSStylePresets } from '../utils/WMSStyleManager';
-import { Waves, Wind, Navigation, Activity, Info, Settings, Timer, Triangle,  BadgeInfo , CloudRain, FastForward, X } from 'lucide-react';
+import { Waves, Wind, Navigation, Activity, Info, Settings, Timer, Triangle,  BadgeInfo , CloudRain, FastForward } from 'lucide-react';
 import FancyIcon from './FancyIcon';
 import '../styles/fancyIcons.css';
 
 const EPSILON = 1e-6;
 
-/**
- * Determines the appropriate icon for a layer based on its properties
- * Matches the icons used in the variable buttons for consistency
- * @param {Object} layer - The layer object
- * @returns {Object} Icon component and color
- */
-const getLayerIcon = (layer) => {
-  if (!layer) return { icon: Waves, color: '#00bcd4' };
-  
-  const layerName = layer.value?.toLowerCase() || '';
-  const layerLabel = layer.label?.toLowerCase() || '';
-  
-  // Inundation layers
-  if (layerName.includes('inun') || layerLabel.includes('inundation')) {
-    return { icon: CloudRain, color: '#2196f3' }; // Blue (matches button)
-  }
-  
-  // Wave height layers
-  if (layerName.includes('hs') || layerLabel.includes('wave height')) {
-    return { icon: Waves, color: '#00bcd4' }; // Cyan (matches button)
-  }
-  
-  // Mean wave period (tm02)
-  if (layerName.includes('tm02') || (layerLabel.includes('mean') && layerLabel.includes('period'))) {
-    return { icon: Timer, color: '#ff9800' }; // Orange (matches button)
-  }
-  
-  // Peak wave period (tpeak)
-  if (layerName.includes('tpeak') || (layerLabel.includes('peak') && layerLabel.includes('period'))) {
-    return { icon: Triangle, color: '#4caf50' }; // Green (matches button)
-  }
-  
-  // Wave direction layers
-  if (layerName.includes('dirm') || layerLabel.includes('direction')) {
-    return { icon: Navigation, color: '#9c27b0' }; // Purple (matches button)
-  }
-  
-  // Wind layers
-  if (layerName.includes('wind') || layerLabel.includes('wind')) {
-    return { icon: Wind, color: '#795548' }; // Brown (matches button)
-  }
-  
-  // Default to activity icon
-  return { icon: Activity, color: '#607d8b' }; // Grey for unknown
-};
+
 
 
 const MEAN_PERIOD_METADATA = [
@@ -128,9 +84,6 @@ WAVE_FORECAST_LAYERS,
   minIndex,
   islandSelector
 }) => {
-  const [metadataVisible, setMetadataVisible] = useState(false); // Metadata panel state
-  const [detailedMetadataVisible, setDetailedMetadataVisible] = useState(false); // Detailed metadata state
-  
   const selectedLayer = useMemo(() => {
     return ALL_LAYERS.find(l => l.value === selectedWaveForecast) || null;
   }, [ALL_LAYERS, selectedWaveForecast]);
@@ -291,6 +244,8 @@ WAVE_FORECAST_LAYERS,
     return { min, max };
   };
 
+  // Removed metadata ranges - no longer used after removing info button
+  // eslint-disable-next-line no-unused-vars
   const metadataRanges = useMemo(() => {
     if (!selectedLegendLayer) {
       return [];
@@ -379,6 +334,8 @@ WAVE_FORECAST_LAYERS,
   }, [selectedLegendLayer]);
   
   // Consolidated professional marine metadata (eliminates redundancy)
+  // Removed - no longer used after removing info button
+  // eslint-disable-next-line no-unused-vars
   const getLayerMetadata = (layer) => {
     if (!layer) return { 
       provider: 'THREDDS Data Server', 
@@ -474,6 +431,8 @@ WAVE_FORECAST_LAYERS,
     };
   };
   
+  // Removed - no longer used after removing info button
+  // eslint-disable-next-line no-unused-vars
   const layerMetadata = getLayerMetadata(selectedLayer);
 
   // Function to get fancy icons for different variable types
