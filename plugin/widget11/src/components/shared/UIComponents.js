@@ -155,13 +155,7 @@ export const OpacityControl = ({
  */
 export const DataInfo = ({ 
   source, 
-  // eslint-disable-next-line no-unused-vars
-  model, 
-  // eslint-disable-next-line no-unused-vars
-  resolution, 
-  updateFrequency, 
-  // eslint-disable-next-line no-unused-vars
-  coverage 
+  updateFrequency
 }) => (
   <div className="data-info">
     <div><strong>Source:</strong> {source}</div>
