@@ -152,20 +152,18 @@ export const OpacityControl = ({
 
 /**
  * Data Information Display
+ * Simplified to show only Source and Update fields.
+ * (Removed model, resolution, and coverage as part of UI simplification)
+ * @param {string} source - Data source name
+ * @param {string} updateFrequency - How often the data updates
  */
 export const DataInfo = ({ 
   source, 
-  model, 
-  resolution, 
-  updateFrequency, 
-  coverage 
+  updateFrequency
 }) => (
   <div className="data-info">
     <div><strong>Source:</strong> {source}</div>
-    <div><strong>Model:</strong> {model}</div>
-    <div><strong>Resolution:</strong> {resolution}</div>
     <div><strong>Update:</strong> {updateFrequency}</div>
-    <div><strong>Coverage:</strong> {coverage}</div>
   </div>
 );
 
