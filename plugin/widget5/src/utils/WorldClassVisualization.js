@@ -69,21 +69,21 @@ class WorldClassVisualization {
       significantWaveHeight: {
         // Multi-threshold configuration for different sea states using X-SST palette
         calm: {
-          range: "0.17,1.66",      // Updated to actual Cook Islands data range
+          range: "0,4",      // Updated to 4m max as requested
           palette: "x-Sst",        // UPDATED: X-SST palette (matches inundation)
           bands: 250,
           opacity: 0.7,
           description: "Cook Islands wave conditions"
         },
         moderate: {
-          range: "0.17,1.66",      // Updated to actual Cook Islands data range
+          range: "0,4",      // Updated to 4m max as requested
           palette: "x-Sst",        // UPDATED: X-SST palette (matches inundation)
           bands: 250,
           opacity: 0.8,
           description: "Cook Islands wave height - current conditions"
         },
         rough: {
-          range: "0.17,1.66",      // Cook Islands actual range (not typically rough)
+          range: "0,4",      // Updated to 4m max as requested
           palette: "x-Sst",        // UPDATED: X-SST palette (matches inundation)
           bands: 250,
           description: "Cook Islands wave height - full range"
@@ -429,7 +429,7 @@ class WorldClassVisualization {
           ...this.getAdaptiveWaveHeightConfig(6.0, "tropical"),
           wmsUrl: "https://gem-ncwms-hpc.spc.int/ncWMS/wms",
           id: 1001,
-          legendUrl: this.getWorldClassLegendUrl("hs", "0.17,1.66", "m", "x-Sst"),
+          legendUrl: this.getWorldClassLegendUrl("hs", "0,4", "m", "x-Sst"),
           zIndex: 1,
           // Add additional config needed for capabilities
           style: "default-scalar/x-Sst",

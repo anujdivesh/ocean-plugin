@@ -937,7 +937,7 @@
 .controls-panel {
   background: rgba(0, 0, 0, 0.7);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 0.75rem;
   overflow-y: auto;
   overflow-x: hidden;
   backdrop-filter: blur(10px);
@@ -964,13 +964,13 @@
 .forecast-controls {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   position: relative;
   z-index: 1;
 }
 
 .control-group {
-  margin-bottom: 2rem;
+  margin-bottom: 0.75rem;
 }
 
 .control-group h3 {

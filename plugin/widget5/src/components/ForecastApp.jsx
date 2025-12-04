@@ -195,6 +195,10 @@ const ForecastApp = ({
     }
 
     const map = mapInstance.current;
+    // Check if this is an inundation layer (static layer)
+    const layer = ALL_LAYERS.find(l => l.value === layerValue);
+    const isInundation = layer?.isStatic || false;
+    
     map.fitBounds(
       [
         layerBounds.southWest,
@@ -202,13 +206,13 @@ const ForecastApp = ({
       ],
       {
         padding: [20, 20],
-        maxZoom: 14,
+        maxZoom: isInundation ? 16 : 14, // Higher zoom for inundation layers
         animate: true
       }
     );
     lastZoomedLayerRef.current = layerValue;
-    console.log('🏝️ Zoomed to layer bounds for:', layerValue);
-  }, [mapInstance]);
+    console.log('🏝️ Zoomed to layer bounds for:', layerValue, isInundation ? '(Inundation - higher zoom)' : '');
+  }, [mapInstance, ALL_LAYERS]);
 
   useEffect(() => {
     zoomToLayerBounds(selectedWaveForecast);
@@ -682,142 +686,7 @@ const ForecastApp = ({
               })()}
             </div>
           )}
-          
-          {/* Metadata Panel - Bottom Left */}
-          <button
-            type="button"
-            className="metadata-toggle"
-            onClick={() => setMetadataVisible(prev => !prev)}
-            title={metadataVisible ? "Hide Range Info" : "Show Range Info"}
-            aria-label={metadataVisible ? "Hide Range Info" : "Show Range Info"}
-          >
-            <FancyIcon 
-              icon={BadgeInfo} 
-              animationType="pulse" 
-              size={16} 
-              color="#00bcd4" 
-            />
-            {metadataVisible ? " Hide" : " Info"}
-          </button>
-          
-          {metadataVisible && selectedLayer && metadataRanges.length > 0 && (
-            <div className="range-metadata-panel">
-              <h4>
-                <FancyIcon 
-                  icon={getLayerIcon(selectedLayer).icon} 
-                  animationType="wave" 
-                  size={18} 
-                  color={getLayerIcon(selectedLayer).color} 
-                />
-                {selectedLayer.label || 'Wave Data'}
-                <span className="wmo-code">({layerMetadata.wmoCode})</span>
-              </h4>
-              
-              {metadataRanges.map((range, index) => (
-                <div
-                  key={`${range.label}-${index}`}
-                  className="range-item"
-                >
-                  <div className="range-item-left">
-                    <div
-                      className="range-color"
-                      style={{ backgroundColor: range.color || 'rgba(255, 255, 255, 0.2)' }}
-                    ></div>
-                    <div className="range-content">
-                      <span className="range-label">{range.label}</span>
-                      <span className="range-description">{range.description}</span>
-                    </div>
-                  </div>
-                  <span className="range-value">{range.value}</span>
-                </div>
-              ))}
-              
-              {/* Essential Info Summary */}
-              <div className="metadata-section">
-                <div className="metadata-summary">
-                  <div className="metadata-item">
-                    <span className="metadata-label">Source:</span>
-                    <span className="metadata-value">{layerMetadata.provider}</span>
-                  </div>
-                  <div className="metadata-item">
-                    <span className="metadata-label">Coverage:</span>
-                    <span className="metadata-value">{layerMetadata.coverage}</span>
-                  </div>
-                  <div className="metadata-item">
-                    <span className="metadata-label">Units:</span>
-                    <span className="metadata-value">{layerMetadata.units}</span>
-                  </div>
-                </div>
-                
-                <button 
-                  className="metadata-details-toggle"
-                  onClick={() => setDetailedMetadataVisible(prev => !prev)}
-                  title={detailedMetadataVisible ? "Hide Technical Details" : "Show Technical Details"}
-                  aria-label={detailedMetadataVisible ? "Hide Technical Details" : "Show Technical Details"}
-                >
-                  <FancyIcon 
-                    icon={Settings} 
-                    animationType="spin" 
-                    size={14} 
-                    color="#9c27b0" 
-                  />
-                  {detailedMetadataVisible ? " Less" : " Details"}
-                </button>
-                
-                {detailedMetadataVisible && (
-                  <div className="metadata-details">
-                    <div className="metadata-item">
-                      <span className="metadata-label">Model:</span>
-                      <span className="metadata-value">{layerMetadata.model}</span>
-                    </div>
-                    <div className="metadata-item">
-                      <span className="metadata-label">Resolution:</span>
-                      <span className="metadata-value">{layerMetadata.resolution}</span>
-                    </div>
-                    <div className="metadata-item">
-                      <span className="metadata-label">Schedule:</span>
-                      <span className="metadata-value">{layerMetadata.schedule}</span>
-                    </div>
-                    <div className="metadata-item">
-                      <span className="metadata-label">Valid Time:</span>
-                      <span className="metadata-value">{layerMetadata.validTime}</span>
-                    </div>
-                    <div className="metadata-item">
-                      <span className="metadata-label">WMO Standard:</span>
-                      <span className="metadata-value">
-                        {layerMetadata.wmoCode}
-                        <span className={`confidence-indicator confidence-${layerMetadata.confidence.toLowerCase()}`}></span>
-                      </span>
-                    </div>
-                    {layerMetadata.period && (
-                      <div className="metadata-item">
-                        <span className="metadata-label">Wave Period:</span>
-                        <span className="metadata-value">{layerMetadata.period}</span>
-                      </div>
-                    )}
-                    {layerMetadata.direction && (
-                      <div className="metadata-item">
-                        <span className="metadata-label">Direction:</span>
-                        <span className="metadata-value">{layerMetadata.direction}</span>
-                      </div>
-                    )}
-                    {layerMetadata.components && (
-                      <div className="metadata-item">
-                        <span className="metadata-label">Components:</span>
-                        <span className="metadata-value">{layerMetadata.components}</span>
-                      </div>
-                    )}
-                    {layerMetadata.datum && (
-                      <div className="metadata-item">
-                        <span className="metadata-label">Datum:</span>
-                        <span className="metadata-value">{layerMetadata.datum}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+
         </div>
 
         <div className="controls-panel">
@@ -855,6 +724,7 @@ const ForecastApp = ({
             playIcon={<FancyIcon icon={Navigation} animationType="bounce" size={16} color="#4caf50" />}
             pauseIcon={<FancyIcon icon={Activity} animationType="pulse" size={16} color="#ff5722" />}
             minIndex={minIndex}
+            disabled={selectedLayer?.isStatic || false}
           />
           
           {/* ✅ Warm-up Period Notice */}

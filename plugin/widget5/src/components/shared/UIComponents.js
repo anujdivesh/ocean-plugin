@@ -71,7 +71,8 @@ export const TimeControl = ({
   stepHours = 1,
   playIcon = '▶️',
   pauseIcon = '⏸️',
-  minIndex = 0
+  minIndex = 0,
+  disabled = false
 }) => (
   <div className="time-control">
     <div className="forecast-info">
@@ -89,7 +90,7 @@ export const TimeControl = ({
         max={totalSteps}
         value={sliderIndex}
         onChange={(e) => onSliderChange(e.target.value)}
-        disabled={capTime.loading}
+        disabled={capTime.loading || disabled}
       />
       
       <div className="playback-controls">
@@ -97,7 +98,7 @@ export const TimeControl = ({
           type="button"
           className="play-btn"
           onClick={onPlayToggle}
-          disabled={capTime.loading}
+          disabled={capTime.loading || disabled}
           aria-label={isPlaying ? 'Pause forecast animation' : 'Play forecast animation'}
         >
           <span>{isPlaying ? <>{pauseIcon} Pause</> : <>{playIcon} Play</>}</span>
@@ -108,6 +109,20 @@ export const TimeControl = ({
     <div className="forecast-info">
       <div>Forecast Length: <strong>{totalSteps + 1} hours</strong></div>
     </div>
+    {disabled && (
+      <div style={{ 
+        marginTop: '0.5rem', 
+        padding: '0.5rem', 
+        background: 'rgba(255, 152, 0, 0.1)', 
+        border: '1px solid rgba(255, 152, 0, 0.3)',
+        borderRadius: '4px',
+        fontSize: '0.85rem',
+        color: '#ffb74d',
+        textAlign: 'center'
+      }}>
+        Time controls disabled for static layers
+      </div>
+    )}
   </div>
 );
 
@@ -149,10 +164,7 @@ export const DataInfo = ({
 }) => (
   <div className="data-info">
     <div><strong>Source:</strong> {source}</div>
-    <div><strong>Model:</strong> {model}</div>
-    <div><strong>Resolution:</strong> {resolution}</div>
     <div><strong>Update:</strong> {updateFrequency}</div>
-    <div><strong>Coverage:</strong> {coverage}</div>
   </div>
 );
 
