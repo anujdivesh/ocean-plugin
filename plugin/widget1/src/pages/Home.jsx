@@ -130,6 +130,13 @@ const variableConfigMap = {
     palette: 'black-arrow',
     range: '',
     numcolorbands: 0
+  }),
+  inundation: () => ({
+    style: "default-scalar/x-Sst",
+    colorscalerange: "-0.05,3",
+    numcolorbands: 250,
+    belowmincolor: "transparent",
+    abovemaxcolor: "extend"
   })
 };
 
@@ -186,9 +193,9 @@ const WAVE_FORECAST_LAYERS = [
     value: "inundation",
     wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/NIU/InundationNiue_latest.nc",
     dataset: "niue_inundation",
-    style: "default-scalar/seq-Blues",
+    style: "default-scalar/x-Sst",
     colorscalerange: "-0.05,3", // Default range, will be updated dynamically from actual data
-    numcolorbands: 50,
+    numcolorbands: 250,
     belowmincolor: "transparent",
     abovemaxcolor: "extend",
   }
@@ -287,13 +294,15 @@ function Home({ widgetData, validCountries }) {
           });
         } else {
           // Only enhance wave period layers with data-driven ranges
-          if (layer.value.includes('tm02') || layer.value.includes('tpeak')) {
+          if (layer.value.includes('tm02') || layer.value.includes('tpeak') || layer.value.includes('inundation')) {
             const dataRange = await extractDataRange(layer.wmsUrl, layer.dataset, layer.value);
             if (dataRange) {
               const config = variableConfigMap[layer.value]?.(dataRange) || {};
               enhanced.push({
                 ...layer,
-                colorscalerange: config.colorscalerange || config.range || layer.colorscalerange
+                colorscalerange: config.colorscalerange || config.range || layer.colorscalerange,
+                numcolorbands: config.numcolorbands || layer.numcolorbands,
+                style: config.style || config.palette || layer.style
               });
             } else {
               enhanced.push(layer);
@@ -380,6 +389,13 @@ function Home({ widgetData, validCountries }) {
       setShowBuoyCanvas(false);
     }
   }, [showBottomCanvas]);
+
+  // Auto-zoom when Inundation layer is selected
+  useEffect(() => {
+    if (selectedWaveForecast === 'inundation' && mapInstance.current) {
+      mapInstance.current.setZoom(15);
+    }
+  }, [selectedWaveForecast, mapInstance]);
 
   // Buoy marker icons
   const blueIcon = new L.Icon({
