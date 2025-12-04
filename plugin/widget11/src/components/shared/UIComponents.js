@@ -152,6 +152,10 @@ export const OpacityControl = ({
 
 /**
  * Data Information Display
+ * Simplified to show only Source and Update fields.
+ * (Removed model, resolution, and coverage as part of UI simplification)
+ * @param {string} source - Data source name
+ * @param {string} updateFrequency - How often the data updates
  */
 export const DataInfo = ({ 
   source, 

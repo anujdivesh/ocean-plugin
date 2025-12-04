@@ -58,6 +58,19 @@ export const VariableButtons = ({
 
 /**
  * Time Control Section
+ * @param {number} sliderIndex - Current time slider position
+ * @param {number} totalSteps - Total number of forecast steps
+ * @param {Date} currentSliderDate - Current date/time for the slider
+ * @param {boolean} isPlaying - Whether forecast animation is playing
+ * @param {Object} capTime - Capabilities time object
+ * @param {Function} onSliderChange - Handler for slider changes
+ * @param {Function} onPlayToggle - Handler for play/pause button
+ * @param {Function} formatDateTime - Function to format date/time
+ * @param {number} stepHours - Hours per step (default: 1)
+ * @param {React.ReactNode} playIcon - Icon for play button
+ * @param {React.ReactNode} pauseIcon - Icon for pause button
+ * @param {number} minIndex - Minimum slider index (default: 0)
+ * @param {boolean} disabled - Whether to disable time controls for static layers (default: false)
  */
 export const TimeControl = ({
   sliderIndex,
@@ -154,6 +167,10 @@ export const OpacityControl = ({
 
 /**
  * Data Information Display
+ * Simplified to show only Source and Update fields.
+ * (Removed model, resolution, and coverage as part of UI simplification)
+ * @param {string} source - Data source name
+ * @param {string} updateFrequency - How often the data updates
  */
 export const DataInfo = ({ 
   source, 

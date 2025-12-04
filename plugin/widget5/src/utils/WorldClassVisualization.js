@@ -433,7 +433,7 @@ class WorldClassVisualization {
           zIndex: 1,
           // Add additional config needed for capabilities
           style: "default-scalar/x-Sst",
-          colorscalerange: "0.17,1.66",
+          colorscalerange: "0,4",
           numcolorbands: 250,
           dataset: "cook_forecast",
           colorscaling: "linear"
