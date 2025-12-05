@@ -68,8 +68,8 @@ const variableConfigMap = {
   }),
   inun: () => ({
     style: "default-scalar/x-Sst",
-    colorscalerange: "0,2",
-    numcolorbands: 20,
+    colorscalerange: "-0.05,1.63",
+    numcolorbands: 250,
     belowmincolor: "transparent",
     abovemaxcolor: "extend",
     colorscaling: "linear"

@@ -135,7 +135,7 @@ const ForecastApp = ({
       ],
       {
         padding: [20, 20],
-        maxZoom: isInundation ? 16 : 14, // Higher zoom for inundation layers
+        maxZoom: isInundation ? 17 : 14, // Higher zoom for inundation layers (increased from 16 to 17)
         animate: true
       }
     );
