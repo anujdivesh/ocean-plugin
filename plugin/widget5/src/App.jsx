@@ -6,20 +6,11 @@ import Header from './components/header';
 import './utils/NotificationManager'; // Initialize notification system
 import { initConsoleErrorSuppressor } from './utils/ConsoleErrorSuppressor';
 import TokenError from './components/TokenError';
-// Unused imports - authentication disabled for widget5
-// eslint-disable-next-line no-unused-vars
-import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  // Unused - authentication disabled for widget5
-  // eslint-disable-next-line no-unused-vars
-  const [errorType, setErrorType] = useState(null);
-  // eslint-disable-next-line no-unused-vars
-  const [widgetData, setWidgetData] = useState(null);
-  // eslint-disable-next-line no-unused-vars
-  const [validCountries, setValidCountries] = useState(['COK']); // Cook Islands by default
+  const [errorType] = useState(null); // Keep for conditional render, but never changes
 
   useEffect(() => {
     // Authentication DISABLED for widget5
@@ -122,8 +113,7 @@ function App() {
       }}>
         <Header />
         <Routes>
-          {/* Pass validated widget data and countries */}
-          <Route path="/" element={<Home widgetData={widgetData} validCountries={validCountries} />} />
+          <Route path="/" element={<Home />} />
           {/* <Route path="/link1" element={<Link1 />} />
           <Route path="/link2" element={<Link2 />} />
           <Route path="/link3" element={<Link3 />} /> */}
