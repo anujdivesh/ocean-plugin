@@ -18,7 +18,8 @@ jest.mock('../config/TuvaluConfig', () => ({
   WMS_BASE_URL: 'https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/Tuvalu.nc'
 }));
 
-// Mock tabular and timeseries to avoid plotly issues
+// Mock tabular and timeseries to avoid plotly initialization issues in Jest
+// Plotly.js requires window.URL.createObjectURL which is not available in jsdom
 jest.mock('./tabular.js', () => {
   return function Tabular() {
     return null;
@@ -31,7 +32,7 @@ jest.mock('./timeseries.js', () => {
   };
 });
 
-// Import after mocks are set up
+// Import after mocks are set up to ensure mocks take effect
 const { fetchLayerTimeseries } = require('./BottomOffCanvas');
 
 describe('BottomOffCanvas wmsUrl functionality', () => {
