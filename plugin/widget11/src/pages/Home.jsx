@@ -309,6 +309,14 @@ function TuvaluForecast() {
     addWMSTileLayer,
   }), [WAVE_FORECAST_LAYERS, STATIC_LAYERS, ALL_LAYERS]);
   
+  // Get active WMS URL for BottomOffCanvas data fetching
+  // This ensures timeseries data matches the currently displayed island or national view
+  const activeWmsUrl = useMemo(() => {
+    const activeIsland = selectedIsland || autoDetectedIsland;
+    const baseWmsUrl = activeIsland?.wmsUrl || TuvaluConfig.WMS_BASE_URL;
+    return resolveThreddsUrl(baseWmsUrl);
+  }, [selectedIsland, autoDetectedIsland]);
+  
   const {
     showBottomCanvas, setShowBottomCanvas,
     bottomCanvasData, setBottomCanvasData,
@@ -877,6 +885,7 @@ function TuvaluForecast() {
           }
         }}
         data={bottomCanvasData}
+        wmsUrl={activeWmsUrl}
       />
     </div>
   );
