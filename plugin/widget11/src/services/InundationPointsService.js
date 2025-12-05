@@ -661,14 +661,15 @@ class InundationPointsService {
         } else if (options.riskFilter === 'moderate-only') {
           filteredData = filteredData.filter(point => {
             const level = (point.coastal_inundation_hazard_level || '').toLowerCase();
-            return level.includes('moderate') || level.includes('medium');
+            // Data uses "Moderate Risk" not "Medium Risk"
+            return level.includes('moderate');
           });
           this.log(`Filtered to ${filteredData.length} moderate risk points (from ${beforeCount})`);
           
         } else if (options.riskFilter === 'high-only') {
           filteredData = filteredData.filter(point => {
             const level = (point.coastal_inundation_hazard_level || '').toLowerCase();
-            return level.includes('high') || level.includes('severe') || level.includes('extreme');
+            return level.includes('high');
           });
           this.log(`Filtered to ${filteredData.length} high risk points (from ${beforeCount})`);
         }
@@ -838,32 +839,54 @@ class InundationPointsService {
   }
   
   /**
-   * Get statistics about loaded points
+   * Get statistics about loaded points (optionally filtered by atoll)
    */
-  getStats() {
+  getStats(options = {}) {
     if (!this.cachedData || !Array.isArray(this.cachedData)) {
-      return { total: 0, byRiskLevel: {} };
+      return { total: 0, lowRisk: 0, moderateRisk: 0, highRisk: 0 };
+    }
+    
+    console.log('📊 [Service] getStats called with options:', options);
+    console.log('📊 [Service] Cached points available:', this.cachedData.length);
+    this.log(`Getting stats for atoll filter: ${options.atoll || 'all'}`);
+    let dataToCount = this.cachedData;
+    
+    // Filter by atoll if specified
+    if (options.atoll && options.atoll !== 'all') {
+      const searchAtoll = options.atoll.toLowerCase().replace(/\s+/g, '');
+      const beforeFilter = dataToCount.length;
+      dataToCount = dataToCount.filter(point => {
+        const imageUrl = (point.primary_image_url || '').toLowerCase();
+        const location = (point.location || '').toLowerCase().replace(/\s+/g, '');
+        const imageAtoll = imageUrl.split('/').pop()?.split('_')[0] || '';
+        return location.includes(searchAtoll) || imageAtoll === searchAtoll;
+      });
+      console.log(
+        `📊 [Service] Filtering points for atoll "${options.atoll}" reduced set from ${beforeFilter} to ${dataToCount.length}`
+      );
+      this.log(`Filtered from ${beforeFilter} to ${dataToCount.length} points for atoll: ${options.atoll}`);
     }
     
     const stats = {
-      total: this.cachedData.length,
-      byRiskLevel: {
-        low: 0,
-        medium: 0,
-        high: 0
-      }
+      total: dataToCount.length,
+      lowRisk: 0,
+      moderateRisk: 0,
+      highRisk: 0
     };
     
-    this.cachedData.forEach(point => {
-      const hazardLevel = point.coastal_inundation_hazard_level || point.hazard_level || point.risk_level;
-      const inundationValue = point.max_inundation || point.inundation || 0;
-      const riskLevel = this.getRiskLevel(hazardLevel || inundationValue);
+    dataToCount.forEach(point => {
+      const level = (point.coastal_inundation_hazard_level || '').toLowerCase();
       
-      if (riskLevel === this.riskLevels.low) stats.byRiskLevel.low++;
-      else if (riskLevel === this.riskLevels.medium) stats.byRiskLevel.medium++;
-      else if (riskLevel === this.riskLevels.high) stats.byRiskLevel.high++;
+      if (level.includes('low')) {
+        stats.lowRisk++;
+      } else if (level.includes('moderate')) {
+        stats.moderateRisk++;
+      } else if (level.includes('high')) {
+        stats.highRisk++;
+      }
     });
     
+    console.log('📊 [Service] Risk distribution:', stats);
     return stats;
   }
   

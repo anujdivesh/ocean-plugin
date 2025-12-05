@@ -28,7 +28,10 @@ export const useInundationPoints = (mapInstance, options = {}) => {
 
   // Keep latest options available without re-creating callbacks
   useEffect(() => {
-    optionsRef.current = options;
+    optionsRef.current = {
+      ...optionsRef.current,
+      ...options
+    };
   }, [options]);
   
   // Load points function - DEFINED BEFORE map initialization useEffect
@@ -65,19 +68,22 @@ export const useInundationPoints = (mapInstance, options = {}) => {
     setError(null);
 
     try {
-      const result = await serviceRef.current.loadAndDisplayPoints({
+      const mergedOptions = {
         ...optionsRef.current,
         ...loadOptions
-      });
+      };
+      optionsRef.current = mergedOptions;
+      
+      const result = await serviceRef.current.loadAndDisplayPoints(mergedOptions);
 
       console.log('✅ InundationPoints: Load successful', result);
 
       const serviceStats = serviceRef.current.getStats
-        ? serviceRef.current.getStats()
+        ? serviceRef.current.getStats(mergedOptions)
         : null;
       const combinedStats = {
-        ...(serviceStats || {}),
-        ...(result || {})
+        ...(result || {}),
+        ...(serviceStats || {})
       };
 
       setStats(combinedStats);
@@ -194,10 +200,21 @@ export const useInundationPoints = (mapInstance, options = {}) => {
     }
   }, [isVisible, loadPoints]);
   
+  // Update stats when options change (atoll filter)
+  useEffect(() => {
+    if (serviceRef.current && serviceRef.current.cachedData) {
+      console.log('📊 Stats effect triggered with options:', optionsRef.current);
+      console.log('📊 Updating stats for atoll:', optionsRef.current.atoll);
+      const updatedStats = serviceRef.current.getStats(optionsRef.current);
+      console.log('📊 Updated stats:', updatedStats);
+      setStats(updatedStats);
+    }
+  }, [options.atoll, options.riskFilter]);
+
   // Get current statistics
   const getStats = () => {
     if (serviceRef.current) {
-      return serviceRef.current.getStats();
+      return serviceRef.current.getStats(optionsRef.current);
     }
     return null;
   };

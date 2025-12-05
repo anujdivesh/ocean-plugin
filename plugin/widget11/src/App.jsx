@@ -9,60 +9,64 @@ import './utils/NotificationManager'; // Initialize notification system
 import { initConsoleErrorSuppressor } from './utils/ConsoleErrorSuppressor';
 import logger from './utils/logger';
 import TokenError from './components/TokenError';
-import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator';
+// import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorType, setErrorType] = useState(null);
-  const [widgetData, setWidgetData] = useState(null);
-  const [validCountries, setValidCountries] = useState(['TUV']); // Tuvalu by default
+  const [errorType] = useState(null);
+  const [widgetData] = useState(null);
+  const [validCountries] = useState(['TUV']); // Tuvalu by default
 
   useEffect(() => {
     const initializeApp = async () => {
-      logger.info('APP', 'Initializing Tuvalu Multi-Island Widget (authentication enabled)...');
+      logger.info('APP', 'Initializing Tuvalu Multi-Island Widget (authentication DISABLED)...');
       initConsoleErrorSuppressor();
 
-      const token = extractTokenFromURL('token');
-      if (!token) {
-        logger.warn('APP', 'No token found in URL');
-        setErrorType('no_token');
-        setIsLoading(false);
-        return;
-      }
+      // Skip authentication - directly set authenticated state
+      setIsAuthenticated(true);
+      setIsLoading(false);
 
-      try {
-        const validationResult = await validateTokenOnLoad(
-          () => {
-            logger.info('APP', 'Authentication successful - app can load');
-            setIsAuthenticated(true);
-          },
-          () => {
-            logger.warn('APP', 'Authentication failed - app will not load');
-            setIsAuthenticated(false);
-            setErrorType('invalid_token');
-          },
-          () => {
-            logger.warn('APP', 'Country validation failed - page should not load');
-            setIsAuthenticated(false);
-            setErrorType('invalid_country');
-          }
-        );
+      // const token = extractTokenFromURL('token');
+      // if (!token) {
+      //   logger.warn('APP', 'No token found in URL');
+      //   setErrorType('no_token');
+      //   setIsLoading(false);
+      //   return;
+      // }
 
-        if (validationResult.widgetData) {
-          setWidgetData(validationResult.widgetData);
-        }
-        if (validationResult.validCountries) {
-          setValidCountries(validationResult.validCountries);
-        }
+      // try {
+      //   const validationResult = await validateTokenOnLoad(
+      //     () => {
+      //       logger.info('APP', 'Authentication successful - app can load');
+      //       setIsAuthenticated(true);
+      //     },
+      //     () => {
+      //       logger.warn('APP', 'Authentication failed - app will not load');
+      //       setIsAuthenticated(false);
+      //       setErrorType('invalid_token');
+      //     },
+      //     () => {
+      //       logger.warn('APP', 'Country validation failed - page should not load');
+      //       setIsAuthenticated(false);
+      //       setErrorType('invalid_country');
+      //     }
+      //   );
 
-        logger.info('APP', 'Validation result:', validationResult);
-        setIsLoading(false);
-      } catch (error) {
-        logger.error('APP', 'Network error during validation:', error);
-        setErrorType('network_error');
-        setIsLoading(false);
-      }
+      //   if (validationResult.widgetData) {
+      //     setWidgetData(validationResult.widgetData);
+      //   }
+      //   if (validationResult.validCountries) {
+      //     setValidCountries(validationResult.validCountries);
+      //   }
+
+      //   logger.info('APP', 'Validation result:', validationResult);
+      //   setIsLoading(false);
+      // } catch (error) {
+      //   logger.error('APP', 'Network error during validation:', error);
+      //   setErrorType('network_error');
+      //   setIsLoading(false);
+      // }
     };
 
     initializeApp();
