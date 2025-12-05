@@ -92,7 +92,7 @@ async function fetchLayerTimeseries(layer, data, serverLayerOverride, wmsUrl) {
   // Normalize bbox axis order for THREDDS (expects lon,lat when SRS=CRS:84)
   const bbox = normalizeBboxToLonLat(data.bbox);
   
-  // Use provided wmsUrl if available, otherwise fallback to national-scale Tuvalu.nc
+  // Use provided wmsUrl if available, otherwise fallback to TuvaluConfig.WMS_BASE_URL (national-scale)
   // This ensures timeseries data matches the currently displayed island or national view
   const baseUrl = wmsUrl || TuvaluConfig.WMS_BASE_URL;
   
