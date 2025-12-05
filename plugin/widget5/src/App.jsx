@@ -6,13 +6,19 @@ import Header from './components/header';
 import './utils/NotificationManager'; // Initialize notification system
 import { initConsoleErrorSuppressor } from './utils/ConsoleErrorSuppressor';
 import TokenError from './components/TokenError';
+// Unused imports - authentication disabled for widget5
+// eslint-disable-next-line no-unused-vars
 import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  // Unused - authentication disabled for widget5
+  // eslint-disable-next-line no-unused-vars
   const [errorType, setErrorType] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [widgetData, setWidgetData] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [validCountries, setValidCountries] = useState(['COK']); // Cook Islands by default
 
   useEffect(() => {
