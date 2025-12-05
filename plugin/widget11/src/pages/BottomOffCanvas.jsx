@@ -384,3 +384,6 @@ function BottomOffCanvas({ show, onHide, data, wmsUrl }) {
 }
 
 export default BottomOffCanvas;
+
+// Export for testing
+export { fetchLayerTimeseries };

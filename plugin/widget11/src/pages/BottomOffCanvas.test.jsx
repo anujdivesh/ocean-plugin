@@ -3,6 +3,9 @@
  * 
  * Tests for BottomOffCanvas component functionality, especially the new wmsUrl parameter
  * These tests verify the bug fix for Nanumanga data not being plotted when zoomed in.
+ * 
+ * These tests directly invoke fetchLayerTimeseries and verify that it uses the correct
+ * WMS URL (island-specific or national) when making fetch requests.
  */
 
 import TuvaluConfig from '../config/TuvaluConfig';
@@ -15,13 +18,23 @@ jest.mock('../config/TuvaluConfig', () => ({
   WMS_BASE_URL: 'https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/Tuvalu.nc'
 }));
 
-// Test the fetchLayerTimeseries function behavior through fetch call verification
-// We cannot easily export the function, but we can verify its behavior by checking
-// what URLs are fetched when the component makes requests
+// Mock tabular and timeseries to avoid plotly issues
+jest.mock('./tabular.js', () => {
+  return function Tabular() {
+    return null;
+  };
+});
+
+jest.mock('./timeseries.js', () => {
+  return function Timeseries() {
+    return null;
+  };
+});
+
+// Import after mocks are set up
+const { fetchLayerTimeseries } = require('./BottomOffCanvas');
 
 describe('BottomOffCanvas wmsUrl functionality', () => {
-  const mockOnHide = jest.fn();
-  
   const mockData = {
     bbox: '176.0,-6.5,176.5,-6.0',
     x: 100,
@@ -46,6 +59,11 @@ describe('BottomOffCanvas wmsUrl functionality', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     global.fetch.mockClear();
+    // Setup default mock response
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => mockResponseData
+    });
   });
 
   afterEach(() => {
@@ -53,114 +71,174 @@ describe('BottomOffCanvas wmsUrl functionality', () => {
   });
 
   /**
-   * Test 1: Verify wmsUrl parameter is used when provided
-   * This tests the fix for Nanumanga not plotting - island-specific URLs should be used
+   * Test 1: Verify fetchLayerTimeseries uses island-specific wmsUrl when provided
+   * This is the core fix for Nanumanga not plotting - island-specific URLs must be used
    */
-  test('fetchLayerTimeseries uses provided wmsUrl parameter', () => {
+  test('fetchLayerTimeseries uses provided island-specific wmsUrl parameter', async () => {
     const islandWmsUrl = 'https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/P2_Nanumanga.nc';
-    const nationalWmsUrl = TuvaluConfig.WMS_BASE_URL;
-
-    // Verify the URLs are different
-    expect(islandWmsUrl).not.toBe(nationalWmsUrl);
-    expect(islandWmsUrl).toContain('P2_Nanumanga.nc');
-    expect(nationalWmsUrl).toContain('Tuvalu.nc');
+    const layer = 'hs';
+    
+    // Call the actual function with island-specific URL
+    await fetchLayerTimeseries(layer, mockData, 'Hs', islandWmsUrl);
+    
+    // Verify fetch was called
+    expect(global.fetch).toHaveBeenCalled();
+    
+    // Get the URL that was actually fetched
+    const fetchedUrl = global.fetch.mock.calls[0][0];
+    
+    // Critical assertion: The fetched URL must contain the island-specific endpoint
+    expect(fetchedUrl).toContain('P2_Nanumanga.nc');
+    expect(fetchedUrl).not.toContain('Tuvalu.nc');
+    
+    // Verify it's a proper GetTimeseries request
+    expect(fetchedUrl).toContain('REQUEST=GetTimeseries');
+    expect(fetchedUrl).toContain('LAYERS=Hs');
   });
 
   /**
-   * Test 2: Verify fallback to TuvaluConfig.WMS_BASE_URL when wmsUrl is null
-   * Ensures backward compatibility and proper fallback behavior
+   * Test 2: Verify fetchLayerTimeseries falls back to TuvaluConfig.WMS_BASE_URL when wmsUrl is null
+   * This ensures backward compatibility - null should use national scale
    */
-  test('fetchLayerTimeseries falls back to TuvaluConfig.WMS_BASE_URL when wmsUrl is null', () => {
-    // Test the fallback logic
-    const wmsUrl = null;
-    const baseUrl = wmsUrl || TuvaluConfig.WMS_BASE_URL;
+  test('fetchLayerTimeseries falls back to national URL when wmsUrl is null', async () => {
+    const layer = 'hs';
     
-    expect(baseUrl).toBe(TuvaluConfig.WMS_BASE_URL);
-    expect(baseUrl).toContain('Tuvalu.nc');
+    // Call the actual function with null wmsUrl
+    await fetchLayerTimeseries(layer, mockData, 'Hs', null);
+    
+    // Verify fetch was called
+    expect(global.fetch).toHaveBeenCalled();
+    
+    // Get the URL that was actually fetched
+    const fetchedUrl = global.fetch.mock.calls[0][0];
+    
+    // Critical assertion: The fetched URL must contain the national endpoint
+    expect(fetchedUrl).toContain('Tuvalu.nc');
+    expect(fetchedUrl).not.toContain('P2_Nanumanga.nc');
+    
+    // Verify it's a proper GetTimeseries request
+    expect(fetchedUrl).toContain('REQUEST=GetTimeseries');
   });
 
   /**
-   * Test 3: Verify fallback to TuvaluConfig.WMS_BASE_URL when wmsUrl is undefined
-   * Ensures backward compatibility when prop is not provided
+   * Test 3: Verify fetchLayerTimeseries falls back to TuvaluConfig.WMS_BASE_URL when wmsUrl is undefined
+   * This ensures backward compatibility - undefined should use national scale
    */
-  test('fetchLayerTimeseries falls back to TuvaluConfig.WMS_BASE_URL when wmsUrl is undefined', () => {
-    // Test the fallback logic
-    const wmsUrl = undefined;
-    const baseUrl = wmsUrl || TuvaluConfig.WMS_BASE_URL;
+  test('fetchLayerTimeseries falls back to national URL when wmsUrl is undefined', async () => {
+    const layer = 'hs';
     
-    expect(baseUrl).toBe(TuvaluConfig.WMS_BASE_URL);
-    expect(baseUrl).toContain('Tuvalu.nc');
+    // Call the actual function without wmsUrl parameter (undefined)
+    await fetchLayerTimeseries(layer, mockData, 'Hs', undefined);
+    
+    // Verify fetch was called
+    expect(global.fetch).toHaveBeenCalled();
+    
+    // Get the URL that was actually fetched
+    const fetchedUrl = global.fetch.mock.calls[0][0];
+    
+    // Critical assertion: The fetched URL must contain the national endpoint
+    expect(fetchedUrl).toContain('Tuvalu.nc');
+    
+    // Verify it's a proper GetTimeseries request
+    expect(fetchedUrl).toContain('REQUEST=GetTimeseries');
   });
 
   /**
-   * Test 4: Verify correct URL construction with island-specific endpoint
-   * This is the core fix - island URLs should be properly constructed
+   * Test 4: Verify different island URLs are used correctly
+   * Tests that different island-specific endpoints work as expected
    */
-  test('URL construction uses island-specific endpoint when provided', () => {
-    const islandWmsUrl = 'https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/P2_Nanumanga.nc';
-    const layer = 'Hs';
-    const bbox = '176.0,-6.5,176.5,-6.0';
+  test('fetchLayerTimeseries correctly uses different island-specific endpoints', async () => {
+    const nanumeaUrl = 'https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/P1_Nanumea.nc';
+    const funafutiUrl = 'https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/P7_Fongafale.nc';
     
-    // Simulate URL construction from fetchLayerTimeseries
-    const baseUrl = islandWmsUrl;
-    const url = baseUrl + `?REQUEST=GetTimeseries&LAYERS=${layer}&BBOX=${encodeURIComponent(bbox)}`;
+    // Test Nanumea
+    await fetchLayerTimeseries('hs', mockData, 'Hs', nanumeaUrl);
+    expect(global.fetch.mock.calls[0][0]).toContain('P1_Nanumea.nc');
     
-    expect(url).toContain('P2_Nanumanga.nc');
-    expect(url).toContain('REQUEST=GetTimeseries');
-    expect(url).toContain(`LAYERS=${layer}`);
+    // Clear and test Funafuti
+    global.fetch.mockClear();
+    await fetchLayerTimeseries('hs', mockData, 'Hs', funafutiUrl);
+    expect(global.fetch.mock.calls[0][0]).toContain('P7_Fongafale.nc');
   });
 
   /**
-   * Test 5: Verify correct URL construction with national endpoint
-   * Ensures national-scale queries still work correctly
+   * Test 5: Verify wmsUrl parameter affects actual fetch behavior
+   * Regression test - changing wmsUrl should change the fetched URL
    */
-  test('URL construction uses national endpoint when island-specific URL not provided', () => {
-    const wmsUrl = null;
-    const baseUrl = wmsUrl || TuvaluConfig.WMS_BASE_URL;
-    const layer = 'Hs';
-    const bbox = '176.0,-6.5,176.5,-6.0';
+  test('changing wmsUrl parameter changes the fetched URL', async () => {
+    const islandUrl = 'https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/P2_Nanumanga.nc';
+    const nationalUrl = TuvaluConfig.WMS_BASE_URL;
     
-    // Simulate URL construction from fetchLayerTimeseries
-    const url = baseUrl + `?REQUEST=GetTimeseries&LAYERS=${layer}&BBOX=${encodeURIComponent(bbox)}`;
+    // First call with island URL
+    await fetchLayerTimeseries('hs', mockData, 'Hs', islandUrl);
+    const firstFetchUrl = global.fetch.mock.calls[0][0];
     
-    expect(url).toContain('Tuvalu.nc');
-    expect(url).toContain('REQUEST=GetTimeseries');
-    expect(url).toContain(`LAYERS=${layer}`);
+    // Second call with national URL  
+    global.fetch.mockClear();
+    await fetchLayerTimeseries('hs', mockData, 'Hs', nationalUrl);
+    const secondFetchUrl = global.fetch.mock.calls[0][0];
+    
+    // The URLs should be different
+    expect(firstFetchUrl).not.toBe(secondFetchUrl);
+    expect(firstFetchUrl).toContain('P2_Nanumanga.nc');
+    expect(secondFetchUrl).toContain('Tuvalu.nc');
   });
 
   /**
-   * Test 6: Verify wmsUrl parameter is properly passed through
-   * Tests the integration between component prop and function parameter
+   * Test 6: Verify complete URL construction with all parameters
+   * Ensures the fix doesn't break other URL parameters
    */
-  test('wmsUrl prop is correctly passed to fetchLayerTimeseries', () => {
-    const componentWmsUrl = 'https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/P2_Nanumanga.nc';
+  test('fetchLayerTimeseries constructs complete URL with all parameters', async () => {
+    const islandUrl = 'https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/P2_Nanumanga.nc';
     
-    // In the actual component, this prop flows through useEffect to fetchLayerTimeseries
-    // Here we verify the prop value is what we expect
-    expect(componentWmsUrl).toBeDefined();
-    expect(componentWmsUrl).toContain('P2_Nanumanga.nc');
-    expect(typeof componentWmsUrl).toBe('string');
+    await fetchLayerTimeseries('tm02', mockData, 'Tm', islandUrl);
+    
+    const fetchedUrl = global.fetch.mock.calls[0][0];
+    
+    // Verify all required parameters are present
+    expect(fetchedUrl).toContain('P2_Nanumanga.nc');
+    expect(fetchedUrl).toContain('REQUEST=GetTimeseries');
+    expect(fetchedUrl).toContain('LAYERS=Tm');
+    expect(fetchedUrl).toContain('BBOX=');
+    expect(fetchedUrl).toContain('SRS=CRS:84');
+    expect(fetchedUrl).toContain('X=100');
+    expect(fetchedUrl).toContain('Y=100');
   });
 
   /**
-   * Test 7: Verify data structure for valid requests
-   * Ensures the fix doesn't break the data structure
+   * Test 7: Verify function returns null for invalid data
+   * Ensures error handling still works correctly
    */
-  test('data structure remains valid with wmsUrl parameter', () => {
-    expect(mockData).toHaveProperty('bbox');
-    expect(mockData).toHaveProperty('x');
-    expect(mockData).toHaveProperty('y');
-    expect(mockData).toHaveProperty('height');
-    expect(mockData).toHaveProperty('width');
+  test('fetchLayerTimeseries returns null for invalid data', async () => {
+    const islandUrl = 'https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/P2_Nanumanga.nc';
+    const invalidData = { height: 256 }; // Missing required fields
+    
+    const result = await fetchLayerTimeseries('hs', invalidData, 'Hs', islandUrl);
+    
+    // Should return null for invalid data
+    expect(result).toBeNull();
+    
+    // Should not attempt to fetch
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   /**
-   * Test 8: Verify TuvaluConfig.WMS_BASE_URL is properly mocked
-   * Ensures our test setup is correct
+   * Test 8: Verify fetch error handling
+   * Ensures errors don't break the wmsUrl logic
    */
-  test('TuvaluConfig.WMS_BASE_URL is properly configured', () => {
-    expect(TuvaluConfig.WMS_BASE_URL).toBeDefined();
-    expect(TuvaluConfig.WMS_BASE_URL).toContain('Tuvalu.nc');
-    expect(TuvaluConfig.WMS_BASE_URL).toContain('thredds/wms');
+  test('fetchLayerTimeseries handles fetch errors gracefully', async () => {
+    const islandUrl = 'https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/P2_Nanumanga.nc';
+    
+    // Mock fetch to reject
+    global.fetch.mockRejectedValueOnce(new Error('Network error'));
+    
+    const result = await fetchLayerTimeseries('hs', mockData, 'Hs', islandUrl);
+    
+    // Should return null on error
+    expect(result).toBeNull();
+    
+    // But should have attempted to fetch with correct URL
+    expect(global.fetch).toHaveBeenCalled();
+    expect(global.fetch.mock.calls[0][0]).toContain('P2_Nanumanga.nc');
   });
 });
