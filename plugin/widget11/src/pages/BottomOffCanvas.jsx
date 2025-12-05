@@ -3,6 +3,7 @@ import Offcanvas from "react-bootstrap/Offcanvas";
 import "./BottomOffCanvas.css";
 import Tabular from "./tabular.js";
 import Timeseries from "./timeseries.js";
+import TuvaluConfig from "../config/TuvaluConfig";
 
 
 // ---- Variables & config for Tuvalu (all available variables) ----
@@ -93,7 +94,7 @@ async function fetchLayerTimeseries(layer, data, serverLayerOverride, wmsUrl) {
   
   // Use provided wmsUrl if available, otherwise fallback to national-scale Tuvalu.nc
   // This ensures timeseries data matches the currently displayed island or national view
-  const baseUrl = wmsUrl || "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/Tuvalu.nc";
+  const baseUrl = wmsUrl || TuvaluConfig.WMS_BASE_URL;
   
   const url =
     baseUrl +
