@@ -142,6 +142,7 @@ const InundationControl = ({
               <option value="moderate-only">🟡 Moderate Risk Only ({stats?.moderateRisk || '~2'} points)</option>
               <option value="high-only">🔴 High Risk Only ({stats?.highRisk || '~0'} points)</option>
             </select>
+            {console.log('🎯 InundationControl stats:', stats, 'selectedAtoll:', selectedAtoll)}
             {riskFilter === 'moderate-only' && (
               <div className="inundation-warning-note">
                 ℹ️ Very few moderate risk points in current forecast
