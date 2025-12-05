@@ -298,12 +298,6 @@ const ForecastApp = ({
     return { min, max };
   };
 
-  // Unused - commented out to fix build
-  // eslint-disable-next-line no-unused-vars, react-hooks/exhaustive-deps
-  const metadataRanges = useMemo(() => {
-    return []; // Simplified - this is not currently used in widget5
-  }, []);
-  
   // Function to get fancy icons for different variable types
   const getVariableIcon = (layer) => {
     const value = layer.value?.toLowerCase() || '';

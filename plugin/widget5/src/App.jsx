@@ -10,7 +10,6 @@ import TokenError from './components/TokenError';
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorType] = useState(null); // Keep for conditional render, but never changes
 
   useEffect(() => {
     // Authentication DISABLED for widget5
@@ -94,8 +93,8 @@ function App() {
   }
 
   // Show error message if not authenticated
-  if (!isAuthenticated || errorType) {
-    return <TokenError errorType={errorType || 'invalid_token'} />;
+  if (!isAuthenticated) {
+    return <TokenError errorType={'invalid_token'} />;
   }
 
   return (
