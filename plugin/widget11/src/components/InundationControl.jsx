@@ -5,7 +5,7 @@
  * Provides toggle, atoll filtering, and statistics display
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CloudRain, Eye, EyeOff, Loader, AlertCircle } from 'lucide-react';
 import FancyIcon from './FancyIcon';
 import '../styles/InundationPoints.css';
@@ -37,28 +37,26 @@ const InundationControl = ({
     { value: 'Niulakita', label: 'Niulakita' }
   ];
   
-  // Load points when visibility changes or atoll selection changes
-  const performLoad = useCallback(() => {
-    if (!isVisible || !loadPoints) {
-      return Promise.resolve();
-    }
+  // Load points when visibility or atoll changes
+  // Risk filter is applied client-side without reloading
+  useEffect(() => {
+    if (!isVisible || !loadPoints) return;
 
+    // Only reload when atoll changes or visibility toggles on
     const options = { 
       atoll: selectedAtoll !== 'all' ? selectedAtoll : undefined,
       riskFilter
     };
 
-    return loadPoints(options);
-  }, [isVisible, loadPoints, riskFilter, selectedAtoll]);
+    // Debounce to prevent rapid reloads
+    const timeoutId = setTimeout(() => {
+      loadPoints(options).catch(err => {
+        console.error('Failed to load inundation points:', err);
+      });
+    }, 300);
 
-  useEffect(() => {
-    if (!isVisible) return;
-
-    performLoad().catch(err => {
-      // Hook already exposes error state; log for debugging only.
-      console.error('Failed to load inundation points:', err);
-    });
-  }, [isVisible, performLoad]);
+    return () => clearTimeout(timeoutId);
+  }, [isVisible, selectedAtoll, riskFilter, loadPoints]); // riskFilter triggers re-render of existing points
   
   const handleToggle = () => {
     console.log('🖱️ Inundation button clicked!', { 
@@ -142,6 +140,7 @@ const InundationControl = ({
               <option value="moderate-only">🟡 Moderate Risk Only ({stats?.moderateRisk || '~2'} points)</option>
               <option value="high-only">🔴 High Risk Only ({stats?.highRisk || '~0'} points)</option>
             </select>
+            {console.log('🎯 InundationControl stats:', stats, 'selectedAtoll:', selectedAtoll)}
             {riskFilter === 'moderate-only' && (
               <div className="inundation-warning-note">
                 ℹ️ Very few moderate risk points in current forecast
@@ -186,9 +185,15 @@ const InundationControl = ({
                 <div>{error}</div>
                 <button
                   onClick={() => {
-                    performLoad().catch(err => {
-                      console.error('Retry failed to load inundation points:', err);
-                    });
+                    if (loadPoints) {
+                      const options = { 
+                        atoll: selectedAtoll !== 'all' ? selectedAtoll : undefined,
+                        riskFilter
+                      };
+                      loadPoints(options).catch(err => {
+                        console.error('Retry failed to load inundation points:', err);
+                      });
+                    }
                   }}
                   style={{
                     marginTop: '8px',

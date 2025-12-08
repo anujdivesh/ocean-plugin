@@ -3,6 +3,7 @@ import Offcanvas from "react-bootstrap/Offcanvas";
 import "./BottomOffCanvas.css";
 import Tabular from "./tabular.js";
 import Timeseries from "./timeseries.js";
+import TuvaluConfig from "../config/TuvaluConfig";
 
 
 // ---- Variables & config for Tuvalu (all available variables) ----
@@ -62,7 +63,7 @@ function normalizeCoverageResponse(json, clientKey, serverKey) {
   return json;
 }
 
-async function fetchLayerTimeseries(layer, data, serverLayerOverride) {
+async function fetchLayerTimeseries(layer, data, serverLayerOverride, wmsUrl) {
   if (!data || !data.bbox || (data.x === undefined && data.i === undefined) || (data.y === undefined && data.j === undefined)) return null;
   
   // Strip dataset prefix if present (e.g., "tuvalu_forecast/hs" -> "hs")
@@ -90,8 +91,13 @@ async function fetchLayerTimeseries(layer, data, serverLayerOverride) {
   const y = data.y !== undefined ? data.y : data.j;
   // Normalize bbox axis order for THREDDS (expects lon,lat when SRS=CRS:84)
   const bbox = normalizeBboxToLonLat(data.bbox);
+  
+  // Use provided wmsUrl if available, otherwise fallback to TuvaluConfig.WMS_BASE_URL (national-scale)
+  // This ensures timeseries data matches the currently displayed island or national view
+  const baseUrl = wmsUrl || TuvaluConfig.WMS_BASE_URL;
+  
   const url =
-    "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/TUV/Tuvalu.nc" +
+    baseUrl +
     `?REQUEST=GetTimeseries` +
     `&LAYERS=${cleanLayer}` +
     `&QUERY_LAYERS=${cleanLayer}` +
@@ -131,7 +137,7 @@ const tabLabels = [
   { key: "timeseries", label: "Timeseries" }
 ];
 
-function BottomOffCanvas({ show, onHide, data }) {
+function BottomOffCanvas({ show, onHide, data, wmsUrl }) {
   const [height, setHeight] = useState(() => {
     if (typeof window === "undefined") return 500;
     const viewportMax = Math.max(DEFAULT_MIN_HEIGHT, window.innerHeight - 120);
@@ -227,7 +233,7 @@ function BottomOffCanvas({ show, onHide, data }) {
       for (let i = 0; i < variableDefs.length; i++) {
         const { key } = variableDefs[i];
         const serverLayer = SERVER_LAYER_MAP[key] || key;
-        out[key] = await fetchLayerTimeseries(key, data, serverLayer);
+        out[key] = await fetchLayerTimeseries(key, data, serverLayer, wmsUrl);
       }
       if (!isMounted) return;
       setPerVariableData(out);
@@ -235,7 +241,7 @@ function BottomOffCanvas({ show, onHide, data }) {
       if (Object.values(out).every(x => !x)) setFetchError("No data returned from server.");
     })();
     return () => { isMounted = false; };
-  }, [data]);
+  }, [data, wmsUrl]);
 
   return (
     <Offcanvas
@@ -378,3 +384,6 @@ function BottomOffCanvas({ show, onHide, data }) {
 }
 
 export default BottomOffCanvas;
+
+// Export for testing
+export { fetchLayerTimeseries };

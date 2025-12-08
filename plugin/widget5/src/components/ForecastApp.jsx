@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import './ForecastApp.css';
 import '../styles/MapMarker.css';
 import useMapInteraction from '../hooks/useMapInteraction';
@@ -14,142 +14,73 @@ import {
   DataInfo, 
   //StatusBar 
 } from './shared/UIComponents';
-import wmsStyleManager from '../utils/WMSStyleManager';
 import { Waves, Wind, Navigation, Activity, Info, Settings, Timer, Triangle,  BadgeInfo , CloudRain, FastForward} from 'lucide-react';
 import FancyIcon from './FancyIcon';
 import '../styles/fancyIcons.css';
 
-const EPSILON = 1e-6;
-
-// Data-driven X-SST color interpolation (matches x-Sst palette on WMS server)
+// Wave height and inundation color ramp (blue to red: 0.0 to 4.0 meters)
 const X_SST_GRADIENT_RGB = [
-  [49, 54, 149],
-  [69, 117, 180],
-  [116, 173, 209],
-  [171, 217, 233],
-  [224, 243, 248],
-  [254, 224, 144],
-  [253, 174, 97],
-  [244, 109, 67],
-  [215, 48, 39]
+  [0, 0, 128],       // 0.0m - Dark blue
+  [0, 60, 200],      // 0.5m - Blue
+  [0, 120, 255],     // 1.0m - Light blue
+  [0, 200, 220],     // 1.5m - Cyan
+  [100, 255, 100],   // 2.0m - Light green/yellow
+  [255, 255, 0],     // 2.5m - Yellow
+  [255, 180, 0],     // 3.0m - Orange
+  [255, 100, 0],     // 3.5m - Red-orange
+  [200, 0, 0]        // 4.0m - Dark red
 ];
 
-const X_SST_GRADIENT = `linear-gradient(to top, ${X_SST_GRADIENT_RGB.map(rgb => `rgb(${rgb.join(', ')})`).join(', ')})`;
+// Spectral divergent palette for mean wave period (div-Spectral from ColorBrewer)
+const SPECTRAL_GRADIENT_RGB = [
+  [158, 1, 66],      // Dark red
+  [213, 62, 79],     // Red
+  [244, 109, 67],    // Orange-red
+  [253, 174, 97],    // Orange
+  [254, 224, 139],   // Yellow-orange
+  [255, 255, 191],   // Pale yellow
+  [230, 245, 152],   // Yellow-green
+  [171, 221, 164],   // Light green
+  [102, 194, 165],   // Cyan-green
+  [50, 136, 189],    // Blue
+  [94, 79, 162]      // Purple
+];
 
-const X_SST_COLOR_STOPS = X_SST_GRADIENT_RGB.slice(0, -1).map((color, index) => ({
-  threshold: (index + 1) / (X_SST_GRADIENT_RGB.length - 1),
-  start: color,
-  end: X_SST_GRADIENT_RGB[index + 1]
-}));
-
-/**
- * Generate X-SST colors (matching inundation/wave height palette)
- * Uses data-driven approach with color stop arrays for maintainability
- */
-const generateXSstColor = (value, min, max) => {
-  const normalized = Math.max(0, Math.min(1, (value - min) / (max - min)));
-  
-  // Find the correct color stop interval
-  let prevThreshold = 0;
-  for (let i = 0; i < X_SST_COLOR_STOPS.length; i++) {
-    const stop = X_SST_COLOR_STOPS[i];
-    if (normalized <= stop.threshold || i === X_SST_COLOR_STOPS.length - 1) {
-      // Guard against division by zero when thresholds are equal
-      const range = stop.threshold - prevThreshold;
-      const t = range > 0 ? (normalized - prevThreshold) / range : 0;
-      const r = Math.round(stop.start[0] + (stop.end[0] - stop.start[0]) * t);
-      const g = Math.round(stop.start[1] + (stop.end[1] - stop.start[1]) * t);
-      const b = Math.round(stop.start[2] + (stop.end[2] - stop.start[2]) * t);
-      return `rgb(${r}, ${g}, ${b})`;
-    }
-    prevThreshold = stop.threshold;
+// Generate gradient bands for any palette
+const generateGradientBands = (paletteRGB, bands = 250) => {
+  const colors = [];
+  for (let i = 0; i < bands; i++) {
+    const normalized = i / (bands - 1);
+    const maxIndex = paletteRGB.length - 1;
+    const index = normalized * maxIndex;
+    const lowerIndex = Math.floor(index);
+    const upperIndex = Math.min(Math.ceil(index), maxIndex);
+    const fraction = index - lowerIndex;
+    
+    const lower = paletteRGB[lowerIndex];
+    const upper = paletteRGB[upperIndex];
+    
+    const r = Math.round(lower[0] + (upper[0] - lower[0]) * fraction);
+    const g = Math.round(lower[1] + (upper[1] - lower[1]) * fraction);
+    const b = Math.round(lower[2] + (upper[2] - lower[2]) * fraction);
+    
+    colors.push(`rgb(${r}, ${g}, ${b})`);
   }
-  // Fallback (should not reach here)
-  const lastColor = X_SST_GRADIENT_RGB[X_SST_GRADIENT_RGB.length - 1];
-  return `rgb(${lastColor.join(', ')})`;
+  return colors;
 };
 
-/**
- * Determines the appropriate icon for a layer based on its properties
- * Matches the icons used in the variable buttons for consistency
- * @param {Object} layer - The layer object
- * @returns {Object} Icon component and color
- */
-const getLayerIcon = (layer) => {
-  if (!layer) return { icon: Waves, color: '#00bcd4' };
-  
-  const layerName = layer.value?.toLowerCase() || '';
-  const layerLabel = layer.label?.toLowerCase() || '';
-  
-  // Inundation layers
-  if (layerName.includes('inun') || layerLabel.includes('inundation')) {
-    return { icon: CloudRain, color: '#2196f3' }; // Blue (matches button)
-  }
-  
-  // Wave height layers
-  if (layerName.includes('hs') || layerLabel.includes('wave height')) {
-    return { icon: Waves, color: '#00bcd4' }; // Cyan (matches button)
-  }
-  
-  // Mean wave period (tm02)
-  if (layerName.includes('tm02') || (layerLabel.includes('mean') && layerLabel.includes('period'))) {
-    return { icon: Timer, color: '#ff9800' }; // Orange (matches button)
-  }
-  
-  // Peak wave period (tpeak)
-  if (layerName.includes('tpeak') || (layerLabel.includes('peak') && layerLabel.includes('period'))) {
-    return { icon: Triangle, color: '#4caf50' }; // Green (matches button)
-  }
-  
-  // Wave direction layers
-  if (layerName.includes('dirm') || layerLabel.includes('direction')) {
-    return { icon: Navigation, color: '#9c27b0' }; // Purple (matches button)
-  }
-  
-  // Wind layers
-  if (layerName.includes('wind') || layerLabel.includes('wind')) {
-    return { icon: Wind, color: '#795548' }; // Brown (matches button)
-  }
-  
-  // Default to activity icon
-  return { icon: Activity, color: '#607d8b' }; // Grey for unknown
-};
+// Generate 250-band gradients
+const X_SST_250_BANDS = generateGradientBands(X_SST_GRADIENT_RGB, 250);
+const SPECTRAL_250_BANDS = generateGradientBands(SPECTRAL_GRADIENT_RGB, 250);
 
+// Create gradient with explicit percentage stops for better color distribution
+const X_SST_GRADIENT = `linear-gradient(to top, ${X_SST_250_BANDS.map((color, i) => 
+  `${color} ${(i / (X_SST_250_BANDS.length - 1) * 100).toFixed(2)}%`
+).join(', ')})`;
 
-const MEAN_PERIOD_METADATA = [
-  { min: 0, max: 6, label: 'Wind Waves', value: '0–6 s', description: 'Locally generated wind waves with short periods', color: '#D53E4F' },
-  { min: 6, max: 10, label: 'Young Swell', value: '6–10 s', description: 'Developing swell with moderate periods', color: '#FDAE61' },
-  { min: 10, max: 14, label: 'Mature Swell', value: '10–14 s', description: 'Well-developed swell waves', color: '#ABDDA4' },
-  { min: 14, max: 18, label: 'Long Swell', value: '14–18 s', description: 'Long-period swell from distant sources', color: '#66C2A5' },
-  { min: 18, max: 20, label: 'Ultra-Long Swell', value: '18–20 s', description: 'Extreme long-period waves', color: '#5E4FA2' }
-];
-
-const PEAK_PERIOD_METADATA = [
-  { min: 9, max: 10, label: 'Short Peak', value: '9–10 s', description: 'Short-period spectral peaks', color: '#46039F' },
-  { min: 10, max: 11.5, label: 'Moderate Peak', value: '10–11.5 s', description: 'Moderate-period spectral concentration', color: '#7201A8' },
-  { min: 11.5, max: 13, label: 'Long Peak', value: '11.5–13 s', description: 'Long-period dominant waves', color: '#CC4778' },
-  { min: 13, max: 14, label: 'Extended Peak', value: '13–14 s', description: 'Extended long-period peaks', color: '#F0F921' }
-];
-
-const INUNDATION_METADATA = [
-  { min: -0.05, max: 0, label: 'Dry Ground', value: '≤ 0.0 m', description: 'No surface water present', color: '#00008f' },
-  { min: 0, max: 0.15, label: 'Minor Ponding', value: '0–0.15 m', description: 'Shallow nuisance water on low-lying surfaces', color: '#0000ff' },
-  { min: 0.15, max: 0.4, label: 'Shallow Flooding', value: '0.15–0.40 m', description: 'Curb-deep flooding across roads and properties', color: '#00ffff' },
-  { min: 0.4, max: 0.8, label: 'Significant Flooding', value: '0.40–0.80 m', description: 'Knee-to-waist depth inundation impacting structures', color: '#00ff00' },
-  { min: 0.8, max: 1.2, label: 'Deep Flooding', value: '0.80–1.20 m', description: 'Substantial inundation with unsafe currents', color: '#ffff00' },
-  { min: 1.2, max: 1.6, label: 'Extreme Flooding', value: '≥ 1.20 m', description: 'Life-threatening inundation requiring evacuation', color: '#ff0000' }
-];
-
-const DIRECTION_METADATA = [
-  { value: 'N (↑)', label: 'North', description: 'Flowing toward the north', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'NE (↗)', label: 'Northeast', description: 'Flowing toward the northeast', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'E (→)', label: 'East', description: 'Flowing toward the east', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'SE (↘)', label: 'Southeast', description: 'Flowing toward the southeast', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'S (↓)', label: 'South', description: 'Flowing toward the south', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'SW (↙)', label: 'Southwest', description: 'Flowing toward the southwest', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'W (←)', label: 'West', description: 'Flowing toward the west', color: 'rgba(255, 255, 255, 0.3)' },
-  { value: 'NW (↖)', label: 'Northwest', description: 'Flowing toward the northwest', color: 'rgba(255, 255, 255, 0.3)' }
-];
+const SPECTRAL_GRADIENT = `linear-gradient(to top, ${SPECTRAL_250_BANDS.map((color, i) => 
+  `${color} ${(i / (SPECTRAL_250_BANDS.length - 1) * 100).toFixed(2)}%`
+).join(', ')})`;
 
 const ForecastApp = ({ 
   WAVE_FORECAST_LAYERS,
@@ -175,8 +106,6 @@ const ForecastApp = ({
   currentSliderDateStr,
   minIndex
 }) => {
-  const [metadataVisible, setMetadataVisible] = useState(false); // Metadata panel state
-  const [detailedMetadataVisible, setDetailedMetadataVisible] = useState(false); // Detailed metadata state
   const lastZoomedLayerRef = useRef(null);
   const selectedLayer = useMemo(() => {
     return ALL_LAYERS.find(l => l.value === selectedWaveForecast) || null;
@@ -195,6 +124,10 @@ const ForecastApp = ({
     }
 
     const map = mapInstance.current;
+    // Check if this is a static inundation layer that requires higher zoom level
+    const layer = ALL_LAYERS.find(l => l.value === layerValue);
+    const isInundation = layer?.isStatic || false;
+    
     map.fitBounds(
       [
         layerBounds.southWest,
@@ -202,13 +135,13 @@ const ForecastApp = ({
       ],
       {
         padding: [20, 20],
-        maxZoom: 14,
+        maxZoom: isInundation ? 17 : 14, // Higher zoom for inundation layers (increased from 16 to 17)
         animate: true
       }
     );
     lastZoomedLayerRef.current = layerValue;
-    console.log('🏝️ Zoomed to layer bounds for:', layerValue);
-  }, [mapInstance]);
+    console.log('🏝️ Zoomed to layer bounds for:', layerValue, isInundation ? '(Inundation - higher zoom)' : '');
+  }, [mapInstance, ALL_LAYERS]);
 
   useEffect(() => {
     zoomToLayerBounds(selectedWaveForecast);
@@ -244,12 +177,13 @@ const ForecastApp = ({
     
     if (varLower.includes('tm02')) {
       // DYNAMIC DATA RANGE - Updates with actual mean period data
+      // Using Spectral divergent palette to match WMS layer (div-Spectral)
       const minVal = colorRange?.min ?? 0;
       const maxVal = colorRange?.max ?? 20;
       const ticks = [minVal, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal].map(v => Number(v.toFixed(1)));
       
       return {
-        gradient: 'linear-gradient(to top, rgb(0, 0, 255), rgb(0, 255, 255), rgb(0, 255, 0), rgb(255, 255, 0), rgb(255, 0, 0))',
+        gradient: SPECTRAL_GRADIENT,
         min: minVal,
         max: maxVal,
         units: 's',
@@ -363,202 +297,6 @@ const ForecastApp = ({
     }
     return { min, max };
   };
-
-  const metadataRanges = useMemo(() => {
-    if (!selectedLegendLayer) {
-      return [];
-    }
-
-    const variable = selectedLegendLayer.value?.toLowerCase() || '';
-
-    if (variable.includes('hs') || variable.includes('wave_height')) {
-      // Parse actual WMS data range
-      const colorRange = parseColorRange(selectedLegendLayer.colorscalerange);
-      const dataMin = colorRange?.min ?? 0.17; // Cook Islands minimum
-      const dataMax = colorRange?.max ?? 1.66; // Cook Islands maximum
-      
-      const effectiveMax = Number.isFinite(selectedLegendLayer.activeBeaufortMax)
-        ? selectedLegendLayer.activeBeaufortMax
-        : dataMax;
-      
-      // Create appropriate number of color stops based on data range
-      // Uses generateXSstColor from top-level scope
-      const numStops = Math.max(2, Math.min(5, Math.ceil(effectiveMax * 2))); // Adaptive number of stops
-      const colorStops = [];
-      
-      for (let i = 0; i < numStops; i++) {
-        const value = dataMin + (effectiveMax - dataMin) * (i / (numStops - 1));
-        colorStops.push({
-          value: value,
-          color: generateXSstColor(value, dataMin, effectiveMax)
-        });
-      }
-
-      const ranges = [];
-      let previous = 0;
-
-      for (const stop of colorStops) {
-        if (!Number.isFinite(stop.value)) {
-          continue;
-        }
-        const upper = Math.min(stop.value, effectiveMax);
-        if (upper <= previous + EPSILON) {
-          continue;
-        }
-
-        ranges.push({
-          min: previous,
-          max: upper,
-          label: wmsStyleManager.getWaveHeightLabel(upper),
-          value: `${wmsStyleManager.formatWaveHeightValue(previous)}–${wmsStyleManager.formatWaveHeightValue(upper)} m`,
-          description: wmsStyleManager.getWaveHeightDescription(previous, upper, { 
-            dataMax: effectiveMax,
-            location: selectedLegendLayer.value?.includes('cook') ? 'Cook Islands' : 'Global'
-          }),
-          color: stop.color
-        });
-
-        previous = upper;
-
-        if (stop.value >= effectiveMax - EPSILON) {
-          break;
-        }
-      }
-
-      if (effectiveMax > previous + EPSILON) {
-        const lastColor = colorStops[colorStops.length - 1]?.color || '#ffffff';
-        ranges.push({
-          min: previous,
-          max: effectiveMax,
-          label: wmsStyleManager.getWaveHeightLabel(effectiveMax),
-          value: `${wmsStyleManager.formatWaveHeightValue(previous)}–${wmsStyleManager.formatWaveHeightValue(effectiveMax)} m`,
-          description: wmsStyleManager.getWaveHeightDescription(previous, effectiveMax, { 
-            dataMax: effectiveMax,
-            location: selectedLegendLayer.value?.includes('cook') ? 'Cook Islands' : 'Global'
-          }),
-          color: lastColor
-        });
-      }
-
-      return ranges;
-    }
-
-    if (variable.includes('tm02')) {
-      return MEAN_PERIOD_METADATA.map(range => ({ ...range }));
-    }
-
-    if (variable.includes('tpeak')) {
-      return PEAK_PERIOD_METADATA.map(range => ({ ...range }));
-    }
-
-    if (variable.includes('inun') || variable.includes('flood') || variable.includes('h_max')) {
-      return INUNDATION_METADATA.map(range => ({ ...range }));
-    }
-
-    if (variable.includes('dirm') || variable.includes('direction')) {
-      return DIRECTION_METADATA.map(range => ({ ...range }));
-    }
-
-    return [];
-  }, [selectedLegendLayer]);
-  
-  // Consolidated professional marine metadata (eliminates redundancy)
-  const getLayerMetadata = (layer) => {
-    if (!layer) return { 
-      provider: 'THREDDS Data Server', 
-      model: 'Generic Model',
-      resolution: '1km Grid', 
-      schedule: 'Hourly', 
-      units: 'm',
-      confidence: 'Medium',
-      validTime: '48h Forecast',
-      wmoCode: 'Standard',
-      coverage: 'Regional'
-    };
-    
-    const variable = layer.value?.toLowerCase() || '';
-    const currentTime = new Date();
-    const validUntil = new Date(currentTime.getTime() + (48 * 60 * 60 * 1000));
-    const validTime = `${currentTime.toISOString().slice(11, 16)}Z–${validUntil.toISOString().slice(11, 16)}Z`;
-    
-    if (variable.includes('hs') || variable.includes('wave_height')) {
-      return {
-        provider: 'Pacific Community (SPC)',
-        model: 'SCHISM + WaveWatch III',
-        resolution: 'Unstructured Mesh (~500m)',
-        schedule: '4x Daily (00/06/12/18 UTC)',
-        units: 'm (Significant Wave Height)',
-        confidence: 'High',
-        validTime: validTime,
-        wmoCode: 'WMO-SeaState',
-        coverage: 'Cook Islands',
-        period: 'Height Only - See Wave Period Layer',
-        direction: 'Composite Layer Available'
-      };
-    }
-    
-    if (variable.includes('tm02') || variable.includes('tpeak') || variable.includes('period')) {
-      return {
-        provider: 'Pacific Community (SPC)',
-        model: 'WaveWatch III Global',
-        resolution: '1km Structured Grid',
-        schedule: '4x Daily (00/06/12/18 UTC)',
-        units: 's (Wave Period)',
-        confidence: 'High',
-        validTime: validTime,
-        wmoCode: 'WMO-WavePeriod',
-        coverage: 'Cook Islands',
-        height: 'See Wave Height Layer',
-        steepness: 'Auto-calculated from H/T²'
-      };
-    }
-    
-    if (variable.includes('dirm') || variable.includes('direction')) {
-      return {
-        provider: 'Pacific Community (SPC)',
-        model: 'WaveWatch III Directional',
-        resolution: '1km Vector Field',
-        schedule: '4x Daily (00/06/12/18 UTC)',
-        units: '° (Degrees from North)',
-        confidence: 'Medium',
-        validTime: validTime,
-        wmoCode: 'WMO-WaveDirection',
-        coverage: 'Cook Islands',
-        convention: 'Meteorological (Coming From)',
-        precision: '±15° Directional Sectors'
-      };
-    }
-    
-    if (variable.includes('inundation') || variable.includes('flooding')) {
-      return {
-        provider: 'Pacific Community (SPC)',
-        model: 'Coastal Inundation Model',
-        resolution: '100m High-Resolution',
-        schedule: 'Real-time + 6h Forecast',
-        units: 'm (Above MSL)',
-        confidence: 'Medium',
-        validTime: 'Nowcast + 6h',
-        wmoCode: 'WMO-CoastalInundation',
-        coverage: 'Rarotonga Coastline',
-        components: 'Tide + Storm Surge + Wave Setup',
-        datum: 'Mean Sea Level (MSL)'
-      };
-    }
-    
-    return { 
-      provider: 'THREDDS Data Server', 
-      model: 'Generic Model',
-      resolution: '1km Grid', 
-      schedule: 'Hourly Updates', 
-      units: 'm',
-      confidence: 'Medium',
-      validTime: validTime,
-      wmoCode: 'Standard',
-      coverage: 'Regional'
-    };
-  };
-  
-  const layerMetadata = getLayerMetadata(selectedLayer);
 
   // Function to get fancy icons for different variable types
   const getVariableIcon = (layer) => {
@@ -682,142 +420,7 @@ const ForecastApp = ({
               })()}
             </div>
           )}
-          
-          {/* Metadata Panel - Bottom Left */}
-          <button
-            type="button"
-            className="metadata-toggle"
-            onClick={() => setMetadataVisible(prev => !prev)}
-            title={metadataVisible ? "Hide Range Info" : "Show Range Info"}
-            aria-label={metadataVisible ? "Hide Range Info" : "Show Range Info"}
-          >
-            <FancyIcon 
-              icon={BadgeInfo} 
-              animationType="pulse" 
-              size={16} 
-              color="#00bcd4" 
-            />
-            {metadataVisible ? " Hide" : " Info"}
-          </button>
-          
-          {metadataVisible && selectedLayer && metadataRanges.length > 0 && (
-            <div className="range-metadata-panel">
-              <h4>
-                <FancyIcon 
-                  icon={getLayerIcon(selectedLayer).icon} 
-                  animationType="wave" 
-                  size={18} 
-                  color={getLayerIcon(selectedLayer).color} 
-                />
-                {selectedLayer.label || 'Wave Data'}
-                <span className="wmo-code">({layerMetadata.wmoCode})</span>
-              </h4>
-              
-              {metadataRanges.map((range, index) => (
-                <div
-                  key={`${range.label}-${index}`}
-                  className="range-item"
-                >
-                  <div className="range-item-left">
-                    <div
-                      className="range-color"
-                      style={{ backgroundColor: range.color || 'rgba(255, 255, 255, 0.2)' }}
-                    ></div>
-                    <div className="range-content">
-                      <span className="range-label">{range.label}</span>
-                      <span className="range-description">{range.description}</span>
-                    </div>
-                  </div>
-                  <span className="range-value">{range.value}</span>
-                </div>
-              ))}
-              
-              {/* Essential Info Summary */}
-              <div className="metadata-section">
-                <div className="metadata-summary">
-                  <div className="metadata-item">
-                    <span className="metadata-label">Source:</span>
-                    <span className="metadata-value">{layerMetadata.provider}</span>
-                  </div>
-                  <div className="metadata-item">
-                    <span className="metadata-label">Coverage:</span>
-                    <span className="metadata-value">{layerMetadata.coverage}</span>
-                  </div>
-                  <div className="metadata-item">
-                    <span className="metadata-label">Units:</span>
-                    <span className="metadata-value">{layerMetadata.units}</span>
-                  </div>
-                </div>
-                
-                <button 
-                  className="metadata-details-toggle"
-                  onClick={() => setDetailedMetadataVisible(prev => !prev)}
-                  title={detailedMetadataVisible ? "Hide Technical Details" : "Show Technical Details"}
-                  aria-label={detailedMetadataVisible ? "Hide Technical Details" : "Show Technical Details"}
-                >
-                  <FancyIcon 
-                    icon={Settings} 
-                    animationType="spin" 
-                    size={14} 
-                    color="#9c27b0" 
-                  />
-                  {detailedMetadataVisible ? " Less" : " Details"}
-                </button>
-                
-                {detailedMetadataVisible && (
-                  <div className="metadata-details">
-                    <div className="metadata-item">
-                      <span className="metadata-label">Model:</span>
-                      <span className="metadata-value">{layerMetadata.model}</span>
-                    </div>
-                    <div className="metadata-item">
-                      <span className="metadata-label">Resolution:</span>
-                      <span className="metadata-value">{layerMetadata.resolution}</span>
-                    </div>
-                    <div className="metadata-item">
-                      <span className="metadata-label">Schedule:</span>
-                      <span className="metadata-value">{layerMetadata.schedule}</span>
-                    </div>
-                    <div className="metadata-item">
-                      <span className="metadata-label">Valid Time:</span>
-                      <span className="metadata-value">{layerMetadata.validTime}</span>
-                    </div>
-                    <div className="metadata-item">
-                      <span className="metadata-label">WMO Standard:</span>
-                      <span className="metadata-value">
-                        {layerMetadata.wmoCode}
-                        <span className={`confidence-indicator confidence-${layerMetadata.confidence.toLowerCase()}`}></span>
-                      </span>
-                    </div>
-                    {layerMetadata.period && (
-                      <div className="metadata-item">
-                        <span className="metadata-label">Wave Period:</span>
-                        <span className="metadata-value">{layerMetadata.period}</span>
-                      </div>
-                    )}
-                    {layerMetadata.direction && (
-                      <div className="metadata-item">
-                        <span className="metadata-label">Direction:</span>
-                        <span className="metadata-value">{layerMetadata.direction}</span>
-                      </div>
-                    )}
-                    {layerMetadata.components && (
-                      <div className="metadata-item">
-                        <span className="metadata-label">Components:</span>
-                        <span className="metadata-value">{layerMetadata.components}</span>
-                      </div>
-                    )}
-                    {layerMetadata.datum && (
-                      <div className="metadata-item">
-                        <span className="metadata-label">Datum:</span>
-                        <span className="metadata-value">{layerMetadata.datum}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+
         </div>
 
         <div className="controls-panel">
@@ -855,6 +458,7 @@ const ForecastApp = ({
             playIcon={<FancyIcon icon={Navigation} animationType="bounce" size={16} color="#4caf50" />}
             pauseIcon={<FancyIcon icon={Activity} animationType="pulse" size={16} color="#ff5722" />}
             minIndex={minIndex}
+            disabled={selectedLayer?.isStatic || false}
           />
           
           {/* ✅ Warm-up Period Notice */}

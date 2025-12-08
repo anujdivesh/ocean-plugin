@@ -13,13 +13,13 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorType, setErrorType] = useState(null);
   const [widgetData, setWidgetData] = useState(null);
-  const [validCountries, setValidCountries] = useState(['COK']); // Cook Islands by default
+  const [validCountries, setValidCountries] = useState(['TUV']); // Tuvalu by default
 
   useEffect(() => {
-    // Authentication enabled for widget5
     const initializeApp = async () => {
-      console.log('Initializing app with token and country validation...');
+      console.log('Initializing app WITH token validation (authentication ENABLED)...');
       initConsoleErrorSuppressor();
+      
       const token = extractTokenFromURL('token');
 
       if (!token) {
@@ -92,8 +92,8 @@ function App() {
   }
 
   // Show error message if not authenticated
-  if (!isAuthenticated || errorType) {
-    return <TokenError errorType={errorType || 'invalid_token'} />;
+  if (!isAuthenticated) {
+    return <TokenError errorType={errorType} />;
   }
 
   return (
@@ -111,8 +111,7 @@ function App() {
       }}>
         <Header />
         <Routes>
-          {/* Pass validated widget data and countries */}
-          <Route path="/" element={<Home widgetData={widgetData} validCountries={validCountries} />} />
+          <Route path="/" element={<Home />} />
           {/* <Route path="/link1" element={<Link1 />} />
           <Route path="/link2" element={<Link2 />} />
           <Route path="/link3" element={<Link3 />} /> */}

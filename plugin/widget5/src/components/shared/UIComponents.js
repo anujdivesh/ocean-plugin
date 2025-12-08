@@ -58,6 +58,19 @@ export const VariableButtons = ({
 
 /**
  * Time Control Section
+ * @param {number} sliderIndex - Current time slider position
+ * @param {number} totalSteps - Total number of forecast steps
+ * @param {Date} currentSliderDate - Current date/time for the slider
+ * @param {boolean} isPlaying - Whether forecast animation is playing
+ * @param {Object} capTime - Capabilities time object
+ * @param {Function} onSliderChange - Handler for slider changes
+ * @param {Function} onPlayToggle - Handler for play/pause button
+ * @param {Function} formatDateTime - Function to format date/time
+ * @param {number} stepHours - Hours per step (default: 1)
+ * @param {React.ReactNode} playIcon - Icon for play button
+ * @param {React.ReactNode} pauseIcon - Icon for pause button
+ * @param {number} minIndex - Minimum slider index (default: 0)
+ * @param {boolean} disabled - Whether to disable time controls for static layers (default: false)
  */
 export const TimeControl = ({
   sliderIndex,
@@ -71,7 +84,8 @@ export const TimeControl = ({
   stepHours = 1,
   playIcon = '▶️',
   pauseIcon = '⏸️',
-  minIndex = 0
+  minIndex = 0,
+  disabled = false
 }) => (
   <div className="time-control">
     <div className="forecast-info">
@@ -89,7 +103,7 @@ export const TimeControl = ({
         max={totalSteps}
         value={sliderIndex}
         onChange={(e) => onSliderChange(e.target.value)}
-        disabled={capTime.loading}
+        disabled={capTime.loading || disabled}
       />
       
       <div className="playback-controls">
@@ -97,7 +111,7 @@ export const TimeControl = ({
           type="button"
           className="play-btn"
           onClick={onPlayToggle}
-          disabled={capTime.loading}
+          disabled={capTime.loading || disabled}
           aria-label={isPlaying ? 'Pause forecast animation' : 'Play forecast animation'}
         >
           <span>{isPlaying ? <>{pauseIcon} Pause</> : <>{playIcon} Play</>}</span>
@@ -108,6 +122,20 @@ export const TimeControl = ({
     <div className="forecast-info">
       <div>Forecast Length: <strong>{totalSteps + 1} hours</strong></div>
     </div>
+    {disabled && (
+      <div style={{ 
+        marginTop: '0.5rem', 
+        padding: '0.5rem', 
+        background: 'rgba(255, 152, 0, 0.1)', 
+        border: '1px solid rgba(255, 152, 0, 0.3)',
+        borderRadius: '4px',
+        fontSize: '0.85rem',
+        color: '#ffb74d',
+        textAlign: 'center'
+      }}>
+        Time controls disabled for static layers
+      </div>
+    )}
   </div>
 );
 
@@ -139,20 +167,18 @@ export const OpacityControl = ({
 
 /**
  * Data Information Display
+ * Simplified to show only Source and Update fields.
+ * (Removed model, resolution, and coverage as part of UI simplification)
+ * @param {string} source - Data source name
+ * @param {string} updateFrequency - How often the data updates
  */
 export const DataInfo = ({ 
   source, 
-  model, 
-  resolution, 
-  updateFrequency, 
-  coverage 
+  updateFrequency
 }) => (
   <div className="data-info">
     <div><strong>Source:</strong> {source}</div>
-    <div><strong>Model:</strong> {model}</div>
-    <div><strong>Resolution:</strong> {resolution}</div>
     <div><strong>Update:</strong> {updateFrequency}</div>
-    <div><strong>Coverage:</strong> {coverage}</div>
   </div>
 );
 

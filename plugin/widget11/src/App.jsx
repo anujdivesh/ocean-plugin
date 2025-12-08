@@ -20,7 +20,7 @@ function App() {
 
   useEffect(() => {
     const initializeApp = async () => {
-      logger.info('APP', 'Initializing Tuvalu Multi-Island Widget (authentication enabled)...');
+      logger.info('APP', 'Initializing Tuvalu Multi-Island Widget (authentication ENABLED)...');
       initConsoleErrorSuppressor();
 
       const token = extractTokenFromURL('token');
