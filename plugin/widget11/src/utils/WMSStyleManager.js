@@ -37,16 +37,18 @@ export const WMSStylePresets = {
     abovemaxcolor: 'extend',
     interpolation: 'linear', // Linear interpolation like your QGIS example
     mode: 'continuous', // Continuous classification
-    description: 'x-Sst (jet) palette for wave height - matching CK model style',
-    // x-Sst color mapping (heights in meters) - Jet-style rainbow
+    description: 'Blue to red color ramp for wave height (0.0 to 4.0 meters)',
+    // Blue to red color mapping (heights in meters)
     colorMapping: {
-      0: 'rgb(0, 0, 143)',     // Calm seas (0–1 m) - Deep blue
-      1: 'rgb(0, 0, 255)',     // Slight (1–2 m) - Blue  
-      2: 'rgb(0, 255, 255)',   // Moderate (2–4 m) - Cyan
-      4: 'rgb(0, 255, 0)',     // Rough (4–6 m) - Green
-      6: 'rgb(255, 255, 0)',   // Very Rough (6–9 m) - Yellow
-      9: 'rgb(255, 127, 0)',   // High (9–14 m) - Orange
-      14: 'rgb(255, 0, 0)'     // Extreme (14+ m) - Red
+      0.0: 'rgb(0, 0, 128)',       // 0.0m - Dark blue
+      0.5: 'rgb(0, 60, 200)',      // 0.5m - Blue
+      1.0: 'rgb(0, 120, 255)',     // 1.0m - Light blue
+      1.5: 'rgb(0, 200, 220)',     // 1.5m - Cyan
+      2.0: 'rgb(100, 255, 100)',   // 2.0m - Light green/yellow
+      2.5: 'rgb(255, 255, 0)',     // 2.5m - Yellow
+      3.0: 'rgb(255, 180, 0)',     // 3.0m - Orange
+      3.5: 'rgb(255, 100, 0)',     // 3.5m - Red-orange
+      4.0: 'rgb(200, 0, 0)'        // 4.0m - Dark red
     }
   },
   

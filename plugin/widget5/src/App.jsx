@@ -6,62 +6,61 @@ import Header from './components/header';
 import './utils/NotificationManager'; // Initialize notification system
 import { initConsoleErrorSuppressor } from './utils/ConsoleErrorSuppressor';
 import TokenError from './components/TokenError';
+import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorType, setErrorType] = useState(null);
+  const [widgetData, setWidgetData] = useState(null);
+  const [validCountries, setValidCountries] = useState(['TUV']); // Tuvalu by default
 
   useEffect(() => {
-    // Authentication DISABLED for widget5
     const initializeApp = async () => {
-      console.log('Initializing app WITHOUT token validation...');
+      console.log('Initializing app WITH token validation (authentication ENABLED)...');
       initConsoleErrorSuppressor();
       
-      // Skip authentication - directly set authenticated state
-      setIsAuthenticated(true);
-      setIsLoading(false);
-      
-      // const token = extractTokenFromURL('token');
+      const token = extractTokenFromURL('token');
 
-      // if (!token) {
-      //   console.log('No token found in URL');
-      //   setErrorType('no_token');
-      //   setIsLoading(false);
-      //   return;
-      // }
+      if (!token) {
+        console.log('No token found in URL');
+        setErrorType('no_token');
+        setIsLoading(false);
+        return;
+      }
 
-      // try {
-      //   const validationResult = await validateTokenOnLoad(
-      //     () => {
-      //       console.log('Authentication successful - app can load');
-      //       setIsAuthenticated(true);
-      //     },
-      //     () => {
-      //       console.log('Authentication failed - app will not load');
-      //       setIsAuthenticated(false);
-      //       setErrorType('invalid_token');
-      //     },
-      //     () => {
-      //       console.log('Country validation failed - page should not load');
-      //       setIsAuthenticated(false);
-      //       setErrorType('invalid_country');
-      //     }
-      //   );
+      try {
+        const validationResult = await validateTokenOnLoad(
+          () => {
+            console.log('Authentication successful - app can load');
+            setIsAuthenticated(true);
+          },
+          () => {
+            console.log('Authentication failed - app will not load');
+            setIsAuthenticated(false);
+            setErrorType('invalid_token');
+          },
+          () => {
+            console.log('Country validation failed - page should not load');
+            setIsAuthenticated(false);
+            setErrorType('invalid_country');
+          }
+        );
 
-      //   if (validationResult.widgetData) {
-      //     setWidgetData(validationResult.widgetData);
-      //   }
-      //   if (validationResult.validCountries) {
-      //     setValidCountries(validationResult.validCountries);
-      //   }
+        if (validationResult.widgetData) {
+          setWidgetData(validationResult.widgetData);
+        }
+        if (validationResult.validCountries) {
+          setValidCountries(validationResult.validCountries);
+        }
 
-      //   console.log('Validation result:', validationResult);
-      //   setIsLoading(false);
-      // } catch (error) {
-      //   console.error('Network error during validation:', error);
-      //   setErrorType('network_error');
-      //   setIsLoading(false);
-      // }
+        console.log('Validation result:', validationResult);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Network error during validation:', error);
+        setErrorType('network_error');
+        setIsLoading(false);
+      }
     };
 
     initializeApp();
@@ -94,7 +93,7 @@ function App() {
 
   // Show error message if not authenticated
   if (!isAuthenticated) {
-    return <TokenError errorType={'invalid_token'} />;
+    return <TokenError errorType={errorType} />;
   }
 
   return (

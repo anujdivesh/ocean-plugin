@@ -41,7 +41,12 @@ class InundationPointsService {
     // Cache for loaded data
     this.cachedData = null;
     this.lastFetchTime = null;
-    this.cacheExpiry = 5 * 60 * 1000; // 5 minutes
+    this.cacheExpiry = 10 * 60 * 1000; // 10 minutes (data updates hourly, longer cache is safe)
+    
+    // Performance optimization
+    this.batchSize = 150; // Render points in batches for better responsiveness (increased from 100)
+    this.pendingFetch = null; // Request deduplication
+    this.renderingInProgress = false; // Track if rendering is in progress
     
     this.log('InundationPointsService initialized');
     
@@ -253,12 +258,20 @@ class InundationPointsService {
       return this.cachedData;
     }
     
-    try {
-      this.log(`Fetching inundation data from: ${this.dataUrl}`);
-      
-      // Add timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    // Request deduplication - if fetch is in progress, return same promise
+    if (this.pendingFetch) {
+      this.log('Fetch already in progress, reusing pending request');
+      return this.pendingFetch;
+    }
+    
+    // Create fetch promise and store it
+    this.pendingFetch = (async () => {
+      try {
+        this.log(`Fetching inundation data from: ${this.dataUrl}`);
+        
+        // Add timeout to prevent hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
       try {
         const response = await fetch(this.dataUrl, {
@@ -322,6 +335,7 @@ class InundationPointsService {
         this.lastFetchTime = now;
         
         this.log(`✅ Successfully fetched ${data.length} inundation points`);
+        this.pendingFetch = null; // Clear pending fetch
         return data;
         
       } catch (fetchError) {
@@ -334,22 +348,26 @@ class InundationPointsService {
         throw fetchError;
       }
       
-    } catch (error) {
-      console.error('❌ Failed to fetch inundation data:', error);
-      console.error('   URL:', this.dataUrl);
-      console.error('   Error details:', error.message);
-      
-      // Provide more helpful error messages
-      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-        throw new Error('Network error: Unable to reach THREDDS server. Check your internet connection.');
-      } else if (error.message.includes('CORS')) {
-        throw new Error('CORS error: Server does not allow cross-origin requests.');
-      } else if (error.message.includes('HTTP') || error.message.includes('Server error') || error.message.includes('timeout')) {
-        throw error; // Already has a good message
+      } catch (error) {
+        this.pendingFetch = null; // Clear pending fetch on error
+        console.error('❌ Failed to fetch inundation data:', error);
+        console.error('   URL:', this.dataUrl);
+        console.error('   Error details:', error.message);
+        
+        // Provide more helpful error messages
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          throw new Error('Network error: Unable to reach THREDDS server. Check your internet connection.');
+        } else if (error.message.includes('CORS')) {
+          throw new Error('CORS error: Server does not allow cross-origin requests.');
+        } else if (error.message.includes('HTTP') || error.message.includes('Server error') || error.message.includes('timeout')) {
+          throw error; // Already has a good message
+        }
+        
+        throw error;
       }
-      
-      throw error;
-    }
+    })();
+    
+    return this.pendingFetch;
   }
   
   /**
@@ -624,25 +642,21 @@ class InundationPointsService {
         return;
       }
       
-      // Filter by atoll if specified
+      // Filter by atoll if specified (optimized with regex caching)
       let filteredData = data;
       if (options.atoll) {
+        const searchAtoll = options.atoll.toLowerCase();
+        const atollPattern = new RegExp(`\\/${options.atoll}_t_\\d+_forecast\\.png`, 'i');
+        
         filteredData = data.filter(point => {
-          // Try multiple fields for location/atoll info
-          const location = (point.location || point.atoll || point.station_name || '').toLowerCase();
-          
-          // Also check image URL which contains atoll name like "Nanumaga_t_3_forecast.png"
-          let imageAtoll = '';
-          if (point.primary_image_url) {
-            // eslint-disable-next-line no-useless-escape
-            const match = point.primary_image_url.match(/\/([^\/]+)_t_\d+_forecast\.png/);
-            if (match) {
-              imageAtoll = match[1].toLowerCase();
-            }
+          // Fast path: check image URL first (most reliable)
+          if (point.primary_image_url && atollPattern.test(point.primary_image_url)) {
+            return true;
           }
           
-          const searchAtoll = options.atoll.toLowerCase();
-          return location.includes(searchAtoll) || imageAtoll === searchAtoll;
+          // Fallback: check location fields
+          const location = (point.location || point.atoll || point.station_name || '').toLowerCase();
+          return location.includes(searchAtoll);
         });
         this.log(`Filtered to ${filteredData.length} points for atoll: ${options.atoll}`);
       }
@@ -676,98 +690,117 @@ class InundationPointsService {
       }
       
       // Group points by coordinates to avoid multiple overlapping markers
-      const pointsByCoords = {};
+      // Use Map for faster lookups with ~2900 points
+      const pointsByCoords = new Map();
       filteredData.forEach(point => {
         if (!point.latitude || !point.longitude) {
-          this.log('Skipping point without coordinates:', point);
-          return;
+          return; // Skip invalid points silently for performance
         }
         
         const lat = parseFloat(point.latitude);
         const lng = parseFloat(point.longitude);
         
         if (isNaN(lat) || isNaN(lng)) {
-          this.log('Invalid coordinates:', point);
-          return;
+          return; // Skip invalid coordinates
         }
         
         // Round coordinates to 6 decimal places to group nearby points
         const coordKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
         
-        if (!pointsByCoords[coordKey]) {
-          pointsByCoords[coordKey] = {
+        if (!pointsByCoords.has(coordKey)) {
+          pointsByCoords.set(coordKey, {
             lat,
             lng,
             points: []
-          };
+          });
         }
         
-        pointsByCoords[coordKey].points.push(point);
+        pointsByCoords.get(coordKey).points.push(point);
       });
       
-      // Add markers for each unique coordinate
+      // Add markers in batches for better UI responsiveness
       let pointsAdded = 0;
-      Object.values(pointsByCoords).forEach(coordGroup => {
-        const { lat, lng, points } = coordGroup;
-        
-        // Use the highest risk level among all points at this location
-        let highestRiskLevel = this.riskLevels.low;
-        points.forEach(point => {
-          const hazardLevel = point.coastal_inundation_hazard_level || point.hazard_level || point.risk_level;
-          const inundationValue = point.max_inundation || point.inundation || 0;
-          const riskLevel = this.getRiskLevel(hazardLevel || inundationValue);
-          
-          // Compare risk levels (high > medium > low)
-          if (riskLevel.label === 'High Risk') {
-            highestRiskLevel = riskLevel;
-          } else if (riskLevel.label === 'Medium Risk' && highestRiskLevel.label !== 'High Risk') {
-            highestRiskLevel = riskLevel;
-          }
-        });
-        
-        // Create marker with the highest risk level
-        const firstPoint = points[0];
-        // Extract location name - avoid showing "unknown"
-        let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name;
-        
-        // Filter out "unknown" strings (case insensitive)
-        if (locationName && locationName.toLowerCase() === 'unknown') {
-          locationName = null;
-        }
-        
-        // Try to extract from URL if no valid name
-        if (!locationName) {
-          locationName = this.extractAtollNameFromUrl(firstPoint.primary_image_url);
-        }
-        
-        // Final fallback
-        if (!locationName) {
-          locationName = 'Inundation Forecast Point';
-        }
-        
-        const marker = L.marker([lat, lng], {
-          icon: this.createPointIcon(highestRiskLevel),
-          title: points.length > 1 ? `${locationName} (${points.length} points)` : locationName,
-          riseOnHover: true
-        });
-        
-        // Create popup with all points at this location
-        const popupContent = points.length > 1 
-          ? this.createMultiPointPopupContent(points)
-          : this.createPopupContent(firstPoint);
-          
-        // Increased maxWidth to 650 to accommodate larger images
-        marker.bindPopup(popupContent, {
-          maxWidth: 650,
-          className: 'inundation-popup-container'
-        });
-        
-        // Add to layer group
-        marker.addTo(this.pointsLayerGroup);
-        pointsAdded++;
-      });
+      const coordGroups = Array.from(pointsByCoords.values());
       
-      this.log(`Added ${pointsAdded} markers for ${filteredData.length} inundation points (${Object.keys(pointsByCoords).length} unique locations)`);
+      // Progressive rendering function
+      const addBatch = (startIndex) => {
+        return new Promise((resolve) => {
+          requestAnimationFrame(() => {
+            const endIndex = Math.min(startIndex + this.batchSize, coordGroups.length);
+            
+            for (let i = startIndex; i < endIndex; i++) {
+              const coordGroup = coordGroups[i];
+              const { lat, lng, points } = coordGroup;
+              
+              // Use the highest risk level among all points at this location
+              let highestRiskLevel = this.riskLevels.low;
+              points.forEach(point => {
+                const hazardLevel = point.coastal_inundation_hazard_level || point.hazard_level || point.risk_level;
+                const inundationValue = point.max_inundation || point.inundation || 0;
+                const riskLevel = this.getRiskLevel(hazardLevel || inundationValue);
+                
+                // Compare risk levels (high > medium > low)
+                if (riskLevel.label === 'High Risk') {
+                  highestRiskLevel = riskLevel;
+                } else if (riskLevel.label === 'Medium Risk' && highestRiskLevel.label !== 'High Risk') {
+                  highestRiskLevel = riskLevel;
+                }
+              });
+              
+              // Create marker with the highest risk level
+              const firstPoint = points[0];
+              // Extract location name - avoid showing "unknown"
+              let locationName = firstPoint.station_name || firstPoint.location || firstPoint.name;
+              
+              // Filter out "unknown" strings (case insensitive)
+              if (locationName && locationName.toLowerCase() === 'unknown') {
+                locationName = null;
+              }
+              
+              // Try to extract from URL if no valid name
+              if (!locationName) {
+                locationName = this.extractAtollNameFromUrl(firstPoint.primary_image_url);
+              }
+              
+              // Final fallback
+              if (!locationName) {
+                locationName = 'Inundation Forecast Point';
+              }
+              
+              const marker = L.marker([lat, lng], {
+                icon: this.createPointIcon(highestRiskLevel),
+                title: points.length > 1 ? `${locationName} (${points.length} points)` : locationName,
+                riseOnHover: true
+              });
+              
+              // Create popup with all points at this location
+              const popupContent = points.length > 1 
+                ? this.createMultiPointPopupContent(points)
+                : this.createPopupContent(firstPoint);
+                
+              // Increased maxWidth to 650 to accommodate larger images
+              marker.bindPopup(popupContent, {
+                maxWidth: 650,
+                className: 'inundation-popup-container'
+              });
+              
+              // Add to layer group
+              marker.addTo(this.pointsLayerGroup);
+              pointsAdded++;
+            }
+            
+            resolve(endIndex);
+          });
+        });
+      };
+      
+      // Add markers in batches
+      for (let i = 0; i < coordGroups.length; i += this.batchSize) {
+        await addBatch(i);
+      }
+      
+      this.log(`Added ${pointsAdded} markers for ${filteredData.length} inundation points (${pointsByCoords.size} unique locations)`);
+
       
       // Calculate risk level statistics from ALL data (before filtering)
       const riskStats = {

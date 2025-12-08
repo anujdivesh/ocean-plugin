@@ -18,17 +18,17 @@ import { Waves, Wind, Navigation, Activity, Info, Settings, Timer, Triangle,  Ba
 import FancyIcon from './FancyIcon';
 import '../styles/fancyIcons.css';
 
-// X-SST gradient for wave height visualization (matches WMS x-Sst palette)
+// Wave height and inundation color ramp (blue to red: 0.0 to 4.0 meters)
 const X_SST_GRADIENT_RGB = [
-  [49, 54, 149],
-  [69, 117, 180],
-  [116, 173, 209],
-  [171, 217, 233],
-  [224, 243, 248],
-  [254, 224, 144],
-  [253, 174, 97],
-  [244, 109, 67],
-  [215, 48, 39]
+  [0, 0, 128],       // 0.0m - Dark blue
+  [0, 60, 200],      // 0.5m - Blue
+  [0, 120, 255],     // 1.0m - Light blue
+  [0, 200, 220],     // 1.5m - Cyan
+  [100, 255, 100],   // 2.0m - Light green/yellow
+  [255, 255, 0],     // 2.5m - Yellow
+  [255, 180, 0],     // 3.0m - Orange
+  [255, 100, 0],     // 3.5m - Red-orange
+  [200, 0, 0]        // 4.0m - Dark red
 ];
 
 // Spectral divergent palette for mean wave period (div-Spectral from ColorBrewer)
