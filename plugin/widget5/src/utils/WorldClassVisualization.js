@@ -69,7 +69,6 @@ class WorldClassVisualization {
       significantWaveHeight: {
         // Multi-threshold configuration for different sea states using X-SST palette
         calm: {
-          range: "0,4",            // Updated max to 4 meters for Cook Islands
           range: "0,4",      // Updated to 4m max as requested
           palette: "x-Sst",        // UPDATED: X-SST palette (matches inundation)
           bands: 250,
@@ -77,7 +76,6 @@ class WorldClassVisualization {
           description: "Cook Islands wave conditions"
         },
         moderate: {
-          range: "0,4",            // Updated max to 4 meters for Cook Islands
           range: "0,4",      // Updated to 4m max as requested
           palette: "x-Sst",        // UPDATED: X-SST palette (matches inundation)
           bands: 250,
@@ -85,7 +83,6 @@ class WorldClassVisualization {
           description: "Cook Islands wave height - current conditions"
         },
         rough: {
-          range: "0,4",            // Updated max to 4 meters for Cook Islands
           range: "0,4",      // Updated to 4m max as requested
           palette: "x-Sst",        // UPDATED: X-SST palette (matches inundation)
           bands: 250,

@@ -18,17 +18,17 @@ import { Waves, Wind, Navigation, Activity, Info, Settings, Timer, Triangle,  Ba
 import FancyIcon from './FancyIcon';
 import '../styles/fancyIcons.css';
 
-// X-SST gradient for wave height visualization (matches WMS x-Sst palette)
+// Wave height and inundation color ramp (blue to red: 0.0 to 4.0 meters)
 const X_SST_GRADIENT_RGB = [
-  [49, 54, 149],
-  [69, 117, 180],
-  [116, 173, 209],
-  [171, 217, 233],
-  [224, 243, 248],
-  [254, 224, 144],
-  [253, 174, 97],
-  [244, 109, 67],
-  [215, 48, 39]
+  [0, 0, 128],       // 0.0m - Dark blue
+  [0, 60, 200],      // 0.5m - Blue
+  [0, 120, 255],     // 1.0m - Light blue
+  [0, 200, 220],     // 1.5m - Cyan
+  [100, 255, 100],   // 2.0m - Light green/yellow
+  [255, 255, 0],     // 2.5m - Yellow
+  [255, 180, 0],     // 3.0m - Orange
+  [255, 100, 0],     // 3.5m - Red-orange
+  [200, 0, 0]        // 4.0m - Dark red
 ];
 
 // Spectral divergent palette for mean wave period (div-Spectral from ColorBrewer)
@@ -135,7 +135,7 @@ const ForecastApp = ({
       ],
       {
         padding: [20, 20],
-        maxZoom: isInundation ? 16 : 14, // Higher zoom for inundation layers
+        maxZoom: isInundation ? 17 : 14, // Higher zoom for inundation layers (increased from 16 to 17)
         animate: true
       }
     );
@@ -297,202 +297,6 @@ const ForecastApp = ({
     }
     return { min, max };
   };
-
-  const metadataRanges = useMemo(() => {
-    if (!selectedLegendLayer) {
-      return [];
-    }
-
-    const variable = selectedLegendLayer.value?.toLowerCase() || '';
-
-    if (variable.includes('hs') || variable.includes('wave_height')) {
-      // Parse actual WMS data range
-      const colorRange = parseColorRange(selectedLegendLayer.colorscalerange);
-      const dataMin = colorRange?.min ?? 0; // Cook Islands minimum
-      const dataMax = colorRange?.max ?? 4; // Cook Islands maximum
-      
-      const effectiveMax = Number.isFinite(selectedLegendLayer.activeBeaufortMax)
-        ? selectedLegendLayer.activeBeaufortMax
-        : dataMax;
-      
-      // Create appropriate number of color stops based on data range
-      // Uses generateXSstColor from top-level scope
-      const numStops = Math.max(2, Math.min(5, Math.ceil(effectiveMax * 2))); // Adaptive number of stops
-      const colorStops = [];
-      
-      for (let i = 0; i < numStops; i++) {
-        const value = dataMin + (effectiveMax - dataMin) * (i / (numStops - 1));
-        colorStops.push({
-          value: value,
-          color: generateXSstColor(value, dataMin, effectiveMax)
-        });
-      }
-
-      const ranges = [];
-      let previous = 0;
-
-      for (const stop of colorStops) {
-        if (!Number.isFinite(stop.value)) {
-          continue;
-        }
-        const upper = Math.min(stop.value, effectiveMax);
-        if (upper <= previous + EPSILON) {
-          continue;
-        }
-
-        ranges.push({
-          min: previous,
-          max: upper,
-          label: wmsStyleManager.getWaveHeightLabel(upper),
-          value: `${wmsStyleManager.formatWaveHeightValue(previous)}–${wmsStyleManager.formatWaveHeightValue(upper)} m`,
-          description: wmsStyleManager.getWaveHeightDescription(previous, upper, { 
-            dataMax: effectiveMax,
-            location: selectedLegendLayer.value?.includes('cook') ? 'Cook Islands' : 'Global'
-          }),
-          color: stop.color
-        });
-
-        previous = upper;
-
-        if (stop.value >= effectiveMax - EPSILON) {
-          break;
-        }
-      }
-
-      if (effectiveMax > previous + EPSILON) {
-        const lastColor = colorStops[colorStops.length - 1]?.color || '#ffffff';
-        ranges.push({
-          min: previous,
-          max: effectiveMax,
-          label: wmsStyleManager.getWaveHeightLabel(effectiveMax),
-          value: `${wmsStyleManager.formatWaveHeightValue(previous)}–${wmsStyleManager.formatWaveHeightValue(effectiveMax)} m`,
-          description: wmsStyleManager.getWaveHeightDescription(previous, effectiveMax, { 
-            dataMax: effectiveMax,
-            location: selectedLegendLayer.value?.includes('cook') ? 'Cook Islands' : 'Global'
-          }),
-          color: lastColor
-        });
-      }
-
-      return ranges;
-    }
-
-    if (variable.includes('tm02')) {
-      return MEAN_PERIOD_METADATA.map(range => ({ ...range }));
-    }
-
-    if (variable.includes('tpeak')) {
-      return PEAK_PERIOD_METADATA.map(range => ({ ...range }));
-    }
-
-    if (variable.includes('inun') || variable.includes('flood') || variable.includes('h_max')) {
-      return INUNDATION_METADATA.map(range => ({ ...range }));
-    }
-
-    if (variable.includes('dirm') || variable.includes('direction')) {
-      return DIRECTION_METADATA.map(range => ({ ...range }));
-    }
-
-    return [];
-  }, [selectedLegendLayer]);
-  
-  // Consolidated professional marine metadata (eliminates redundancy)
-  const getLayerMetadata = (layer) => {
-    if (!layer) return { 
-      provider: 'THREDDS Data Server', 
-      model: 'Generic Model',
-      resolution: '1km Grid', 
-      schedule: 'Hourly', 
-      units: 'm',
-      confidence: 'Medium',
-      validTime: '48h Forecast',
-      wmoCode: 'Standard',
-      coverage: 'Regional'
-    };
-    
-    const variable = layer.value?.toLowerCase() || '';
-    const currentTime = new Date();
-    const validUntil = new Date(currentTime.getTime() + (48 * 60 * 60 * 1000));
-    const validTime = `${currentTime.toISOString().slice(11, 16)}Z–${validUntil.toISOString().slice(11, 16)}Z`;
-    
-    if (variable.includes('hs') || variable.includes('wave_height')) {
-      return {
-        provider: 'Pacific Community (SPC)',
-        model: 'SCHISM + WaveWatch III',
-        resolution: 'Unstructured Mesh (~500m)',
-        schedule: '4x Daily (00/06/12/18 UTC)',
-        units: 'm (Significant Wave Height)',
-        confidence: 'High',
-        validTime: validTime,
-        wmoCode: 'WMO-SeaState',
-        coverage: 'Cook Islands',
-        period: 'Height Only - See Wave Period Layer',
-        direction: 'Composite Layer Available'
-      };
-    }
-    
-    if (variable.includes('tm02') || variable.includes('tpeak') || variable.includes('period')) {
-      return {
-        provider: 'Pacific Community (SPC)',
-        model: 'WaveWatch III Global',
-        resolution: '1km Structured Grid',
-        schedule: '4x Daily (00/06/12/18 UTC)',
-        units: 's (Wave Period)',
-        confidence: 'High',
-        validTime: validTime,
-        wmoCode: 'WMO-WavePeriod',
-        coverage: 'Cook Islands',
-        height: 'See Wave Height Layer',
-        steepness: 'Auto-calculated from H/T²'
-      };
-    }
-    
-    if (variable.includes('dirm') || variable.includes('direction')) {
-      return {
-        provider: 'Pacific Community (SPC)',
-        model: 'WaveWatch III Directional',
-        resolution: '1km Vector Field',
-        schedule: '4x Daily (00/06/12/18 UTC)',
-        units: '° (Degrees from North)',
-        confidence: 'Medium',
-        validTime: validTime,
-        wmoCode: 'WMO-WaveDirection',
-        coverage: 'Cook Islands',
-        convention: 'Meteorological (Coming From)',
-        precision: '±15° Directional Sectors'
-      };
-    }
-    
-    if (variable.includes('inundation') || variable.includes('flooding')) {
-      return {
-        provider: 'Pacific Community (SPC)',
-        model: 'Coastal Inundation Model',
-        resolution: '100m High-Resolution',
-        schedule: 'Real-time + 6h Forecast',
-        units: 'm (Above MSL)',
-        confidence: 'Medium',
-        validTime: 'Nowcast + 6h',
-        wmoCode: 'WMO-CoastalInundation',
-        coverage: 'Rarotonga Coastline',
-        components: 'Tide + Storm Surge + Wave Setup',
-        datum: 'Mean Sea Level (MSL)'
-      };
-    }
-    
-    return { 
-      provider: 'THREDDS Data Server', 
-      model: 'Generic Model',
-      resolution: '1km Grid', 
-      schedule: 'Hourly Updates', 
-      units: 'm',
-      confidence: 'Medium',
-      validTime: validTime,
-      wmoCode: 'Standard',
-      coverage: 'Regional'
-    };
-  };
-  
-  const layerMetadata = getLayerMetadata(selectedLayer);
 
   // Function to get fancy icons for different variable types
   const getVariableIcon = (layer) => {
