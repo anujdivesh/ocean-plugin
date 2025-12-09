@@ -8,18 +8,13 @@ import TokenError from './components/TokenError';
 import { validateTokenOnLoad, extractTokenFromURL } from './utils/tokenValidator';
 
 function App() {
-  // Authentication temporarily disabled for testing
-  // const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Temporarily set to true
-  // const [isLoading, setIsLoading] = useState(true);
-  const [isLoading, setIsLoading] = useState(false); // Temporarily set to false
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [errorType, setErrorType] = useState(null);
   const [widgetData, setWidgetData] = useState(null);
   const [validCountries, setValidCountries] = useState([]);
 
   useEffect(() => {
-    // Authentication temporarily disabled
-    /* 
     const initializeApp = async () => {
       console.log('Initializing app with token and country validation...');
       
@@ -70,8 +65,6 @@ function App() {
     };
 
     initializeApp();
-    */
-    console.log('Authentication temporarily disabled - app loads without token');
   }, []);
 
   // Show loading state while validating token

@@ -21,6 +21,7 @@ export const WMSColorPalettes = {
   FERRET: 'default-scalar/ferret',
   OCCAM: 'default-scalar/occam',
   YLGNBU: 'default-scalar/seq-YlGnBu',
+  X_SST: 'default-scalar/x-Sst',
   
   // Default fallback
   DEFAULT: 'default-scalar/default'
@@ -28,22 +29,22 @@ export const WMSColorPalettes = {
 
 export const WMSStylePresets = {
   WAVE_HEIGHT: {
-    style: WMSColorPalettes.VIRIDIS,
-    numcolorbands: 256, // Continuous like QGIS (max resolution)
+    style: 'default-scalar/x-Sst',
+    numcolorbands: 250, // Continuous like QGIS (max resolution)
     belowmincolor: 'transparent',
     abovemaxcolor: 'extend',
     interpolation: 'linear', // Linear interpolation like your QGIS example
     mode: 'continuous', // Continuous classification
-    description: 'Viridis palette - perceptually uniform ramp for wave height',
-    // Rounded, perceptually uniform color mapping (heights in meters) - Bright Viridis
+    description: 'X-SST palette - matches inundation color story for Cook Islands',
+    // Rounded, perceptually uniform color mapping (heights in meters) - X-SST palette
     colorMapping: {
-      0: 'rgb(13, 8, 135)',    // Calm seas (0–1 m) - Deep blue
-      1: 'rgb(70, 3, 159)',    // Slight (1–2 m) - Purple  
-      2: 'rgb(114, 1, 168)',   // Moderate (2–4 m) - Blue-purple
-      4: 'rgb(31, 158, 137)',  // Rough (4–6 m) - Teal
-      6: 'rgb(53, 183, 121)',  // Very Rough (6–9 m) - Green
-      9: 'rgb(181, 222, 43)',  // High (9–14 m) - Yellow-green
-      14: 'rgb(240, 249, 33)'  // Extreme (14+ m) - Bright yellow
+      0: 'rgb(49, 54, 149)',    // Calm seas (0–1 m) - Deep blue
+      1: 'rgb(69, 117, 180)',   // Slight (1–2 m) - Blue
+      2: 'rgb(116, 173, 209)',  // Moderate (2–4 m) - Cyan
+      4: 'rgb(171, 217, 233)',  // Rough (4–6 m) - Aqua
+      6: 'rgb(254, 224, 144)',  // Very Rough (6–9 m) - Yellow
+      9: 'rgb(253, 174, 97)',   // High (9–14 m) - Orange
+      14: 'rgb(215, 48, 39)'    // Extreme (14+ m) - Red
     }
   },
   
@@ -64,11 +65,11 @@ export const WMSStylePresets = {
   },
   
   INUNDATION: {
-    style: WMSColorPalettes.BLUES,
-    numcolorbands: 220,
+    style: 'default-scalar/x-Sst',
+    numcolorbands: 250,
     belowmincolor: 'transparent',
     abovemaxcolor: 'extend',
-    description: 'Sequential blues palette for inundation depth visualisation'
+    description: 'X-SST palette for inundation depth visualisation'
   },
   
   WAVE_ENERGY: {
