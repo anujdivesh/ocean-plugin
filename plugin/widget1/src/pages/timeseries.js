@@ -49,13 +49,11 @@ function extractCoverageTimeseries(json, variable) {
 function Timeseries({ perVariableData }) {
   const [chartData, setChartData] = useState(null);
   const [error, setError] = useState("");
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Check for dark mode
   useEffect(() => {
     const checkTheme = () => {
-      const isDark = document.body.classList.contains('dark-mode');
-      setIsDarkMode(isDark);
+      document.body.classList.contains('dark-mode');
     };
 
     checkTheme();

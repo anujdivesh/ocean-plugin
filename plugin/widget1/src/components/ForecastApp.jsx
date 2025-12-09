@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import './ForecastApp.css';
 import '../styles/MapMarker.css';
 import useMapInteraction from '../hooks/useMapInteraction';
@@ -20,50 +20,34 @@ import '../styles/fancyIcons.css';
 
 const EPSILON = 1e-6;
 
-/**
- * Determines the appropriate icon for a layer based on its properties
- * Matches the icons used in the variable buttons for consistency
- * @param {Object} layer - The layer object
- * @returns {Object} Icon component and color
- */
-const getLayerIcon = (layer) => {
-  if (!layer) return { icon: Waves, color: '#00bcd4' };
+// Rainbow wave height color palette (Blue → Cyan → Green → Yellow → Orange → Red)
+const WAVE_HEIGHT_GRADIENT_RGB = [
+  [0, 0, 143],      // Dark blue (0.0m)
+  [0, 0, 255],      // Blue
+  [0, 255, 255],    // Cyan (1.0m)
+  [0, 255, 0],      // Green (2.0m)
+  [255, 255, 0],    // Yellow (3.0m)
+  [255, 127, 0],    // Orange
+  [255, 0, 0]       // Red (4.0m+)
+];
+
+// Helper to interpolate wave height colors
+const interpolateWaveHeight = (normalized) => {
+  const t = Math.max(0, Math.min(1, normalized));
+  const maxIndex = WAVE_HEIGHT_GRADIENT_RGB.length - 1;
+  const index = t * maxIndex;
+  const lowerIndex = Math.floor(index);
+  const upperIndex = Math.min(Math.ceil(index), maxIndex);
+  const fraction = index - lowerIndex;
   
-  const layerName = layer.value?.toLowerCase() || '';
-  const layerLabel = layer.label?.toLowerCase() || '';
+  const lower = WAVE_HEIGHT_GRADIENT_RGB[lowerIndex];
+  const upper = WAVE_HEIGHT_GRADIENT_RGB[upperIndex];
   
-  // Inundation layers
-  if (layerName.includes('inun') || layerLabel.includes('inundation')) {
-    return { icon: CloudRain, color: '#2196f3' }; // Blue (matches button)
-  }
+  const r = Math.round(lower[0] + (upper[0] - lower[0]) * fraction);
+  const g = Math.round(lower[1] + (upper[1] - lower[1]) * fraction);
+  const b = Math.round(lower[2] + (upper[2] - lower[2]) * fraction);
   
-  // Wave height layers
-  if (layerName.includes('hs') || layerLabel.includes('wave height')) {
-    return { icon: Waves, color: '#00bcd4' }; // Cyan (matches button)
-  }
-  
-  // Mean wave period (tm02)
-  if (layerName.includes('tm02') || (layerLabel.includes('mean') && layerLabel.includes('period'))) {
-    return { icon: Timer, color: '#ff9800' }; // Orange (matches button)
-  }
-  
-  // Peak wave period (tpeak)
-  if (layerName.includes('tpeak') || (layerLabel.includes('peak') && layerLabel.includes('period'))) {
-    return { icon: Triangle, color: '#4caf50' }; // Green (matches button)
-  }
-  
-  // Wave direction layers
-  if (layerName.includes('dirm') || layerLabel.includes('direction')) {
-    return { icon: Navigation, color: '#9c27b0' }; // Purple (matches button)
-  }
-  
-  // Wind layers
-  if (layerName.includes('wind') || layerLabel.includes('wind')) {
-    return { icon: Wind, color: '#795548' }; // Brown (matches button)
-  }
-  
-  // Default to activity icon
-  return { icon: Activity, color: '#607d8b' }; // Grey for unknown
+  return `rgb(${r}, ${g}, ${b})`;
 };
 
 
@@ -160,12 +144,6 @@ const ForecastApp = ({
   setShowBottomCanvas,
   minIndex
 }) => {
-  const [metadataVisible, setMetadataVisible] = useState(false); // Metadata panel state
-  const [detailedMetadataVisible, setDetailedMetadataVisible] = useState(false); // Detailed metadata state
-  const selectedLayer = useMemo(() => {
-    return ALL_LAYERS.find(l => l.value === selectedWaveForecast) || null;
-  }, [ALL_LAYERS, selectedWaveForecast]);
-
   // Dynamic marine legend configuration - RESPONDS TO ACTUAL DATA
   const getLegendConfig = (variable, layerData) => {
     const varLower = variable.toLowerCase();
@@ -175,7 +153,7 @@ const ForecastApp = ({
     const dynamicMax = layerData?.activeBeaufortMax;
     
     if (varLower.includes('hs')) {
-      // DYNAMIC DATA RANGE - Updates with actual wave height data
+      // DYNAMIC DATA RANGE - Updates with actual wave height data (Rainbow palette)
       const minVal = colorRange?.min ?? 0;
       const maxVal = Number.isFinite(dynamicMax) ? dynamicMax : (colorRange?.max ?? 4);
       const tickCount = 5;
@@ -183,8 +161,26 @@ const ForecastApp = ({
         Number((minVal + (maxVal - minVal) * i / (tickCount - 1)).toFixed(1))
       );
       
+      // Generate smooth rainbow gradient using interpolation
+      const valueSpan = Math.max(maxVal - minVal, 0);
+      const gradientStopCount = Math.max(2, Math.min(128, Math.ceil(Math.max(valueSpan, 1) * 32)));
+      
+      const waveHeightGradient = [];
+      for (let i = 0; i < gradientStopCount; i++) {
+        const normalized = i / (gradientStopCount - 1);
+        waveHeightGradient.push(interpolateWaveHeight(normalized));
+      }
+      
+      const denominator = Math.max(waveHeightGradient.length - 1, 1);
+      const gradientStops = waveHeightGradient.map((color, index) => {
+        const percent = (index / denominator) * 100;
+        return `${color} ${percent.toFixed(2)}%`;
+      });
+      
+      const gradient = `linear-gradient(to top, ${gradientStops.join(', ')})`;
+      
       return {
-        gradient: 'linear-gradient(to top, rgb(68, 1, 84), rgb(59, 82, 139), rgb(33, 145, 140), rgb(94, 201, 98), rgb(253, 231, 37))',
+        gradient,
         min: minVal,
         max: maxVal,
         units: 'm',
@@ -226,32 +222,68 @@ const ForecastApp = ({
     }
     
     if (varLower.includes('inun')) {
-      // TRULY DYNAMIC DATA RANGE - Updates with actual inundation data
+      // TRULY DYNAMIC DATA RANGE - Updates with actual inundation data (Rainbow palette like wave height)
       if (!colorRange) {
         console.warn('No color range data available for inundation layer, using default');
         // Use default range to allow rendering while data loads
-        const minVal = -0.05;
-        const maxVal = 3.0;
-        const ticks = [minVal, 0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal].map(v => Number(v.toFixed(2)));
+        const minVal = 0;
+        const maxVal = 9.0;
+        const ticks = [0, 2.25, 4.5, 6.75, 9];
+        
+        // Generate smooth rainbow gradient using interpolation (same as wave height)
+        const valueSpan = Math.max(maxVal - minVal, 0);
+        const gradientStopCount = Math.max(2, Math.min(128, Math.ceil(Math.max(valueSpan, 1) * 32)));
+        
+        const inundationGradient = [];
+        for (let i = 0; i < gradientStopCount; i++) {
+          const normalized = i / (gradientStopCount - 1);
+          inundationGradient.push(interpolateWaveHeight(normalized));
+        }
+        
+        const denominator = Math.max(inundationGradient.length - 1, 1);
+        const gradientStops = inundationGradient.map((color, index) => {
+          const percent = (index / denominator) * 100;
+          return `${color} ${percent.toFixed(2)}%`;
+        });
+        
+        const gradient = `linear-gradient(to top, ${gradientStops.join(', ')})`;
         
         return {
-          gradient: 'linear-gradient(to top, rgb(247, 251, 255), rgb(222, 235, 247), rgb(198, 219, 239), rgb(158, 202, 225), rgb(107, 174, 214), rgb(66, 146, 198), rgb(33, 113, 181), rgb(8, 81, 156), rgb(8, 48, 107))',
+          gradient,
           min: minVal,
           max: maxVal,
           units: 'm',
-          ticks: ticks.slice(0, 5)
+          ticks: ticks
         };
       }
       const minVal = colorRange.min;
       const maxVal = colorRange.max;
-      const ticks = [minVal, 0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal].map(v => Number(v.toFixed(2)));
+      const ticks = [0, 2.25, 4.5, 6.75, 9];
+      
+      // Generate smooth rainbow gradient using interpolation (same as wave height)
+      const valueSpan = Math.max(maxVal - minVal, 0);
+      const gradientStopCount = Math.max(2, Math.min(128, Math.ceil(Math.max(valueSpan, 1) * 32)));
+      
+      const inundationGradient = [];
+      for (let i = 0; i < gradientStopCount; i++) {
+        const normalized = i / (gradientStopCount - 1);
+        inundationGradient.push(interpolateWaveHeight(normalized));
+      }
+      
+      const denominator = Math.max(inundationGradient.length - 1, 1);
+      const gradientStops = inundationGradient.map((color, index) => {
+        const percent = (index / denominator) * 100;
+        return `${color} ${percent.toFixed(2)}%`;
+      });
+      
+      const gradient = `linear-gradient(to top, ${gradientStops.join(', ')})`;
       
       return {
-        gradient: 'linear-gradient(to top, rgb(247, 251, 255), rgb(222, 235, 247), rgb(198, 219, 239), rgb(158, 202, 225), rgb(107, 174, 214), rgb(66, 146, 198), rgb(33, 113, 181), rgb(8, 81, 156), rgb(8, 48, 107))',
+        gradient,
         min: minVal,
         max: maxVal,
         units: 'm',
-        ticks: ticks.slice(0, 5) // Limit to 5 ticks
+        ticks: ticks
       };
     }
     
@@ -329,6 +361,7 @@ const ForecastApp = ({
     return { min, max };
   };
 
+  // eslint-disable-next-line no-unused-vars
   const metadataRanges = useMemo(() => {
     if (!selectedLegendLayer) {
       return [];
@@ -447,104 +480,6 @@ const ForecastApp = ({
 
     return [];
   }, [selectedLegendLayer]);
-  
-  // Consolidated professional marine metadata (eliminates redundancy)
-  const getLayerMetadata = (layer) => {
-    if (!layer) return { 
-      provider: 'THREDDS Data Server', 
-      model: 'Generic Model',
-      resolution: '1km Grid', 
-      schedule: 'Hourly', 
-      units: 'm',
-      confidence: 'Medium',
-      validTime: '48h Forecast',
-      wmoCode: 'Standard',
-      coverage: 'Regional'
-    };
-    
-    const variable = layer.value?.toLowerCase() || '';
-    const currentTime = new Date();
-    const validUntil = new Date(currentTime.getTime() + (48 * 60 * 60 * 1000));
-    const validTime = `${currentTime.toISOString().slice(11, 16)}Z–${validUntil.toISOString().slice(11, 16)}Z`;
-    
-    if (variable.includes('hs') || variable.includes('wave_height')) {
-      return {
-        provider: 'Pacific Community (SPC)',
-        model: 'SCHISM + WaveWatch III',
-        resolution: 'Unstructured Mesh (~500m)',
-        schedule: '4x Daily (00/06/12/18 UTC)',
-        units: 'm (Significant Wave Height)',
-        confidence: 'High',
-        validTime: validTime,
-        wmoCode: 'WMO-SeaState',
-        coverage: 'Niue',
-        period: 'Height Only - See Wave Period Layer',
-        direction: 'Composite Layer Available'
-      };
-    }
-    
-    if (variable.includes('tm02') || variable.includes('tpeak') || variable.includes('period')) {
-      return {
-        provider: 'Pacific Community (SPC)',
-        model: 'WaveWatch III Global',
-        resolution: '1km Structured Grid',
-        schedule: '4x Daily (00/06/12/18 UTC)',
-        units: 's (Wave Period)',
-        confidence: 'High',
-        validTime: validTime,
-        wmoCode: 'WMO-WavePeriod',
-        coverage: 'Niue',
-        height: 'See Wave Height Layer',
-        steepness: 'Auto-calculated from H/T²'
-      };
-    }
-    
-    if (variable.includes('dirm') || variable.includes('direction')) {
-      return {
-        provider: 'Pacific Community (SPC)',
-        model: 'WaveWatch III Directional',
-        resolution: '1km Vector Field',
-        schedule: '4x Daily (00/06/12/18 UTC)',
-        units: '° (Degrees from North)',
-        confidence: 'Medium',
-        validTime: validTime,
-        wmoCode: 'WMO-WaveDirection',
-        coverage: 'Niue',
-        convention: 'Meteorological (Coming From)',
-        precision: '±15° Directional Sectors'
-      };
-    }
-    
-    if (variable.includes('inundation') || variable.includes('flooding')) {
-      return {
-        provider: 'Pacific Community (SPC)',
-        model: 'Coastal Inundation Model',
-        resolution: '100m High-Resolution',
-        schedule: 'Real-time + 6h Forecast',
-        units: 'm (Above MSL)',
-        confidence: 'Medium',
-        validTime: 'Nowcast + 6h',
-        wmoCode: 'WMO-CoastalInundation',
-        coverage: 'Rarotonga Coastline',
-        components: 'Tide + Storm Surge + Wave Setup',
-        datum: 'Mean Sea Level (MSL)'
-      };
-    }
-    
-    return { 
-      provider: 'THREDDS Data Server', 
-      model: 'Generic Model',
-      resolution: '1km Grid', 
-      schedule: 'Hourly Updates', 
-      units: 'm',
-      confidence: 'Medium',
-      validTime: validTime,
-      wmoCode: 'Standard',
-      coverage: 'Regional'
-    };
-  };
-  
-  const layerMetadata = getLayerMetadata(selectedLayer);
 
   // Function to get fancy icons for different variable types
   const getVariableIcon = (layer) => {
@@ -674,7 +609,7 @@ const ForecastApp = ({
           )}
           
           {/* Metadata Panel - Bottom Left */}
-          <button
+          {/* <button
             type="button"
             className="metadata-toggle"
             onClick={() => setMetadataVisible(prev => !prev)}
@@ -688,9 +623,9 @@ const ForecastApp = ({
               color="#00bcd4" 
             />
             {metadataVisible ? " Hide" : " Info"}
-          </button>
+          </button> */}
           
-          {metadataVisible && selectedLayer && metadataRanges.length > 0 && (
+          {/* {metadataVisible && selectedLayer && metadataRanges.length > 0 && (
             <div className="range-metadata-panel">
               <h4>
                 <FancyIcon 
@@ -722,7 +657,7 @@ const ForecastApp = ({
                 </div>
               ))}
               
-              {/* Essential Info Summary */}
+              {/* Essential Info Summary *_/}
               <div className="metadata-section">
                 <div className="metadata-summary">
                   <div className="metadata-item">
@@ -807,98 +742,94 @@ const ForecastApp = ({
                 )}
               </div>
             </div>
-          )}
+          )} */}
         </div>
 
         <div className="controls-panel">
           <div className="forecast-controls">
-        <ControlGroup
-          icon={<FancyIcon icon={Activity} animationType="shimmer" color="#00bcd4" />}
-          title={UI_CONFIG.SECTIONS.FORECAST_VARIABLES.title}
-          ariaLabel={UI_CONFIG.SECTIONS.FORECAST_VARIABLES.ariaLabel}
-        >
-          <VariableButtons
-            layers={ALL_LAYERS}
-            selectedValue={selectedWaveForecast}
-            onVariableChange={handleVariableChange}
-            labelMap={UI_CONFIG.VARIABLE_LABELS}
-            ariaLabel={UI_CONFIG.ARIA_LABELS.variableButton}
-            getVariableIcon={getVariableIcon}
-          />
-        </ControlGroup>
+            <ControlGroup
+              icon={<FancyIcon icon={Activity} animationType="shimmer" color="#00bcd4" />}
+              title={UI_CONFIG.SECTIONS.FORECAST_VARIABLES.title}
+              ariaLabel={UI_CONFIG.SECTIONS.FORECAST_VARIABLES.ariaLabel}
+            >
+              <VariableButtons
+                layers={ALL_LAYERS}
+                selectedValue={selectedWaveForecast}
+                onVariableChange={handleVariableChange}
+                labelMap={UI_CONFIG.VARIABLE_LABELS}
+                ariaLabel={UI_CONFIG.ARIA_LABELS.variableButton}
+                getVariableIcon={getVariableIcon}
+              />
+            </ControlGroup>
 
-        <ControlGroup
-          icon={<FancyIcon icon={FastForward} animationType="bounce" color="#ff9800" />}
-          title={UI_CONFIG.SECTIONS.FORECAST_TIME.title}
-          ariaLabel={UI_CONFIG.SECTIONS.FORECAST_TIME.ariaLabel}
-        >
-          <TimeControl
-            sliderIndex={sliderIndex}
-            totalSteps={totalSteps}
-            currentSliderDate={currentSliderDate}
-            isPlaying={isPlaying}
-            capTime={capTime}
-            onSliderChange={handleSliderChange}
-            onPlayToggle={handlePlayToggle}
-            formatDateTime={formatDateTime}
-            stepHours={capTime.stepHours || 1}
-            playIcon={<FancyIcon icon={Navigation} animationType="bounce" size={16} color="#4caf50" />}
-            pauseIcon={<FancyIcon icon={Activity} animationType="pulse" size={16} color="#ff5722" />}
-            minIndex={minIndex}
-          />
-          
-          {/* ✅ Warm-up Period Notice */}
-          {MARINE_CONFIG.SHOW_WARMUP_NOTICE && capTime.warmupSkipped && (
-            <div style={{
-              marginTop: '0.75rem',
-              padding: '0.5rem 0.75rem',
-              background: 'rgba(33, 150, 243, 0.1)',
-              border: '1px solid rgba(33, 150, 243, 0.3)',
-              borderRadius: '6px',
-              fontSize: '0.85rem',
-              color: '#90caf9',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <FancyIcon icon={BadgeInfo} animationType="pulse" size={16} color="#2196f3" />
-              <span>
-                Showing reliable forecast data (excluding {capTime.warmupDays}-day model initialization)
-              </span>
-            </div>
-          )}
-        </ControlGroup>
+            <ControlGroup
+              icon={<FancyIcon icon={FastForward} animationType="bounce" color="#ff9800" />}
+              title={UI_CONFIG.SECTIONS.FORECAST_TIME.title}
+              ariaLabel={UI_CONFIG.SECTIONS.FORECAST_TIME.ariaLabel}
+            >
+              <TimeControl
+                sliderIndex={sliderIndex}
+                totalSteps={totalSteps}
+                currentSliderDate={currentSliderDate}
+                isPlaying={isPlaying}
+                capTime={capTime}
+                onSliderChange={handleSliderChange}
+                onPlayToggle={handlePlayToggle}
+                formatDateTime={formatDateTime}
+                stepHours={capTime.stepHours || 1}
+                playIcon={<FancyIcon icon={Navigation} animationType="bounce" size={16} color="#4caf50" />}
+                pauseIcon={<FancyIcon icon={Activity} animationType="pulse" size={16} color="#ff5722" />}
+                minIndex={minIndex}
+              />
+              
+              {/* ✅ Warm-up Period Notice */}
+              {MARINE_CONFIG.SHOW_WARMUP_NOTICE && capTime.warmupSkipped && (
+                <div style={{
+                  marginTop: '0.75rem',
+                  padding: '0.5rem 0.75rem',
+                  background: 'rgba(33, 150, 243, 0.1)',
+                  border: '1px solid rgba(33, 150, 243, 0.3)',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  color: '#90caf9',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <FancyIcon icon={BadgeInfo} animationType="pulse" size={16} color="#2196f3" />
+                  <span>
+                    Showing reliable forecast data (excluding {capTime.warmupDays}-day model initialization)
+                  </span>
+                </div>
+              )}
+            </ControlGroup>            <ControlGroup
+              icon={<FancyIcon icon={Settings} animationType="spin" color="#9c27b0" />}
+              title={UI_CONFIG.SECTIONS.DISPLAY_OPTIONS.title}
+              ariaLabel={UI_CONFIG.SECTIONS.DISPLAY_OPTIONS.ariaLabel}
+            >
+              <OpacityControl
+                opacity={opacity}
+                onOpacityChange={setOpacity}
+                formatPercent={UI_CONFIG.FORMATS.opacityPercent}
+                ariaLabel={UI_CONFIG.ARIA_LABELS.overlayOpacity}
+              />
+            </ControlGroup>
 
-        <ControlGroup
-          icon={<FancyIcon icon={Settings} animationType="spin" color="#9c27b0" />}
-          title={UI_CONFIG.SECTIONS.DISPLAY_OPTIONS.title}
-          ariaLabel={UI_CONFIG.SECTIONS.DISPLAY_OPTIONS.ariaLabel}
-        >
-          <OpacityControl
-            opacity={opacity}
-            onOpacityChange={setOpacity}
-            formatPercent={UI_CONFIG.FORMATS.opacityPercent}
-            ariaLabel={UI_CONFIG.ARIA_LABELS.overlayOpacity}
-          />
-        </ControlGroup>
-
-        <ControlGroup
-          icon={<FancyIcon icon={Info} animationType="pulse" color="#2196f3" />}
-          title={UI_CONFIG.SECTIONS.DATA_INFO.title}
-          ariaLabel={UI_CONFIG.SECTIONS.DATA_INFO.ariaLabel}
-        >
-          <DataInfo
-            source={UI_CONFIG.DATA_SOURCE.source}
-            model={UI_CONFIG.DATA_SOURCE.model}
-            resolution={UI_CONFIG.DATA_SOURCE.resolution}
-            updateFrequency={UI_CONFIG.DATA_SOURCE.updateFrequency}
-            coverage={UI_CONFIG.DATA_SOURCE.coverage}
-          />
-        </ControlGroup>
+            <ControlGroup
+              icon={<FancyIcon icon={Info} animationType="pulse" color="#2196f3" />}
+              title={UI_CONFIG.SECTIONS.DATA_INFO.title}
+              ariaLabel={UI_CONFIG.SECTIONS.DATA_INFO.ariaLabel}
+            >
+              <DataInfo
+                source={UI_CONFIG.DATA_SOURCE.source}
+                /*model={UI_CONFIG.DATA_SOURCE.model}*/
+                /*resolution={UI_CONFIG.DATA_SOURCE.resolution}*/
+                updateFrequency={UI_CONFIG.DATA_SOURCE.updateFrequency}
+                /*coverage={UI_CONFIG.DATA_SOURCE.coverage}*/
+              />
+            </ControlGroup>
           </div>
-        </div>
-
-        
+        </div>        
       </div>
     </div>
   );

@@ -150,10 +150,10 @@ export const DataInfo = ({
 }) => (
   <div className="data-info">
     <div><strong>Source:</strong> {source}</div>
-    <div><strong>Model:</strong> {model}</div>
-    <div><strong>Resolution:</strong> {resolution}</div>
+    {/* <div><strong>Model:</strong> {model}</div> */}
+    {/* <div><strong>Resolution:</strong> {resolution}</div> */}
     <div><strong>Update:</strong> {updateFrequency}</div>
-    <div><strong>Coverage:</strong> {coverage}</div>
+    {/* <div><strong>Coverage:</strong> {coverage}</div> */}
   </div>
 );
 

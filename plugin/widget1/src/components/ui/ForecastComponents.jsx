@@ -127,7 +127,7 @@ OpacityControl.propTypes = {
 };
 
 /**
- * Data information component displaying model and source details
+ * Data information component displaying source and update details
  */
 export const DataInfoPanel = ({
   dataInfo = {},
@@ -135,10 +135,7 @@ export const DataInfoPanel = ({
 }) => {
   const infoItems = [
     { label: 'Source', value: dataInfo.source },
-    { label: 'Model', value: dataInfo.model },
-    { label: 'Resolution', value: dataInfo.resolution },
-    { label: 'Update', value: dataInfo.update },
-    { label: 'Coverage', value: dataInfo.coverage }
+    { label: 'Update', value: dataInfo.update }
   ].filter(item => item.value); // Only show items with values
 
   return (
@@ -152,10 +149,7 @@ export const DataInfoPanel = ({
 DataInfoPanel.propTypes = {
   dataInfo: PropTypes.shape({
     source: PropTypes.string,
-    model: PropTypes.string,
-    resolution: PropTypes.string,
-    update: PropTypes.string,
-    coverage: PropTypes.string
+    update: PropTypes.string
   }),
   className: PropTypes.string
 };
