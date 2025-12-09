@@ -226,57 +226,45 @@ function Home({ widgetData, validCountries }) {
 
   // Layer legend URLs with data-driven ranges
   const [layerLegendUrls, setLayerLegendUrls] = useState({});
-
-  useEffect(() => {
-    const generateLegendUrls = async () => {
-      const urls = {};
-      
-      for (const layer of WAVE_FORECAST_LAYERS) {
-        if (layer.composite && layer.layers) {
-          for (const subLayer of layer.layers) {
-            // Extract data range for period layers
-            const dataRange = await extractDataRange(subLayer.wmsUrl || layer.wmsUrl, subLayer.dataset, subLayer.value);
-            const config = variableConfigMap[subLayer.value]?.(dataRange) || {};
-            urls[subLayer.value] = getWorldClassLegendUrl(
-              subLayer.value,
-              config.range || config.colorscalerange || subLayer.colorscalerange,
-              subLayer.value === 'hs' ? 'm' : 's'
-            );
-          }
-        } else {
-          // Extract data range for period layers
-          const dataRange = await extractDataRange(layer.wmsUrl, layer.dataset, layer.value);
-          const config = variableConfigMap[layer.value]?.(dataRange) || {};
-          urls[layer.value] = getWorldClassLegendUrl(
-            layer.value,
-            config.range || config.colorscalerange || layer.colorscalerange,
-            layer.value === 'hs' ? 'm' : 's'
-          );
-        }
-      }
-      
-      setLayerLegendUrls(urls);
-    };
-
-    generateLegendUrls();
-  }, []);
-
   // Enhanced layer configurations with data-driven ranges
   const [enhancedLayers, setEnhancedLayers] = useState(WAVE_FORECAST_LAYERS);
 
+  // PERFORMANCE FIX: Merge duplicate useEffect hooks to prevent multiple calls
+  // This single useEffect replaces two separate ones that were both calling extractDataRange
   useEffect(() => {
-    const enhanceLayersWithDataRanges = async () => {
+    const enhanceLayersAndGenerateLegends = async () => {
       const enhanced = [];
+      const urls = {};
+      // Cache for data ranges to avoid duplicate fetches
+      const dataRangeCache = {};
       
       for (const layer of WAVE_FORECAST_LAYERS) {
         if (layer.composite && layer.layers) {
           const enhancedSubLayers = [];
           for (const subLayer of layer.layers) {
-            // Only enhance wave period layers with data-driven ranges
+            const cacheKey = `${subLayer.wmsUrl || layer.wmsUrl}|${subLayer.dataset}|${subLayer.value}`;
+            
+            // Fetch data range once and cache it
+            if (!dataRangeCache[cacheKey]) {
+              dataRangeCache[cacheKey] = await extractDataRange(
+                subLayer.wmsUrl || layer.wmsUrl, 
+                subLayer.dataset, 
+                subLayer.value
+              );
+            }
+            const dataRange = dataRangeCache[cacheKey];
+            const config = variableConfigMap[subLayer.value]?.(dataRange) || {};
+            
+            // Generate legend URL
+            urls[subLayer.value] = getWorldClassLegendUrl(
+              subLayer.value,
+              config.range || config.colorscalerange || subLayer.colorscalerange,
+              subLayer.value === 'hs' ? 'm' : 's'
+            );
+            
+            // Enhance sub-layer if needed
             if (subLayer.value.includes('tm02') || subLayer.value.includes('tpeak')) {
-              const dataRange = await extractDataRange(subLayer.wmsUrl || layer.wmsUrl, subLayer.dataset, subLayer.value);
               if (dataRange) {
-                const config = variableConfigMap[subLayer.value]?.(dataRange) || {};
                 enhancedSubLayers.push({
                   ...subLayer,
                   colorscalerange: config.colorscalerange || config.range || subLayer.colorscalerange
@@ -293,11 +281,25 @@ function Home({ widgetData, validCountries }) {
             layers: enhancedSubLayers
           });
         } else {
-          // Only enhance wave period layers with data-driven ranges
+          const cacheKey = `${layer.wmsUrl}|${layer.dataset}|${layer.value}`;
+          
+          // Fetch data range once and cache it
+          if (!dataRangeCache[cacheKey]) {
+            dataRangeCache[cacheKey] = await extractDataRange(layer.wmsUrl, layer.dataset, layer.value);
+          }
+          const dataRange = dataRangeCache[cacheKey];
+          const config = variableConfigMap[layer.value]?.(dataRange) || {};
+          
+          // Generate legend URL
+          urls[layer.value] = getWorldClassLegendUrl(
+            layer.value,
+            config.range || config.colorscalerange || layer.colorscalerange,
+            layer.value === 'hs' ? 'm' : 's'
+          );
+          
+          // Enhance layer if needed
           if (layer.value.includes('tm02') || layer.value.includes('tpeak') || layer.value.includes('inundation')) {
-            const dataRange = await extractDataRange(layer.wmsUrl, layer.dataset, layer.value);
             if (dataRange) {
-              const config = variableConfigMap[layer.value]?.(dataRange) || {};
               enhanced.push({
                 ...layer,
                 colorscalerange: config.colorscalerange || config.range || layer.colorscalerange,
@@ -313,10 +315,12 @@ function Home({ widgetData, validCountries }) {
         }
       }
       
+      // Update both states once at the end
+      setLayerLegendUrls(urls);
       setEnhancedLayers(enhanced);
     };
 
-    enhanceLayersWithDataRanges();
+    enhanceLayersAndGenerateLegends();
   }, []);
 
   // Build ALL_LAYERS and STATIC_LAYERS (none for Niue currently)
