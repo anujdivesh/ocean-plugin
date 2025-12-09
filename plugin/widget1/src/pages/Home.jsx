@@ -17,6 +17,20 @@ const getWorldClassLegendUrl = (variable, range, unit) => {
   return worldClassViz.getWorldClassLegendUrl(variable, range, unit);
 };
 
+// Helper function to generate cache key for data ranges
+const generateCacheKey = (wmsUrl, dataset, value) => {
+  return `${wmsUrl}|${dataset}|${value}`;
+};
+
+// Helper function to get cached data range or fetch if not cached
+const getCachedDataRange = async (cache, wmsUrl, dataset, value) => {
+  const cacheKey = generateCacheKey(wmsUrl, dataset, value);
+  if (!cache[cacheKey]) {
+    cache[cacheKey] = await extractDataRange(wmsUrl, dataset, value);
+  }
+  return cache[cacheKey];
+};
+
 // Data-driven range extraction utility
 const extractDataRange = async (wmsUrl, dataset, variable) => {
   try {
@@ -242,17 +256,13 @@ function Home({ widgetData, validCountries }) {
         if (layer.composite && layer.layers) {
           const enhancedSubLayers = [];
           for (const subLayer of layer.layers) {
-            const cacheKey = `${subLayer.wmsUrl || layer.wmsUrl}|${subLayer.dataset}|${subLayer.value}`;
-            
-            // Fetch data range once and cache it
-            if (!dataRangeCache[cacheKey]) {
-              dataRangeCache[cacheKey] = await extractDataRange(
-                subLayer.wmsUrl || layer.wmsUrl, 
-                subLayer.dataset, 
-                subLayer.value
-              );
-            }
-            const dataRange = dataRangeCache[cacheKey];
+            // Use helper function to get cached data range
+            const dataRange = await getCachedDataRange(
+              dataRangeCache,
+              subLayer.wmsUrl || layer.wmsUrl, 
+              subLayer.dataset, 
+              subLayer.value
+            );
             const config = variableConfigMap[subLayer.value]?.(dataRange) || {};
             
             // Generate legend URL
@@ -281,13 +291,13 @@ function Home({ widgetData, validCountries }) {
             layers: enhancedSubLayers
           });
         } else {
-          const cacheKey = `${layer.wmsUrl}|${layer.dataset}|${layer.value}`;
-          
-          // Fetch data range once and cache it
-          if (!dataRangeCache[cacheKey]) {
-            dataRangeCache[cacheKey] = await extractDataRange(layer.wmsUrl, layer.dataset, layer.value);
-          }
-          const dataRange = dataRangeCache[cacheKey];
+          // Use helper function to get cached data range
+          const dataRange = await getCachedDataRange(
+            dataRangeCache,
+            layer.wmsUrl, 
+            layer.dataset, 
+            layer.value
+          );
           const config = variableConfigMap[layer.value]?.(dataRange) || {};
           
           // Generate legend URL
