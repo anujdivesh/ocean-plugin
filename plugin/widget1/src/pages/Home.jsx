@@ -17,137 +17,30 @@ const getWorldClassLegendUrl = (variable, range, unit) => {
   return worldClassViz.getWorldClassLegendUrl(variable, range, unit);
 };
 
-// Helper function to generate cache key for data ranges
-const generateCacheKey = (wmsUrl, dataset, value) => {
-  return `${wmsUrl}|${dataset}|${value}`;
-};
+// PERFORMANCE: Use static configuration instead of async data fetching
+// This matches Widget5 and Widget11 approach for faster initial load
 
-// Helper function to get cached data range or fetch if not cached
-const getCachedDataRange = async (cache, wmsUrl, dataset, value) => {
-  const cacheKey = generateCacheKey(wmsUrl, dataset, value);
-  if (!cache[cacheKey]) {
-    cache[cacheKey] = await extractDataRange(wmsUrl, dataset, value);
-  }
-  return cache[cacheKey];
-};
-
-// Data-driven range extraction utility
-const extractDataRange = async (wmsUrl, dataset, variable) => {
-  try {
-    // Enhanced data range extraction with WMS GetCapabilities fallback
-    
-    // First, try to get actual data statistics (if available)
-    if (wmsUrl && dataset) {
-      try {
-        // Attempt GetCapabilities request to extract layer information
-        const capabilitiesUrl = `${wmsUrl}?SERVICE=WMS&REQUEST=GetCapabilities&VERSION=1.3.0`;
-        const response = await fetch(capabilitiesUrl);
-        
-        if (response.ok) {
-          const text = await response.text();
-          
-          // Parse XML to extract dimension information (simplified approach)
-          if (text.includes(variable)) {
-            // Look for dimension or extent information in the capabilities
-            // This is a simplified parser - in production, use proper XML parsing
-            const dimensionMatch = text.match(new RegExp(`<Dimension[^>]*name=["']${variable}["'][^>]*>([^<]*)</Dimension>`, 'i'));
-            if (dimensionMatch) {
-              const dimensionValue = dimensionMatch[1];
-              const rangeMatch = dimensionValue.match(/(\d+(?:\.\d+)?)[/,](\d+(?:\.\d+)?)/);
-              if (rangeMatch) {
-                return {
-                  min: parseFloat(rangeMatch[1]),
-                  max: parseFloat(rangeMatch[2])
-                };
-              }
-            }
-          }
-        }
-      } catch (fetchError) {
-        console.log(`GetCapabilities request failed for ${variable}, using estimates:`, fetchError.message);
-      }
-    }
-    
-    // Fallback to climatological estimates based on Niue wave climate
-    const estimatedRanges = {
-      'tm02': { min: 2.0, max: 12.0 },  // Mean wave period typically 2-12s in Niue waters
-      'niue_forecast/tm02': { min: 2.0, max: 12.0 },
-      'tpeak': { min: 3.0, max: 18.0 }, // Peak period typically 3-18s
-      'niue_forecast/tpeak': { min: 3.0, max: 18.0 },
-      'hs': { min: 0.5, max: 6.0 },     // Wave height 0.5-6m
-      'niue_forecast/hs': { min: 0.5, max: 6.0 },
-      'niue_inundation': { min: -0.05, max: 9.0 }, // Inundation depth - extended range for extreme events
-      'inundation': { min: -0.05, max: 9.0 }
-    };
-    
-    return estimatedRanges[variable] || null;
-  } catch (error) {
-    console.warn(`Could not extract data range for ${variable}:`, error);
-    return null;
-  }
-};
-
+// Static configuration for Niue wave parameters (no async fetching needed)
 const variableConfigMap = {
-  // Support both prefixed and non-prefixed layer names with data-driven ranges
   hs: (maxHeight) => worldClassViz.getAdaptiveWaveHeightConfig(maxHeight, "tropical"),
-  'niue_forecast/hs': (maxHeight) => worldClassViz.getAdaptiveWaveHeightConfig(maxHeight, "tropical"),
-  tm02: (dataRange) => worldClassViz.getAdaptiveWavePeriodConfig(
-    dataRange?.max || 8.0, 
-    "niue", 
-    dataRange?.min || null, 
-    dataRange
-  ),
-  'niue_forecast/tm02': (dataRange) => worldClassViz.getAdaptiveWavePeriodConfig(
-    dataRange?.max || 8.0, 
-    "niue", 
-    dataRange?.min || null, 
-    dataRange
-  ),
-  tpeak: (dataRange) => {
-    const defaultRange = '0,17.4';
-    let range = defaultRange;
-    
-    if (dataRange && dataRange.min !== null && dataRange.max !== null) {
-      const dataMin = Math.max(0, dataRange.min - 0.5);
-      const dataMax = dataRange.max + 1.0;
-      range = `${dataMin.toFixed(1)},${dataMax.toFixed(1)}`;
-    }
-    
-    return {
-      palette: 'psu-viridis',
-      range: range,
-      numcolorbands: 250
-    };
-  },
-  'niue_forecast/tpeak': (dataRange) => {
-    const defaultRange = '0,17.4';
-    let range = defaultRange;
-    
-    if (dataRange && dataRange.min !== null && dataRange.max !== null) {
-      const dataMin = Math.max(0, dataRange.min - 0.5);
-      const dataMax = dataRange.max + 1.0;
-      range = `${dataMin.toFixed(1)},${dataMax.toFixed(1)}`;
-    }
-    
-    return {
-      palette: 'psu-viridis',
-      range: range,
-      numcolorbands: 250
-    };
-  },
-  dirm: () => ({
-    palette: 'black-arrow',
-    range: '',
-    numcolorbands: 0
+  tm02: () => ({
+    palette: 'psu-viridis',
+    range: '0,12',  // Static range based on Niue climatology
+    numcolorbands: 250
   }),
-  'niue_forecast/dirm': () => ({
+  tpeak: () => ({
+    palette: 'psu-viridis',
+    range: '0,17.4',  // Static range based on Niue climatology
+    numcolorbands: 250
+  }),
+  dirm: () => ({
     palette: 'black-arrow',
     range: '',
     numcolorbands: 0
   }),
   inundation: () => ({
     style: "default-scalar/x-Sst",
-    colorscalerange: "-0.05,3",
+    colorscalerange: "-0.05,9",
     numcolorbands: 250,
     belowmincolor: "transparent",
     abovemaxcolor: "extend"
@@ -157,65 +50,69 @@ const variableConfigMap = {
 // Niue-specific WMS configuration - using ncWMS server like Cook Islands
 const NIUE_WMS_BASE = "https://gem-ncwms-hpc.spc.int/ncWMS/wms";
 
-// Niue Wave Forecast Layers
-const WAVE_FORECAST_LAYERS = [
-  {
-    label: "Significant Wave Height + Dir",
-    value: "composite_hs_dirm",
-    composite: true,
-    wmsUrl: NIUE_WMS_BASE,
-    layers: [
-      {
-        value: "niue_forecast/hs",
-        style: "default-scalar/x-Sst",
-        colorscalerange: "0,4",
-        wmsUrl: NIUE_WMS_BASE,
-        dataset: "niue_forecast",
-        numcolorbands: 250,
-        zIndex: 1,
-      },
-      {
-        value: "dirm", // THREDDS layer name (without dataset prefix)
-        style: "black-arrow",
-        colorscalerange: "",
-        wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/NIU/ForecastNiue_latest.nc",
-        zIndex: 2,
-        opacity: 0.9,
-      }
-    ]
-  },
-  {
-    label: "Mean Wave Period",
-    value: "niue_forecast/tm02",
-    wmsUrl: NIUE_WMS_BASE,
-    dataset: "niue_forecast",
-    style: "default-scalar/x-Sst",
-    colorscalerange: "0,20",
-    numcolorbands: 250,
-  },
-  {
-    label: "Peak Wave Period",
-    value: "niue_forecast/tpeak",
-    wmsUrl: NIUE_WMS_BASE,
-    dataset: "niue_forecast",
-    style: "default-scalar/x-Sst",
-    colorscalerange: "0,17.4",
-    numcolorbands: 250,
-  },
-  {
-    label: "Inundation Depth",
-    value: "inundation",
-    wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/NIU/InundationNiue_latest.nc",
-    dataset: "niue_inundation",
-    style: "default-scalar/x-Sst",
-    colorscalerange: "-0.05,9", // Extended range to include higher inundation values
-    numcolorbands: 250,
-    belowmincolor: "transparent",
-    abovemaxcolor: "extend",
-  }
-];
-
 function Home({ widgetData, validCountries }) {
+  // PERFORMANCE FIX: Define layers with useMemo and static legendUrl (like Widget5/11)
+  // This eliminates async data fetching that was causing slow initial load
+  const WAVE_FORECAST_LAYERS = useMemo(() => [
+    {
+      label: "Significant Wave Height + Dir",
+      value: "composite_hs_dirm",
+      composite: true,
+      wmsUrl: NIUE_WMS_BASE,
+      legendUrl: getWorldClassLegendUrl('hs', '0,4', 'm'),
+      layers: [
+        {
+          value: "niue_forecast/hs",
+          style: "default-scalar/x-Sst",
+          colorscalerange: "0,4",
+          wmsUrl: NIUE_WMS_BASE,
+          dataset: "niue_forecast",
+          numcolorbands: 250,
+          zIndex: 1,
+        },
+        {
+          value: "dirm", // THREDDS layer name (without dataset prefix)
+          style: "black-arrow",
+          colorscalerange: "",
+          wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/NIU/ForecastNiue_latest.nc",
+          zIndex: 2,
+          opacity: 0.9,
+        }
+      ]
+    },
+    {
+      label: "Mean Wave Period",
+      value: "niue_forecast/tm02",
+      wmsUrl: NIUE_WMS_BASE,
+      dataset: "niue_forecast",
+      style: "default-scalar/x-Sst",
+      colorscalerange: "0,12",
+      numcolorbands: 250,
+      legendUrl: getWorldClassLegendUrl('tm02', '0,12', 's'),
+    },
+    {
+      label: "Peak Wave Period",
+      value: "niue_forecast/tpeak",
+      wmsUrl: NIUE_WMS_BASE,
+      dataset: "niue_forecast",
+      style: "default-scalar/x-Sst",
+      colorscalerange: "0,17.4",
+      numcolorbands: 250,
+      legendUrl: getWorldClassLegendUrl('tpeak', '0,17.4', 's'),
+    },
+    {
+      label: "Inundation Depth",
+      value: "inundation",
+      wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/NIU/InundationNiue_latest.nc",
+      dataset: "niue_inundation",
+      style: "default-scalar/x-Sst",
+      colorscalerange: "-0.05,9",
+      numcolorbands: 250,
+      belowmincolor: "transparent",
+      abovemaxcolor: "extend",
+      legendUrl: getWorldClassLegendUrl('inundation', '-0.05,9', 'm'),
+    }
+  ], []);
   // Buoy state management
   const [showBuoyCanvas, setShowBuoyCanvas] = useState(false);
   const [selectedBuoyId, setSelectedBuoyId] = useState(null);
@@ -238,104 +135,10 @@ function Home({ widgetData, validCountries }) {
     return L.latLngBounds(southWest, northEast);
   }, []);
 
-  // Layer legend URLs with data-driven ranges
-  const [layerLegendUrls, setLayerLegendUrls] = useState({});
-  // Enhanced layer configurations with data-driven ranges
-  const [enhancedLayers, setEnhancedLayers] = useState(WAVE_FORECAST_LAYERS);
-
-  // PERFORMANCE FIX: Merge duplicate useEffect hooks to prevent multiple calls
-  // This single useEffect replaces two separate ones that were both calling extractDataRange
-  useEffect(() => {
-    const enhanceLayersAndGenerateLegends = async () => {
-      const enhanced = [];
-      const urls = {};
-      // Cache for data ranges to avoid duplicate fetches
-      const dataRangeCache = {};
-      
-      for (const layer of WAVE_FORECAST_LAYERS) {
-        if (layer.composite && layer.layers) {
-          const enhancedSubLayers = [];
-          for (const subLayer of layer.layers) {
-            // Use helper function to get cached data range
-            const dataRange = await getCachedDataRange(
-              dataRangeCache,
-              subLayer.wmsUrl || layer.wmsUrl, 
-              subLayer.dataset, 
-              subLayer.value
-            );
-            const config = variableConfigMap[subLayer.value]?.(dataRange) || {};
-            
-            // Generate legend URL
-            urls[subLayer.value] = getWorldClassLegendUrl(
-              subLayer.value,
-              config.range || config.colorscalerange || subLayer.colorscalerange,
-              subLayer.value === 'hs' ? 'm' : 's'
-            );
-            
-            // Enhance sub-layer if needed
-            if (subLayer.value.includes('tm02') || subLayer.value.includes('tpeak')) {
-              if (dataRange) {
-                enhancedSubLayers.push({
-                  ...subLayer,
-                  colorscalerange: config.colorscalerange || config.range || subLayer.colorscalerange
-                });
-              } else {
-                enhancedSubLayers.push(subLayer);
-              }
-            } else {
-              enhancedSubLayers.push(subLayer);
-            }
-          }
-          enhanced.push({
-            ...layer,
-            layers: enhancedSubLayers
-          });
-        } else {
-          // Use helper function to get cached data range
-          const dataRange = await getCachedDataRange(
-            dataRangeCache,
-            layer.wmsUrl, 
-            layer.dataset, 
-            layer.value
-          );
-          const config = variableConfigMap[layer.value]?.(dataRange) || {};
-          
-          // Generate legend URL
-          urls[layer.value] = getWorldClassLegendUrl(
-            layer.value,
-            config.range || config.colorscalerange || layer.colorscalerange,
-            layer.value === 'hs' ? 'm' : 's'
-          );
-          
-          // Enhance layer if needed
-          if (layer.value.includes('tm02') || layer.value.includes('tpeak') || layer.value.includes('inundation')) {
-            if (dataRange) {
-              enhanced.push({
-                ...layer,
-                colorscalerange: config.colorscalerange || config.range || layer.colorscalerange,
-                numcolorbands: config.numcolorbands || layer.numcolorbands,
-                style: config.style || config.palette || layer.style
-              });
-            } else {
-              enhanced.push(layer);
-            }
-          } else {
-            enhanced.push(layer);
-          }
-        }
-      }
-      
-      // Update both states once at the end
-      setLayerLegendUrls(urls);
-      setEnhancedLayers(enhanced);
-    };
-
-    enhanceLayersAndGenerateLegends();
-  }, []);
-
-  // Build ALL_LAYERS and STATIC_LAYERS (none for Niue currently)
+  // PERFORMANCE FIX: Use static layer definitions with useMemo (like Widget5/11)
+  // Eliminates async data fetching that was causing slow initial load
   const STATIC_LAYERS = useMemo(() => [], []);
-  const ALL_LAYERS = useMemo(() => ([...enhancedLayers, ...STATIC_LAYERS]), [enhancedLayers, STATIC_LAYERS]);
+  const ALL_LAYERS = useMemo(() => ([...WAVE_FORECAST_LAYERS, ...STATIC_LAYERS]), [WAVE_FORECAST_LAYERS, STATIC_LAYERS]);
 
   const config = useMemo(
     () => ({
@@ -361,7 +164,7 @@ function Home({ widgetData, validCountries }) {
       ],
       bounds: niueBounds,
       addWMSTileLayer,
-    }), [STATIC_LAYERS, ALL_LAYERS, niueBounds]
+    }), [WAVE_FORECAST_LAYERS, STATIC_LAYERS, ALL_LAYERS, niueBounds]
   );
 
   const {
@@ -508,7 +311,6 @@ function Home({ widgetData, validCountries }) {
         minIndex={minIndex}
 
         // Extras retained from earlier wiring (safe if unused)
-        layerLegendUrls={layerLegendUrls}
         BottomOffCanvas={BottomOffCanvas}
         BottomBuoyOffCanvas={BottomBuoyOffCanvas}
         getWorldClassLegendUrl={getWorldClassLegendUrl}
