@@ -164,11 +164,7 @@ function Home({ widgetData, validCountries }) {
       ],
       bounds: niueBounds,
       addWMSTileLayer,
-    }), 
-    // ALL_LAYERS already depends on WAVE_FORECAST_LAYERS and STATIC_LAYERS (line 141)
-    // so including them separately is redundant
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [ALL_LAYERS, niueBounds]
+    }), [WAVE_FORECAST_LAYERS, STATIC_LAYERS, ALL_LAYERS, niueBounds]
   );
 
   const {
