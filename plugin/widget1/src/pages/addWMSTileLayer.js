@@ -29,9 +29,8 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
         // Keep loading tiles while panning but throttle refresh slightly
         updateWhenIdle: false,
         updateInterval: 120,
-        // Reuse tiles between updates/zooms for smoother transitions
-        reuseTiles: true,
-        unloadInvisibleTiles: false,
+        // Control whether tiles outside the visible bounds are removed from the DOM
+        removeOutsideVisibleBounds: false,
     };
 
     // Create the WMS tile layer
