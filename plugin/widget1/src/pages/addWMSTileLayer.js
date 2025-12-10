@@ -10,7 +10,7 @@ import $ from 'jquery';
  * @param {function} handleShow - Callback function to handle the feature info data (canvas update).
  */
 const addWMSTileLayer = (map, url, options = {}, handleShow) => {
-    // Set default options
+    // Set default WMS params
     const defaultOptions = {
         layers: '',
         format: 'image/png',
@@ -18,8 +18,25 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
         ...options.params,
     };
 
+    // Performance-focused defaults to avoid single-tile fetches and smooth panning/zooming
+    const performanceTuning = {
+        // Larger tiles mean fewer requests (helps slow WMS backends)
+        tileSize: 512,
+        // Keep previously rendered tiles around the viewport to prevent empty flashes
+        keepBuffer: 4,
+        // Allow the browser to pipeline multiple tile requests instead of one-by-one
+        crossOrigin: true,
+        // Keep loading tiles while panning but throttle refresh slightly
+        updateWhenIdle: false,
+        updateInterval: 120,
+        // Reuse tiles between updates/zooms for smoother transitions
+        reuseTiles: true,
+        unloadInvisibleTiles: false,
+    };
+
     // Create the WMS tile layer
     const wmsLayer = L.tileLayer.wms(url, {
+        ...performanceTuning,
         layers: defaultOptions.layers,
         format: defaultOptions.format,
         transparent: defaultOptions.transparent,
