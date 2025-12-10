@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { MARINE_CONFIG } from '../config/marineVariables';
+import capabilitiesCache from '../utils/CapabilitiesCache';
 
 /**
  * Hook for fetching and managing WMS capabilities
- * Handles time dimension parsing and capability metadata
+ * Handles time dimension parsing and capability metadata with caching
  */
 export const useWMSCapabilities = (selectedLayer, allLayers) => {
   const [capTime, setCapTime] = useState({ 
@@ -92,15 +93,23 @@ export const useWMSCapabilities = (selectedLayer, allLayers) => {
           console.log(`🌐 Using THREDDS server for capabilities: ${urlForCaps}`);
         }
         
-        console.log(`🌐 Fetching capabilities from: ${urlForCaps}`);
+        // Check cache first (avoids redundant 277KB downloads)
+        let xml = capabilitiesCache.get(urlForCaps);
         
-        const res = await fetch(urlForCaps);
-        if (!res.ok) {
-          throw new Error(`Failed to fetch capabilities: ${res.status} ${res.statusText}`);
+        if (!xml) {
+          console.log(`🌐 Fetching capabilities from: ${urlForCaps}`);
+          
+          const res = await fetch(urlForCaps);
+          if (!res.ok) {
+            throw new Error(`Failed to fetch capabilities: ${res.status} ${res.statusText}`);
+          }
+          
+          xml = await res.text();
+          console.log(`📄 Capabilities XML length: ${xml.length} characters`);
+          
+          // Cache the response (TTL: 1 hour)
+          capabilitiesCache.set(urlForCaps, xml, 3600000);
         }
-        
-        const xml = await res.text();
-        console.log(`📄 Capabilities XML length: ${xml.length} characters`);
         
         const timeDim = parseTimeDimensionFromCapabilities(xml, capsLayer.value);
         if (!timeDim) {
