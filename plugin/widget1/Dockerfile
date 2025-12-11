@@ -7,12 +7,13 @@ WORKDIR /app
 # Copy package files first (for better caching)
 COPY package*.json ./
 
-# Install dependencies (prefer npm ci if lock present, fallback to npm install)
+
+# Install all dependencies including devDependencies (craco is in devDependencies)
 RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
-			echo "Using npm ci (lock file detected)" && npm ci --omit=dev; \
-		else \
-			echo "No lock file found; using npm install (non-reproducible)" && npm install --omit=dev; \
-		fi
+    echo "Using npm ci (lock file detected)" && npm ci; \
+  else \
+    echo "No lock file found; using npm install (non-reproducible)" && npm install; \
+  fi
 
 # Copy all source files
 COPY . .
