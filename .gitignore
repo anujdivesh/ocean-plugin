@@ -3,3 +3,5 @@
 plugin/site1/node_modules/
 plugin/site1/package-lock.json
 node_modules/
+plugin/widget10/backend/app/__pycache__/
+plugin/widget10/backend/app/routes/__pycache__/
