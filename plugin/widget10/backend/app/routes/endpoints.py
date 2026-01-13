@@ -44,6 +44,7 @@ class ServiceBase(BaseModel):
     display_order: Optional[int] = Field(default=None, ge=0)
     type: Optional[str] = Field(default='servers')
     collection: Optional[str] = Field(default='uncategorized')
+    monitoring_proxy: Optional[str] = Field(default='backend')
 
 class ServiceCreate(ServiceBase):
     pass
@@ -62,6 +63,7 @@ class ServiceUpdate(BaseModel):
     display_order: Optional[int] = Field(default=None, ge=0)
     type: Optional[str] = Field(default=None)
     collection: Optional[str] = Field(default=None)
+    monitoring_proxy: Optional[str] = Field(default=None)
 
 class ServiceOut(BaseModel):
     id: int
@@ -86,6 +88,7 @@ class ServiceOut(BaseModel):
     display_order: Optional[int] = None
     type: Optional[str] = None
     collection: Optional[str] = None
+    monitoring_proxy: Optional[str] = None
 
 
 
@@ -381,15 +384,15 @@ def insert_service(service: ServiceCreate):
                     INSERT INTO monitored_services (
                         name, ip_address, port, protocol, check_interval_sec, 
                         interval_type, interval_value, interval_unit, comment,
-                        display_order, type, collection
+                        display_order, type, collection, monitoring_proxy
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (
                     service.name, str(service.ip_address), service.port, service.protocol, 
                     service.check_interval_sec, service.interval_type, service.interval_value, 
                     service.interval_unit, service.comment, display_order_value, service.type,
-                    service.collection
+                    service.collection, service.monitoring_proxy
                 ))
                 result = cur.fetchone()
                 service_id = result[0] if result else None
@@ -445,7 +448,7 @@ def insert_monitor_log(monitor_log: MonitoringLogCreate) -> int:
                         last_status = %s,
                         success_count = success_count + %s,
                         failure_count = failure_count + %s,
-                        updated_at = NOW()
+                        updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
                     WHERE id = %s
                 """, (status_val, success_inc, failure_inc, monitor_log.service_id))
 
@@ -832,16 +835,17 @@ def sync_cloud(payload: Optional[Dict[str, Any]] = Body(None)):
                         existing = cur.fetchone()
 
                         if existing:
+                            service_id = existing[0]
                             # Update existing service
                             cur.execute("""
                                 UPDATE monitored_services 
                                 SET ip_address = %s,
                                     port = %s,
                                     last_status = %s,
-                                    updated_at = %s,
+                                    updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
                                     type = 'Server Cloud'
                                 WHERE id = %s
-                            """, (ip_address, port, status_val, updated_str, existing[0]))
+                            """, (ip_address, port, status_val, service_id))
                         else:
                             # Insert new service
                             cur.execute("""
@@ -852,9 +856,17 @@ def sync_cloud(payload: Optional[Dict[str, Any]] = Body(None)):
                                 ) VALUES (
                                     %s, %s, %s, 'api',
                                     300, 'minutes', 5, 'minutes',
-                                    %s, %s, %s, true, 'Server Cloud'
-                                )
-                            """, (name, ip_address, port, status_val, created_str, updated_str))
+                                    %s, %s, CURRENT_TIMESTAMP AT TIME ZONE 'UTC', true, 'Server Cloud'
+                                ) RETURNING id
+                            """, (name, ip_address, port, status_val, created_str))
+                            service_id = cur.fetchone()[0]
+
+                        # Log the monitoring result
+                        log_message = f"Cloud API Check: {status_val}. Host: {ip_address}. Source: {'Frontend Proxy' if payload and 'items' in payload else 'Backend Fetch'}"
+                        cur.execute("""
+                            INSERT INTO monitoring_logs (service_id, status, message)
+                            VALUES (%s, %s, %s)
+                        """, (service_id, status_val, log_message))
                     
                     conn.commit()
                     print("Database sync complete.")

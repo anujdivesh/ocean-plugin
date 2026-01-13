@@ -22,6 +22,9 @@ services:
       # - plugin-widget8
       # - plugin-widget9
       - plugin-widget10
+    networks:
+      - default
+      - app-network
 
   plugin-site1:
     build: ./plugin/site1
@@ -123,6 +126,8 @@ services:
       - CORS_ORIGINS=http://localhost:3111,http://localhost:8085
     networks:
       - app-network
+    volumes:
+      - ./plugin/widget10/backend:/app
 
   # Widget 10 Frontend
   plugin-widget10:
@@ -130,9 +135,13 @@ services:
     container_name: plugin-widget10
     ports:
       - "3111:3111"
+    volumes:
+      - ./plugin/widget10/frontend:/app
+      - /app/node_modules # Prevent host node_modules from shadowing container ones
     environment:
       - BROWSER=none
-      - REACT_APP_API_URL=http://localhost:8011/service
+      - PUBLIC_URL=/widget10
+      - REACT_APP_API_URL=http://localhost:8085/widget10-api
       # - REACT_APP_API_URL=https://opmthredds.gem.spc.int/service
       - PORT=3111
       - CHOKIDAR_USEPOLLING=true

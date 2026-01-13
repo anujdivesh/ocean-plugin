@@ -12,7 +12,7 @@ import { Link } from 'react-router-dom';
 
 function App() {
   return (
-    <BrowserRouter basename="/monitoring">
+    <BrowserRouter basename="/widget10/monitoring">
       <Routes>
         <Route path="/" element={<Navigate replace to="/home" />} />
         <Route path="/home" element={<Dashboard />} />

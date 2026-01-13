@@ -182,7 +182,9 @@ function Admin() {
       comment: '',
       check_interval_sec: 60,
       display_order: '',
-      type: ''
+      type: '',
+      collection: 'uncategorized',
+      monitoring_proxy: 'backend'
     });
     setSelectedService(null);
     setShowForm(false);
@@ -470,7 +472,8 @@ function Admin() {
       check_interval_sec: service.check_interval_sec || 60,
       display_order: typeof service.display_order === 'number' ? service.display_order : '',
       type: service.type || 'servers',
-      collection: service.collection || 'uncategorized'
+      collection: service.collection || 'uncategorized',
+      monitoring_proxy: service.monitoring_proxy || 'backend'
     });
     setShowForm(true);
   };
@@ -492,7 +495,8 @@ function Admin() {
         check_interval_sec: service.check_interval_sec || 60,
         display_order: typeof service.display_order === 'number' ? service.display_order : '',
         type: service.type || 'servers',
-        collection: service.collection || 'uncategorized'
+        collection: service.collection || 'uncategorized',
+        monitoring_proxy: service.monitoring_proxy || 'backend'
       });
       setShowForm(true);
     } catch (err) {
@@ -1021,6 +1025,23 @@ function Admin() {
                       </div>
 
                       <div className="form-group">
+                        <label htmlFor="monitoring_proxy">Monitoring Proxy</label>
+                        <select
+                          id="monitoring_proxy"
+                          name="monitoring_proxy"
+                          value={formData.monitoring_proxy || 'backend'}
+                          onChange={handleInputChange}
+                          disabled={formMode === 'view'}
+                        >
+                          <option value="backend">Backend (Server)</option>
+                          <option value="frontend">Frontend (Browser)</option>
+                        </select>
+                        <p className="field-help" style={{ fontSize: '0.75rem', marginTop: '4px', opacity: 0.8 }}>
+                          Choose Browser if the server cannot reach this URL.
+                        </p>
+                      </div>
+
+                      <div className="form-group">
                         <label htmlFor="collection">Collection</label>
                         <input
                           type="text"
@@ -1032,6 +1053,7 @@ function Admin() {
                           placeholder="e.g., uncategorized"
                         />
                       </div>
+
 
                       <div className="form-group">
                         <label htmlFor="protocol">Protocol *</label>
