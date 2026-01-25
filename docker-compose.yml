@@ -21,7 +21,10 @@ services:
       # - plugin-widget7
       # - plugin-widget8
       # - plugin-widget9
-      # - plugin-widget10
+      - plugin-widget10
+    networks:
+      - default
+      - app-network
 
   plugin-site1:
     build: ./plugin/site1
@@ -89,4 +92,70 @@ services:
   #   build: ./plugin/widget10
   #   expose:
   #     - "80"
-  #   container_name: plugin-widget10
+  # Widget 10 Database
+  widget10-db:
+    image: postgres:15
+    container_name: widget10-db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: monitoring_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+    volumes:
+      - widget10-pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # Widget 10 Backend
+  widget10-backend:
+    build: ./plugin/widget10/backend
+    container_name: widget10-backend
+    ports:
+      - "8011:8011"
+    depends_on:
+      - widget10-db
+    environment:
+      - DB_HOST=widget10-db
+      - DB_PORT=5432
+      - DB_NAME=monitoring_db
+      - DB_USER=admin
+      - DB_PASSWORD=password123
+      - API_KEY=ssshh
+      - CORS_ORIGINS=http://localhost:3111,http://localhost:8085
+    networks:
+      - app-network
+    volumes:
+      - ./plugin/widget10/backend:/app
+
+  # Widget 10 Frontend
+  plugin-widget10:
+    build: ./plugin/widget10/frontend
+    container_name: plugin-widget10
+    ports:
+      - "3111:3111"
+    volumes:
+      - ./plugin/widget10/frontend:/app
+      - /app/node_modules # Prevent host node_modules from shadowing container ones
+    environment:
+      - BROWSER=none
+      - PUBLIC_URL=/widget10
+      - REACT_APP_API_URL=http://localhost:8085/widget10-api
+      # - REACT_APP_API_URL=https://opmthredds.gem.spc.int/service
+      - PORT=3111
+      - CHOKIDAR_USEPOLLING=true
+      - WDS_SOCKET_PORT=3111
+    depends_on:
+      - widget10-backend
+    networks:
+      - app-network
+
+networks:
+  default:
+    driver: bridge
+  app-network:
+    driver: bridge
+
+volumes:
+  widget10-pgdata:
