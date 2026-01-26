@@ -98,7 +98,7 @@ services:
     container_name: widget10-db
     restart: always
     ports:
-      - "5432:5432"
+      - "5435:5432"
     environment:
       POSTGRES_DB: monitoring_db
       POSTGRES_USER: admin
