@@ -141,8 +141,8 @@ services:
     environment:
       - BROWSER=none
       - PUBLIC_URL=/widget10
-      - REACT_APP_API_URL=http://localhost:8085/widget10-api
-      # - REACT_APP_API_URL=https://opmthredds.gem.spc.int/service
+      - REACT_APP_API_URL=https://ocean-plugin.spc.int/widget10-api/service # for production
+      #- REACT_APP_API_URL=http://localhost:8085/widget10-api # for development      
       - PORT=3111
       - CHOKIDAR_USEPOLLING=true
       - WDS_SOCKET_PORT=3111
