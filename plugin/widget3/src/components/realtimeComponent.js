@@ -13,7 +13,11 @@ import './Dashboard.css';
 const htmlLegendPlugin = {
     id: 'htmlLegend',
     afterUpdate(chart, args, options) {
-        const ul = getOrCreateLegendList(chart, options.containerID);
+        const containerID = options?.containerID;
+        if (!containerID) return;
+
+        const ul = getOrCreateLegendList(chart, containerID);
+        if (!ul) return;
 
         // Remove old legend items
         while (ul.firstChild) {
@@ -71,7 +75,9 @@ const htmlLegendPlugin = {
 };
 
 const getOrCreateLegendList = (chart, id) => {
+    if (typeof document === 'undefined') return null;
     const legendContainer = document.getElementById(id);
+    if (!legendContainer) return null;
     let listContainer = legendContainer.querySelector('ul');
 
     if (!listContainer) {
@@ -118,7 +124,7 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
     // themeKey increments when body class (light/dark) changes so charts fully re-render with new colors
     const [themeKey, setThemeKey] = useState(0);
     const refreshIntervalRef = useRef(null);
-    const REFRESH_INTERVAL = 300000;
+    const REFRESH_INTERVAL = 30000;
     const controlsRef = useRef(null);
     // Keep last known sampling interval per station without triggering renders
     const sampleMinutesRef = useRef({});
@@ -163,7 +169,7 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
             
             // Create AbortController for timeout
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 5 minutes timeout
             
             const res = await fetch(url, { 
                 headers: { Accept: 'application/json' },
@@ -693,41 +699,49 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                 } 
             },
             elements: { point: { radius: isScatter ? 3 : 0 } },
-            scales: {
-                x: { 
-                    type: 'time',
-                    time: { 
-                        tooltipFormat: "yyyy-MM-dd HH:mm:ss", 
-                        displayFormats: { 
-                            minute: 'yyyy-MM-dd HH:mm', 
-                            hour: 'yyyy-MM-dd HH:mm', 
-                            day: 'yyyy-MM-dd HH:mm', 
-                            month: 'yyyy-MM-dd'
-                        }
-                    },
-                    adapters: { date: { zone: 'utc' } },
-                    title: { display: true, text: 'Time (UTC)', color: textColor },
-                    ticks: { 
-                        color: textColor, 
-                        maxRotation: 45, 
-                        minRotation: 45, 
-                        font: { size: selectedStations.length === 1 ? 12 : 10 }, 
-                        callback: (val, idx, ticks) => {
-                            const v = ticks[idx].value; // epoch ms
-                            try { 
-                                const date = new Date(v);
-                                return date.toISOString().replace('T', ' ').replace('.000Z', 'Z');
-                            } catch { 
-                                return ''; 
+            scales: (() => {
+                const scales = {
+                    x: { 
+                        type: 'time',
+                        time: { 
+                            tooltipFormat: "yyyy-MM-dd HH:mm:ss", 
+                            displayFormats: { 
+                                minute: 'yyyy-MM-dd HH:mm', 
+                                hour: 'yyyy-MM-dd HH:mm', 
+                                day: 'yyyy-MM-dd HH:mm', 
+                                month: 'yyyy-MM-dd'
                             }
-                        } 
+                        },
+                        adapters: { date: { zone: 'utc' } },
+                        title: { display: true, text: 'Time (UTC)', color: textColor },
+                        ticks: { 
+                            color: textColor, 
+                            maxRotation: 45, 
+                            minRotation: 45, 
+                            font: { size: selectedStations.length === 1 ? 12 : 10 }, 
+                            callback: (val, idx, ticks) => {
+                                const v = ticks[idx].value; // epoch ms
+                                try { 
+                                    const date = new Date(v);
+                                    return date.toISOString().replace('T', ' ').replace('.000Z', 'Z');
+                                } catch { 
+                                    return ''; 
+                                }
+                            } 
+                        },
+                        grid: { color: gridColor }
                     },
-                    grid: { color: gridColor }
-                },
-                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: d.datasets[0]?.label || 'Value', color: textColor }, ticks: { color: textColor }, grid: { color: gridColor } },
-                y1: d.datasets[1] ? { type: 'linear', display: true, position: 'right', title: { display: true, text: d.datasets[1].label, color: textColor }, ticks: { color: textColor }, grid: { drawOnChartArea: false } } : undefined,
-                y2: d.datasets[2] ? { type: 'linear', display: true, position: 'right', title: { display: true, text: d.datasets[2].label, color: textColor }, ticks: { color: textColor }, grid: { drawOnChartArea: false } } : undefined
-            }
+                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: d.datasets[0]?.label || 'Value', color: textColor }, ticks: { color: textColor }, grid: { color: gridColor } }
+                };
+
+                if (d.datasets[1]) {
+                    scales.y1 = { type: 'linear', display: true, position: 'right', title: { display: true, text: d.datasets[1].label, color: textColor }, ticks: { color: textColor }, grid: { drawOnChartArea: false } };
+                }
+                if (d.datasets[2]) {
+                    scales.y2 = { type: 'linear', display: true, position: 'right', title: { display: true, text: d.datasets[2].label, color: textColor }, ticks: { color: textColor }, grid: { drawOnChartArea: false } };
+                }
+                return scales;
+            })()
         };
     return <div style={{width:'100%',height:'100%',background:chartBg,borderRadius:4,position:'relative',minHeight:0}}>
             <div id={`legend-container-${id}`} style={{padding:'10px 10px 5px 10px', color: textColor}}></div>
@@ -861,13 +875,23 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                                             <div>
                                                 <FaWaveSquare className="me-2" />
                                                 <strong>{st.label}</strong>
-                                                <div className="small" style={{color:'var(--color-text)'}}>Last update: {(() => { 
-                                                    const raw = chartData[id]?.lastUpdated || st.latest_date; 
-                                                    const d = new Date(raw); 
-                                                    if (isNaN(d)) return 'N/A';
-                                                    // Format as UTC "YYYY-MM-DD HH:MM:SS UTC"
-                                                    return d.toISOString().replace('T',' ').replace(/\.\d{3}Z$/,' UTC');
-                                                })()}</div>
+                                                <div className="small" style={{color:'var(--color-text)'}}>
+                                                    Last update: {(() => { 
+                                                        const raw = chartData[id]?.lastUpdated || st.latest_date; 
+                                                        const d = new Date(raw); 
+                                                        if (isNaN(d)) return 'N/A';
+                                                        return d.toISOString().replace('T',' ').replace(/\.\d{3}Z$/,' UTC');
+                                                    })()}
+                                                    {' '}|{' '}
+                                                    Last data: {(() => {
+                                                        const labels = chartData[id]?.labels;
+                                                        const raw = Array.isArray(labels) && labels.length ? labels[labels.length - 1] : null;
+                                                        if (!raw) return 'N/A';
+                                                        const d = raw instanceof Date ? raw : new Date(raw);
+                                                        if (isNaN(d)) return 'N/A';
+                                                        return d.toISOString().replace('T',' ').replace(/\.\d{3}Z$/,' UTC');
+                                                    })()}
+                                                </div>
                                             </div>
                                         </div>
                                         <Badge bg={active? 'success':'danger'}>{active?'Active':'Inactive'}</Badge>
