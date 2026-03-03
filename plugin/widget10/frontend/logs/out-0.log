@@ -72,3 +72,362 @@
 2026-01-26T21:27:56:   Line 60:6:  React Hook useEffect has missing dependencies: 'fetchLogs' and 'startTime'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
 2026-01-26T21:27:56: 
 2026-01-26T21:27:56: webpack compiled with 1 warning
+2026-01-26T22:48:44: Attempting to bind to HOST environment variable: 0.0.0.0
+2026-01-26T22:48:44: If this was unintentional, check that you haven't mistakenly set it in your shell.
+2026-01-26T22:48:44: Learn more here: https://cra.link/advanced-config
+2026-01-26T22:48:44: 
+2026-01-26T22:48:45: Starting the development server...
+2026-01-26T22:48:45: 
+2026-01-26T22:49:04: Attempting to bind to HOST environment variable: 0.0.0.0
+2026-01-26T22:49:04: If this was unintentional, check that you haven't mistakenly set it in your shell.
+2026-01-26T22:49:04: Learn more here: https://cra.link/advanced-config
+2026-01-26T22:49:04: 
+2026-01-26T22:49:05: Starting the development server...
+2026-01-26T22:49:05: 
+2026-01-26T22:49:21: Compiled with warnings.
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: [eslint] 
+2026-01-26T22:49:21: src/App.js
+2026-01-26T22:49:21:   Line 11:10:  'Link' is defined but never used  no-unused-vars
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: src/components/EventLogPanel.js
+2026-01-26T22:49:21:   Line 13:10:  'utilityApi' is defined but never used  no-unused-vars
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: src/components/Graph.js
+2026-01-26T22:49:21:   Line 4:3:   'BarChart' is defined but never used   no-unused-vars
+2026-01-26T22:49:21:   Line 4:13:  'Bar' is defined but never used        no-unused-vars
+2026-01-26T22:49:21:   Line 4:18:  'XAxis' is defined but never used      no-unused-vars
+2026-01-26T22:49:21:   Line 4:25:  'YAxis' is defined but never used      no-unused-vars
+2026-01-26T22:49:21:   Line 4:41:  'Legend' is defined but never used     no-unused-vars
+2026-01-26T22:49:21:   Line 5:3:   'PieChart' is defined but never used   no-unused-vars
+2026-01-26T22:49:21:   Line 5:13:  'Pie' is defined but never used        no-unused-vars
+2026-01-26T22:49:21:   Line 5:18:  'Cell' is defined but never used       no-unused-vars
+2026-01-26T22:49:21:   Line 5:24:  'LineChart' is defined but never used  no-unused-vars
+2026-01-26T22:49:21:   Line 5:35:  'Line' is defined but never used       no-unused-vars
+2026-01-26T22:49:21:   Line 5:41:  'Area' is defined but never used       no-unused-vars
+2026-01-26T22:49:21:   Line 5:47:  'AreaChart' is defined but never used  no-unused-vars
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: src/components/ThemeToggle.js
+2026-01-26T22:49:21:   Line 8:11:  'theme' is assigned a value but never used  no-unused-vars
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: src/pages/Dashboard.js
+2026-01-26T22:49:21:   Line 37:11:  'theme' is assigned a value but never used                                                                              no-unused-vars
+2026-01-26T22:49:21:   Line 112:6:  React Hook useEffect has a missing dependency: 'handleMonitorSingle'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: src/pages/ServiceDetail.js
+2026-01-26T22:49:21:   Line 60:6:  React Hook useEffect has missing dependencies: 'fetchLogs' and 'startTime'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: Search for the keywords to learn more about each warning.
+2026-01-26T22:49:21: To ignore, add // eslint-disable-next-line to the line before.
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: WARNING in [eslint] 
+2026-01-26T22:49:21: src/App.js
+2026-01-26T22:49:21:   Line 11:10:  'Link' is defined but never used  no-unused-vars
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: src/components/EventLogPanel.js
+2026-01-26T22:49:21:   Line 13:10:  'utilityApi' is defined but never used  no-unused-vars
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: src/components/Graph.js
+2026-01-26T22:49:21:   Line 4:3:   'BarChart' is defined but never used   no-unused-vars
+2026-01-26T22:49:21:   Line 4:13:  'Bar' is defined but never used        no-unused-vars
+2026-01-26T22:49:21:   Line 4:18:  'XAxis' is defined but never used      no-unused-vars
+2026-01-26T22:49:21:   Line 4:25:  'YAxis' is defined but never used      no-unused-vars
+2026-01-26T22:49:21:   Line 4:41:  'Legend' is defined but never used     no-unused-vars
+2026-01-26T22:49:21:   Line 5:3:   'PieChart' is defined but never used   no-unused-vars
+2026-01-26T22:49:21:   Line 5:13:  'Pie' is defined but never used        no-unused-vars
+2026-01-26T22:49:21:   Line 5:18:  'Cell' is defined but never used       no-unused-vars
+2026-01-26T22:49:21:   Line 5:24:  'LineChart' is defined but never used  no-unused-vars
+2026-01-26T22:49:21:   Line 5:35:  'Line' is defined but never used       no-unused-vars
+2026-01-26T22:49:21:   Line 5:41:  'Area' is defined but never used       no-unused-vars
+2026-01-26T22:49:21:   Line 5:47:  'AreaChart' is defined but never used  no-unused-vars
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: src/components/ThemeToggle.js
+2026-01-26T22:49:21:   Line 8:11:  'theme' is assigned a value but never used  no-unused-vars
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: src/pages/Dashboard.js
+2026-01-26T22:49:21:   Line 37:11:  'theme' is assigned a value but never used                                                                              no-unused-vars
+2026-01-26T22:49:21:   Line 112:6:  React Hook useEffect has a missing dependency: 'handleMonitorSingle'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: src/pages/ServiceDetail.js
+2026-01-26T22:49:21:   Line 60:6:  React Hook useEffect has missing dependencies: 'fetchLogs' and 'startTime'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+2026-01-26T22:49:21: 
+2026-01-26T22:49:21: webpack compiled with 1 warning
+2026-01-26T22:59:53: Attempting to bind to HOST environment variable: 0.0.0.0
+2026-01-26T22:59:53: If this was unintentional, check that you haven't mistakenly set it in your shell.
+2026-01-26T22:59:53: Learn more here: https://cra.link/advanced-config
+2026-01-26T22:59:53: 
+2026-01-26T22:59:55: Starting the development server...
+2026-01-26T22:59:55: 
+2026-01-26T22:59:56: Compiled successfully!
+2026-01-26T22:59:56: 
+2026-01-26T22:59:56: You can now view frontend in the browser.
+2026-01-26T22:59:56: 
+2026-01-26T22:59:56:   Local:            http://localhost:3111/widget10
+2026-01-26T22:59:56:   On Your Network:  http://172.27.0.2:3111/widget10
+2026-01-26T22:59:56: 
+2026-01-26T22:59:56: Note that the development build is not optimized.
+2026-01-26T22:59:56: To create a production build, use npm run build.
+2026-01-26T22:59:56: 
+2026-01-26T22:59:56: webpack compiled successfully
+2026-01-28T02:21:17: Attempting to bind to HOST environment variable: 0.0.0.0
+2026-01-28T02:21:17: If this was unintentional, check that you haven't mistakenly set it in your shell.
+2026-01-28T02:21:17: Learn more here: https://cra.link/advanced-config
+2026-01-28T02:21:17: 
+2026-01-28T02:21:19: Starting the development server...
+2026-01-28T02:21:19: 
+2026-01-28T02:21:40: Compiled with warnings.
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: [eslint] 
+2026-01-28T02:21:40: src/App.js
+2026-01-28T02:21:40:   Line 11:10:  'Link' is defined but never used  no-unused-vars
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: src/components/EventLogPanel.js
+2026-01-28T02:21:40:   Line 13:10:  'utilityApi' is defined but never used  no-unused-vars
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: src/components/Graph.js
+2026-01-28T02:21:40:   Line 4:3:   'BarChart' is defined but never used   no-unused-vars
+2026-01-28T02:21:40:   Line 4:13:  'Bar' is defined but never used        no-unused-vars
+2026-01-28T02:21:40:   Line 4:18:  'XAxis' is defined but never used      no-unused-vars
+2026-01-28T02:21:40:   Line 4:25:  'YAxis' is defined but never used      no-unused-vars
+2026-01-28T02:21:40:   Line 4:41:  'Legend' is defined but never used     no-unused-vars
+2026-01-28T02:21:40:   Line 5:3:   'PieChart' is defined but never used   no-unused-vars
+2026-01-28T02:21:40:   Line 5:13:  'Pie' is defined but never used        no-unused-vars
+2026-01-28T02:21:40:   Line 5:18:  'Cell' is defined but never used       no-unused-vars
+2026-01-28T02:21:40:   Line 5:24:  'LineChart' is defined but never used  no-unused-vars
+2026-01-28T02:21:40:   Line 5:35:  'Line' is defined but never used       no-unused-vars
+2026-01-28T02:21:40:   Line 5:41:  'Area' is defined but never used       no-unused-vars
+2026-01-28T02:21:40:   Line 5:47:  'AreaChart' is defined but never used  no-unused-vars
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: src/components/ThemeToggle.js
+2026-01-28T02:21:40:   Line 8:11:  'theme' is assigned a value but never used  no-unused-vars
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: src/pages/Dashboard.js
+2026-01-28T02:21:40:   Line 37:11:  'theme' is assigned a value but never used                                                                              no-unused-vars
+2026-01-28T02:21:40:   Line 112:6:  React Hook useEffect has a missing dependency: 'handleMonitorSingle'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: src/pages/ServiceDetail.js
+2026-01-28T02:21:40:   Line 60:6:  React Hook useEffect has missing dependencies: 'fetchLogs' and 'startTime'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: Search for the keywords to learn more about each warning.
+2026-01-28T02:21:40: To ignore, add // eslint-disable-next-line to the line before.
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: WARNING in [eslint] 
+2026-01-28T02:21:40: src/App.js
+2026-01-28T02:21:40:   Line 11:10:  'Link' is defined but never used  no-unused-vars
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: src/components/EventLogPanel.js
+2026-01-28T02:21:40:   Line 13:10:  'utilityApi' is defined but never used  no-unused-vars
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: src/components/Graph.js
+2026-01-28T02:21:40:   Line 4:3:   'BarChart' is defined but never used   no-unused-vars
+2026-01-28T02:21:40:   Line 4:13:  'Bar' is defined but never used        no-unused-vars
+2026-01-28T02:21:40:   Line 4:18:  'XAxis' is defined but never used      no-unused-vars
+2026-01-28T02:21:40:   Line 4:25:  'YAxis' is defined but never used      no-unused-vars
+2026-01-28T02:21:40:   Line 4:41:  'Legend' is defined but never used     no-unused-vars
+2026-01-28T02:21:40:   Line 5:3:   'PieChart' is defined but never used   no-unused-vars
+2026-01-28T02:21:40:   Line 5:13:  'Pie' is defined but never used        no-unused-vars
+2026-01-28T02:21:40:   Line 5:18:  'Cell' is defined but never used       no-unused-vars
+2026-01-28T02:21:40:   Line 5:24:  'LineChart' is defined but never used  no-unused-vars
+2026-01-28T02:21:40:   Line 5:35:  'Line' is defined but never used       no-unused-vars
+2026-01-28T02:21:40:   Line 5:41:  'Area' is defined but never used       no-unused-vars
+2026-01-28T02:21:40:   Line 5:47:  'AreaChart' is defined but never used  no-unused-vars
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: src/components/ThemeToggle.js
+2026-01-28T02:21:40:   Line 8:11:  'theme' is assigned a value but never used  no-unused-vars
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: src/pages/Dashboard.js
+2026-01-28T02:21:40:   Line 37:11:  'theme' is assigned a value but never used                                                                              no-unused-vars
+2026-01-28T02:21:40:   Line 112:6:  React Hook useEffect has a missing dependency: 'handleMonitorSingle'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: src/pages/ServiceDetail.js
+2026-01-28T02:21:40:   Line 60:6:  React Hook useEffect has missing dependencies: 'fetchLogs' and 'startTime'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+2026-01-28T02:21:40: 
+2026-01-28T02:21:40: webpack compiled with 1 warning
+2026-01-28T02:29:58: Attempting to bind to HOST environment variable: 0.0.0.0
+2026-01-28T02:29:58: If this was unintentional, check that you haven't mistakenly set it in your shell.
+2026-01-28T02:29:58: Learn more here: https://cra.link/advanced-config
+2026-01-28T02:29:58: 
+2026-01-28T02:30:00: Starting the development server...
+2026-01-28T02:30:00: 
+2026-01-28T02:30:02: Compiled successfully!
+2026-01-28T02:30:02: 
+2026-01-28T02:30:02: You can now view frontend in the browser.
+2026-01-28T02:30:02: 
+2026-01-28T02:30:02:   Local:            http://localhost:3111/widget10
+2026-01-28T02:30:02:   On Your Network:  http://172.24.0.4:3111/widget10
+2026-01-28T02:30:02: 
+2026-01-28T02:30:02: Note that the development build is not optimized.
+2026-01-28T02:30:02: To create a production build, use npm run build.
+2026-01-28T02:30:02: 
+2026-01-28T02:30:02: webpack compiled successfully
+2026-01-28T03:32:17: Attempting to bind to HOST environment variable: 0.0.0.0
+2026-01-28T03:32:17: If this was unintentional, check that you haven't mistakenly set it in your shell.
+2026-01-28T03:32:17: Learn more here: https://cra.link/advanced-config
+2026-01-28T03:32:17: 
+2026-01-28T03:32:19: Starting the development server...
+2026-01-28T03:32:19: 
+2026-01-28T03:32:38: Compiled with warnings.
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: [eslint] 
+2026-01-28T03:32:38: src/App.js
+2026-01-28T03:32:38:   Line 11:10:  'Link' is defined but never used  no-unused-vars
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: src/components/EventLogPanel.js
+2026-01-28T03:32:38:   Line 13:10:  'utilityApi' is defined but never used  no-unused-vars
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: src/components/Graph.js
+2026-01-28T03:32:38:   Line 4:3:   'BarChart' is defined but never used   no-unused-vars
+2026-01-28T03:32:38:   Line 4:13:  'Bar' is defined but never used        no-unused-vars
+2026-01-28T03:32:38:   Line 4:18:  'XAxis' is defined but never used      no-unused-vars
+2026-01-28T03:32:38:   Line 4:25:  'YAxis' is defined but never used      no-unused-vars
+2026-01-28T03:32:38:   Line 4:41:  'Legend' is defined but never used     no-unused-vars
+2026-01-28T03:32:38:   Line 5:3:   'PieChart' is defined but never used   no-unused-vars
+2026-01-28T03:32:38:   Line 5:13:  'Pie' is defined but never used        no-unused-vars
+2026-01-28T03:32:38:   Line 5:18:  'Cell' is defined but never used       no-unused-vars
+2026-01-28T03:32:38:   Line 5:24:  'LineChart' is defined but never used  no-unused-vars
+2026-01-28T03:32:38:   Line 5:35:  'Line' is defined but never used       no-unused-vars
+2026-01-28T03:32:38:   Line 5:41:  'Area' is defined but never used       no-unused-vars
+2026-01-28T03:32:38:   Line 5:47:  'AreaChart' is defined but never used  no-unused-vars
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: src/components/ThemeToggle.js
+2026-01-28T03:32:38:   Line 8:11:  'theme' is assigned a value but never used  no-unused-vars
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: src/pages/Dashboard.js
+2026-01-28T03:32:38:   Line 37:11:  'theme' is assigned a value but never used                                                                              no-unused-vars
+2026-01-28T03:32:38:   Line 112:6:  React Hook useEffect has a missing dependency: 'handleMonitorSingle'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: src/pages/ServiceDetail.js
+2026-01-28T03:32:38:   Line 60:6:  React Hook useEffect has missing dependencies: 'fetchLogs' and 'startTime'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: Search for the keywords to learn more about each warning.
+2026-01-28T03:32:38: To ignore, add // eslint-disable-next-line to the line before.
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: WARNING in [eslint] 
+2026-01-28T03:32:38: src/App.js
+2026-01-28T03:32:38:   Line 11:10:  'Link' is defined but never used  no-unused-vars
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: src/components/EventLogPanel.js
+2026-01-28T03:32:38:   Line 13:10:  'utilityApi' is defined but never used  no-unused-vars
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: src/components/Graph.js
+2026-01-28T03:32:38:   Line 4:3:   'BarChart' is defined but never used   no-unused-vars
+2026-01-28T03:32:38:   Line 4:13:  'Bar' is defined but never used        no-unused-vars
+2026-01-28T03:32:38:   Line 4:18:  'XAxis' is defined but never used      no-unused-vars
+2026-01-28T03:32:38:   Line 4:25:  'YAxis' is defined but never used      no-unused-vars
+2026-01-28T03:32:38:   Line 4:41:  'Legend' is defined but never used     no-unused-vars
+2026-01-28T03:32:38:   Line 5:3:   'PieChart' is defined but never used   no-unused-vars
+2026-01-28T03:32:38:   Line 5:13:  'Pie' is defined but never used        no-unused-vars
+2026-01-28T03:32:38:   Line 5:18:  'Cell' is defined but never used       no-unused-vars
+2026-01-28T03:32:38:   Line 5:24:  'LineChart' is defined but never used  no-unused-vars
+2026-01-28T03:32:38:   Line 5:35:  'Line' is defined but never used       no-unused-vars
+2026-01-28T03:32:38:   Line 5:41:  'Area' is defined but never used       no-unused-vars
+2026-01-28T03:32:38:   Line 5:47:  'AreaChart' is defined but never used  no-unused-vars
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: src/components/ThemeToggle.js
+2026-01-28T03:32:38:   Line 8:11:  'theme' is assigned a value but never used  no-unused-vars
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: src/pages/Dashboard.js
+2026-01-28T03:32:38:   Line 37:11:  'theme' is assigned a value but never used                                                                              no-unused-vars
+2026-01-28T03:32:38:   Line 112:6:  React Hook useEffect has a missing dependency: 'handleMonitorSingle'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: src/pages/ServiceDetail.js
+2026-01-28T03:32:38:   Line 60:6:  React Hook useEffect has missing dependencies: 'fetchLogs' and 'startTime'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+2026-01-28T03:32:38: 
+2026-01-28T03:32:38: webpack compiled with 1 warning
+2026-01-28T03:33:22: Attempting to bind to HOST environment variable: 0.0.0.0
+2026-01-28T03:33:22: If this was unintentional, check that you haven't mistakenly set it in your shell.
+2026-01-28T03:33:22: Learn more here: https://cra.link/advanced-config
+2026-01-28T03:33:22: 
+2026-01-28T03:33:23: Starting the development server...
+2026-01-28T03:33:23: 
+2026-01-28T03:33:25: Compiled successfully!
+2026-01-28T03:33:25: 
+2026-01-28T03:33:25: You can now view frontend in the browser.
+2026-01-28T03:33:25: 
+2026-01-28T03:33:25:   Local:            http://localhost:3111/widget10
+2026-01-28T03:33:25:   On Your Network:  http://172.24.0.4:3111/widget10
+2026-01-28T03:33:25: 
+2026-01-28T03:33:25: Note that the development build is not optimized.
+2026-01-28T03:33:25: To create a production build, use npm run build.
+2026-01-28T03:33:25: 
+2026-01-28T03:33:25: webpack compiled successfully
+2026-02-19T22:29:29: Attempting to bind to HOST environment variable: 0.0.0.0
+2026-02-19T22:29:29: If this was unintentional, check that you haven't mistakenly set it in your shell.
+2026-02-19T22:29:29: Learn more here: https://cra.link/advanced-config
+2026-02-19T22:29:29: 
+2026-02-19T22:29:30: Starting the development server...
+2026-02-19T22:29:30: 
+2026-02-19T22:29:51: Attempting to bind to HOST environment variable: 0.0.0.0
+2026-02-19T22:29:51: If this was unintentional, check that you haven't mistakenly set it in your shell.
+2026-02-19T22:29:51: Learn more here: https://cra.link/advanced-config
+2026-02-19T22:29:51: 
+2026-02-19T22:29:52: Starting the development server...
+2026-02-19T22:29:52: 
+2026-02-19T22:30:03: Compiled with warnings.
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: [eslint] 
+2026-02-19T22:30:03: src/App.js
+2026-02-19T22:30:03:   Line 11:10:  'Link' is defined but never used  no-unused-vars
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: src/components/EventLogPanel.js
+2026-02-19T22:30:03:   Line 13:10:  'utilityApi' is defined but never used  no-unused-vars
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: src/components/Graph.js
+2026-02-19T22:30:03:   Line 4:3:   'BarChart' is defined but never used   no-unused-vars
+2026-02-19T22:30:03:   Line 4:13:  'Bar' is defined but never used        no-unused-vars
+2026-02-19T22:30:03:   Line 4:18:  'XAxis' is defined but never used      no-unused-vars
+2026-02-19T22:30:03:   Line 4:25:  'YAxis' is defined but never used      no-unused-vars
+2026-02-19T22:30:03:   Line 4:41:  'Legend' is defined but never used     no-unused-vars
+2026-02-19T22:30:03:   Line 5:3:   'PieChart' is defined but never used   no-unused-vars
+2026-02-19T22:30:03:   Line 5:13:  'Pie' is defined but never used        no-unused-vars
+2026-02-19T22:30:03:   Line 5:18:  'Cell' is defined but never used       no-unused-vars
+2026-02-19T22:30:03:   Line 5:24:  'LineChart' is defined but never used  no-unused-vars
+2026-02-19T22:30:03:   Line 5:35:  'Line' is defined but never used       no-unused-vars
+2026-02-19T22:30:03:   Line 5:41:  'Area' is defined but never used       no-unused-vars
+2026-02-19T22:30:03:   Line 5:47:  'AreaChart' is defined but never used  no-unused-vars
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: src/components/ThemeToggle.js
+2026-02-19T22:30:03:   Line 8:11:  'theme' is assigned a value but never used  no-unused-vars
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: src/pages/Dashboard.js
+2026-02-19T22:30:03:   Line 37:11:  'theme' is assigned a value but never used                                                                              no-unused-vars
+2026-02-19T22:30:03:   Line 112:6:  React Hook useEffect has a missing dependency: 'handleMonitorSingle'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: src/pages/ServiceDetail.js
+2026-02-19T22:30:03:   Line 60:6:  React Hook useEffect has missing dependencies: 'fetchLogs' and 'startTime'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: Search for the keywords to learn more about each warning.
+2026-02-19T22:30:03: To ignore, add // eslint-disable-next-line to the line before.
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: WARNING in [eslint] 
+2026-02-19T22:30:03: src/App.js
+2026-02-19T22:30:03:   Line 11:10:  'Link' is defined but never used  no-unused-vars
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: src/components/EventLogPanel.js
+2026-02-19T22:30:03:   Line 13:10:  'utilityApi' is defined but never used  no-unused-vars
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: src/components/Graph.js
+2026-02-19T22:30:03:   Line 4:3:   'BarChart' is defined but never used   no-unused-vars
+2026-02-19T22:30:03:   Line 4:13:  'Bar' is defined but never used        no-unused-vars
+2026-02-19T22:30:03:   Line 4:18:  'XAxis' is defined but never used      no-unused-vars
+2026-02-19T22:30:03:   Line 4:25:  'YAxis' is defined but never used      no-unused-vars
+2026-02-19T22:30:03:   Line 4:41:  'Legend' is defined but never used     no-unused-vars
+2026-02-19T22:30:03:   Line 5:3:   'PieChart' is defined but never used   no-unused-vars
+2026-02-19T22:30:03:   Line 5:13:  'Pie' is defined but never used        no-unused-vars
+2026-02-19T22:30:03:   Line 5:18:  'Cell' is defined but never used       no-unused-vars
+2026-02-19T22:30:03:   Line 5:24:  'LineChart' is defined but never used  no-unused-vars
+2026-02-19T22:30:03:   Line 5:35:  'Line' is defined but never used       no-unused-vars
+2026-02-19T22:30:03:   Line 5:41:  'Area' is defined but never used       no-unused-vars
+2026-02-19T22:30:03:   Line 5:47:  'AreaChart' is defined but never used  no-unused-vars
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: src/components/ThemeToggle.js
+2026-02-19T22:30:03:   Line 8:11:  'theme' is assigned a value but never used  no-unused-vars
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: src/pages/Dashboard.js
+2026-02-19T22:30:03:   Line 37:11:  'theme' is assigned a value but never used                                                                              no-unused-vars
+2026-02-19T22:30:03:   Line 112:6:  React Hook useEffect has a missing dependency: 'handleMonitorSingle'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: src/pages/ServiceDetail.js
+2026-02-19T22:30:03:   Line 60:6:  React Hook useEffect has missing dependencies: 'fetchLogs' and 'startTime'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+2026-02-19T22:30:03: 
+2026-02-19T22:30:03: webpack compiled with 1 warning

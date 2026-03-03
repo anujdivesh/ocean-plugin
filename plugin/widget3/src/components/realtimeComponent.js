@@ -334,7 +334,8 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                 });
                 return {
                     key: k,
-                    label: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                    //label: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                    label: k.replace(/_/g, ' '),
                     values: rawValues,
                     originalValues: rawValues,
                     axis: idx === 0 ? 'y1' : idx === 1 ? 'y2' : 'y3'
