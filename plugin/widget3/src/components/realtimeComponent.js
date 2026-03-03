@@ -124,7 +124,7 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
     // themeKey increments when body class (light/dark) changes so charts fully re-render with new colors
     const [themeKey, setThemeKey] = useState(0);
     const refreshIntervalRef = useRef(null);
-    const REFRESH_INTERVAL = 30000;
+    const REFRESH_INTERVAL = 300000;
     const controlsRef = useRef(null);
     // Keep last known sampling interval per station without triggering renders
     const sampleMinutesRef = useRef({});
@@ -169,7 +169,7 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
             
             // Create AbortController for timeout
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 5 minutes timeout
+            const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
             
             const res = await fetch(url, { 
                 headers: { Accept: 'application/json' },
