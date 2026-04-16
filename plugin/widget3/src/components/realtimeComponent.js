@@ -128,6 +128,9 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
     const controlsRef = useRef(null);
     // Keep last known sampling interval per station without triggering renders
     const sampleMinutesRef = useRef({});
+    // Request sequencing to prevent stale/partial refreshes from overwriting newer selections/data
+    const requestSeqRef = useRef(0);
+    const pendingInitRef = useRef(false);
 
     const getStationDetails = useCallback(id => {
         const found = buoyOptions.find(b=>b.spotter_id===id);
@@ -163,249 +166,470 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
 
     // New generic fetch for insitu station timeseries using station_id from API
     const fetchInsituData = useCallback(async (stationId, limit, reason = '') => {
-        try {
-            const url = `https://ocean-obs-api.spc.int/insitu/get_data/station/${stationId}?limit=${limit}`;
-            // console.log(`[fetchInsituData] Fetching station ${stationId} with limit ${limit}. Reason: ${reason}`);
-            
-            // Create AbortController for timeout
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
-            
-            const res = await fetch(url, { 
-                headers: { Accept: 'application/json' },
-                signal: controller.signal 
-            });
-            
-            clearTimeout(timeoutId);
-            
-            // Handle 404 error - station not found
-            if (res.status === 404) {
-                return { data: [], data_labels: '', isEmpty: true, notFound: true };
+        const inferDataLabelsFromRows = (rows) => {
+            if (!Array.isArray(rows) || !rows.length) return '';
+            const firstObj = rows.find(r => r && typeof r === 'object' && !Array.isArray(r));
+            if (!firstObj) return '';
+            const keys = Object.keys(firstObj);
+            if (!keys.length) return '';
+
+            const lower = keys.map(k => (k || '').toString().toLowerCase());
+            let timeIdx = lower.indexOf('time');
+            if (timeIdx < 0) timeIdx = lower.findIndex(k => k.includes('time'));
+            if (timeIdx < 0) timeIdx = lower.findIndex(k => k.includes('date'));
+
+            const timeKey = timeIdx >= 0 ? keys[timeIdx] : null;
+            if (!timeKey) return keys.join(',');
+            const yKeys = keys.filter(k => k !== timeKey);
+            return [...yKeys, timeKey].join(',');
+        };
+
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // keep param referenced to avoid eslint no-unused-vars in some configs
+        void reason;
+
+        const MAX_ATTEMPTS = 2;
+
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                const url = `https://ocean-obs-api.spc.int/insitu/get_data/station/${stationId}?limit=${limit}`;
+                // console.log(`[fetchInsituData] Fetching station ${stationId} with limit ${limit}. Reason: ${reason}`);
+
+                // Create AbortController for timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+
+                let res;
+                try {
+                    res = await fetch(url, {
+                        headers: { Accept: 'application/json' },
+                        signal: controller.signal
+                    });
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+
+                // Handle 404 error - station not found
+                if (res.status === 404) {
+                    return { data: [], data_labels: '', isEmpty: true, notFound: true };
+                }
+
+                if (!res.ok) {
+                    // Retry transient HTTP failures once (helps avoid 1-refresh "No data" flicker)
+                    const retryable = res.status >= 500 || res.status === 429 || res.status === 408;
+                    if (attempt < MAX_ATTEMPTS && retryable) {
+                        await sleep(400 + Math.floor(Math.random() * 400));
+                        continue;
+                    }
+                    return null;
+                }
+
+                const data = await res.json();
+
+                // Check if response contains "Active station not found" error
+                if (data && data.detail && data.detail === "Active station not found") {
+                    return { data: [], data_labels: '', isEmpty: true, stationNotFound: true };
+                }
+
+                // Handle the response structure - data can be directly in response or nested
+                let actualData, dataLabels, chartType, stationType;
+                if (data?.data !== undefined) {
+                    // Case 1: data is nested (existing structure)
+                    actualData = data.data;
+                    dataLabels = data.data_labels;
+                    chartType = data.chart_type || data.chartType || data.meta?.chart_type;
+                    stationType = data.type || data.station_type || data.stationType || data.meta?.type || data.station?.type;
+                } else if (Array.isArray(data)) {
+                    // Case 2: response is directly an array
+                    actualData = data;
+                    dataLabels = '';
+                    chartType = undefined;
+                    stationType = undefined;
+                } else {
+                    // Case 3: data is at top level (your current response structure)
+                    actualData = data?.data || [];
+                    dataLabels = data?.data_labels || '';
+                    chartType = data?.chart_type || data?.chartType || data?.meta?.chart_type;
+                    stationType = data?.type || data?.station_type || data?.stationType || data?.meta?.type || data?.station?.type;
+                }
+
+                // If API returns empty occasionally, retry once before declaring empty.
+                if (!actualData || actualData.length === 0) {
+                    if (attempt < MAX_ATTEMPTS) {
+                        await sleep(350 + Math.floor(Math.random() * 350));
+                        continue;
+                    }
+                    return { data: [], data_labels: (dataLabels || ''), isEmpty: true };
+                }
+
+                // Some endpoints return raw arrays without data_labels; infer them from object keys.
+                if (!dataLabels || (typeof dataLabels === 'string' && !dataLabels.trim())) {
+                    dataLabels = inferDataLabelsFromRows(actualData);
+                }
+
+                // If still missing labels, retry once (helps when backend intermittently omits metadata)
+                if ((!dataLabels || !dataLabels.toString().trim()) && attempt < MAX_ATTEMPTS) {
+                    await sleep(300 + Math.floor(Math.random() * 300));
+                    continue;
+                }
+
+                // Return normalized structure (also include optional chart_type and station type if provided by API)
+                return { data: actualData, data_labels: dataLabels || '', chart_type: chartType, station_type: stationType };
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    console.error(`[fetchInsituData] Request timeout for station ${stationId} after 5 minutes`);
+                    return { data: [], data_labels: '', isTimeout: true };
+                }
+
+                // Retry transient network errors once
+                if (attempt < MAX_ATTEMPTS) {
+                    await sleep(400 + Math.floor(Math.random() * 400));
+                    continue;
+                }
+
+                // console.error(`[fetchInsituData] Error fetching station ${stationId}:`, err);
+                return null;
             }
-            
-            if (!res.ok) return null;
-            const data = await res.json();
-            
-            // Check if response contains "Active station not found" error
-            if (data && data.detail && data.detail === "Active station not found") {
-                return { data: [], data_labels: '', isEmpty: true, stationNotFound: true };
-            }
-            
-                         // Handle the response structure - data can be directly in response or nested
-             let actualData, dataLabels, chartType, stationType;
-             if (data.data !== undefined) {
-                 // Case 1: data is nested (existing structure)
-                 actualData = data.data;
-                 dataLabels = data.data_labels;
-                 chartType = data.chart_type || data.chartType || data.meta?.chart_type;
-                 stationType = data.type || data.station_type || data.stationType || data.meta?.type || data.station?.type;
-             } else if (Array.isArray(data)) {
-                 // Case 2: response is directly an array
-                 actualData = data;
-                 dataLabels = '';
-                 chartType = undefined;
-                 stationType = undefined;
-             } else {
-                 // Case 3: data is at top level (your current response structure)
-                 actualData = data.data || [];
-                 dataLabels = data.data_labels || '';
-                 chartType = data.chart_type || data.chartType || data.meta?.chart_type;
-                 stationType = data.type || data.station_type || data.stationType || data.meta?.type || data.station?.type;
-             }
-             
-                          // Check if data array is empty (this handles the case where data: [] is returned)
-             if (!actualData || actualData.length === 0) {
-                 return { data: [], data_labels: dataLabels || '', isEmpty: true };
-             }
-            
-            // Return normalized structure (also include optional chart_type and station type if provided by API)
-            return { data: actualData, data_labels: dataLabels, chart_type: chartType, station_type: stationType };
-        } catch (err) {
-            if (err.name === 'AbortError') {
-                console.error(`[fetchInsituData] Request timeout for station ${stationId} after 5 minutes`);
-                return { data: [], data_labels: '', isTimeout: true };
-            }
-            // console.error(`[fetchInsituData] Error fetching station ${stationId}:`, err);
-            return null;
         }
+
+        return null;
     }, []);
 
     const initializeChartData = useCallback(async () => {
-        if (isLoadingChartsRef.current) return;
+        const requestId = ++requestSeqRef.current;
+
+        // If a fetch is already running, queue a rerun. This avoids overlapping fetch storms.
+        if (isLoadingChartsRef.current) {
+            pendingInitRef.current = true;
+            return;
+        }
+
         isLoadingChartsRef.current = true;
-        if (!selectedStations.length) { isLoadingChartsRef.current = false; return; }
-        const newChartData = {};
-        
-        // Clear existing chart data immediately to show loading state
-        setChartData({});
-        
-                 await Promise.all(selectedStations.map(async spotterId => {
-             const station = getStationDetails(spotterId);
-             const stationId = station.spotter_id; // use station_id instead of numeric id
-             if (!stationId) {
-                 // Handle case where station has no station ID
-                 const metaBase = stationData[spotterId] || {};
-                 if (!metaBase.country_short && sharedCountryMap[spotterId]) {
-                     metaBase.country_short = (sharedCountryMap[spotterId]||'').toUpperCase();
-                 }
-                 newChartData[spotterId] = {
-                     labels: [],
-                     datasets: [],
-                     lastUpdated: new Date().toISOString(),
-                     meta: metaBase,
-                     noData: true,
-                     isEmpty: true
-                 };
-                 return;
-             }
-             
-             // Determine fetch size (effectiveLimit) purely from hourWindow & prior sampling interval.
-             // If hourWindow is provided: desired points = hours * 60 / samplingMinutes (rounded up).
-             // Otherwise request a broad recent window capped by MAX_FETCH_POINTS.
-             const priorStep = sampleMinutesRef.current[spotterId] || 1; // assume 1-minute if unknown
-             let effectiveLimit;
-             if (hourWindow) {
-                // Desired points = hours * 60 / samplingMinutes (rounded up). No upper cap enforced.
-                effectiveLimit = Math.max(1, Math.ceil((Number(hourWindow) * 60) / priorStep));
-             } else {
-                // Without an hour window, we could request a broad recent slice; choose a generous default.
-                // This can be tuned later or made configurable; for now fetch 4000 to avoid extreme loads.
-                effectiveLimit = 4000;
-             }
-             const data = await fetchInsituData(stationId, effectiveLimit, `initializeChartData - Live: ${liveMode} - Hours: ${hourWindow ?? 'all'}`);
-             
-             // Create base chart data structure for all cases
-             const metaBase = stationData[spotterId] || {};
-             if (!metaBase.country_short && sharedCountryMap[spotterId]) {
-                 metaBase.country_short = (sharedCountryMap[spotterId]||'').toUpperCase();
-             }
-             
-             // Handle timeout or empty data cases
-             if (!data) {
-                 newChartData[spotterId] = {
-                     labels: [],
-                     datasets: [],
-                     lastUpdated: new Date().toISOString(),
-                     meta: metaBase,
-                     noData: true,
-                     isEmpty: true
-                 };
-                 return;
-             }
-             
-            // station_type currently unused after removal of outlier logic; omit to avoid lint warning
-            const { data: rows = [], data_labels, chart_type, isEmpty, isTimeout, stationNotFound, notFound } = data;
-             
-             if (isEmpty || isTimeout || stationNotFound || notFound || !rows.length || !data_labels) {
-                 newChartData[spotterId] = {
-                     labels: [],
-                     datasets: [],
-                     lastUpdated: new Date().toISOString(),
-                     meta: metaBase,
-                     isEmpty: isEmpty || !rows.length,
-                     isTimeout: isTimeout,
-                     stationNotFound: stationNotFound,
-                     notFound: notFound,
-                     noData: true
-                 };
-                 return;
-             }
 
-            // data_labels example: "sea_level,time" or could include multiple variables
-            const labelsArr = data_labels.split(',').map(s => s.trim()).filter(Boolean);
-            // Ensure time label is identified
-            const timeKey = labelsArr.find(l => l.toLowerCase() === 'time') || 'time';
-            const yKeys = labelsArr.filter(l => l.toLowerCase() !== 'time');
-            // Build traces dynamically
-            const times = rows.map(entry => {
-                const time = entry[timeKey];
-                // If time is ISO string, strip seconds and always append 'Z'
-                if (typeof time === 'string') {
-                    // Match "T12:34:56", "T12:34:56.789", "T12:34", etc.
-                    // Remove seconds, keep "T12:34", and add 'Z' at the end
-                    const match = time.match(/^(.+T\d{2}:\d{2})/);
-                    const base = match ? match[1] : time;
-                    return base + 'Z';
-                }
-                // If time is a Date object, format as "YYYY-MM-DDTHH:MMZ"
-                const date = new Date(time);
-                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}Z`;
-            });
-            // Using Date objects directly for Chart.js time scale
-            const rawDatasets = yKeys.map((k, idx) => {
-                const rawValues = rows.map(r => {
-                    const val = r[k];
-                    if (val === -999) return null; // treat sentinel -999 as missing
-                    return val;
-                });
-                return {
-                    key: k,
-                    //label: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-                    label: k.replace(/_/g, ' '),
-                    values: rawValues,
-                    originalValues: rawValues,
-                    axis: idx === 0 ? 'y1' : idx === 1 ? 'y2' : 'y3'
-                };
-            });
+        try {
+            if (!selectedStations.length) return;
 
-            // Determine sampling interval (median delta) in minutes for this station
-            const labelDates = times.map(t => new Date(t));
-            let sampleMinutes = 1;
-            if (labelDates.length > 1) {
-                const deltas = [];
-                for (let i=1;i<labelDates.length;i++) {
-                    const dt = (new Date(labelDates[i]).getTime() - new Date(labelDates[i-1]).getTime());
-                    if (dt > 0) deltas.push(dt);
-                }
-                if (deltas.length) {
-                    deltas.sort((a,b)=>a-b);
-                    const mid = Math.floor(deltas.length/2);
-                    const medianMs = deltas.length % 2 ? deltas[mid] : (deltas[mid-1]+deltas[mid])/2;
-                    sampleMinutes = Math.max(1, Math.round(medianMs/60000));
-                }
-            }
+            const newChartData = {};
+            const CONCURRENCY = 4;
 
-            // If an hour window is selected, strictly filter to that time window based on the maximum timestamp
-            let finalLabels = labelDates;
-            let finalDatasets = rawDatasets;
-            if (hourWindow && labelDates.length) {
-                const timesMs = labelDates.map(d => d.getTime());
-                const maxTime = Math.max(...timesMs);
-                const cutoff = maxTime - Number(hourWindow) * 3600000;
-                const indices = [];
-                for (let i = 0; i < timesMs.length; i++) {
-                    const t = timesMs[i];
-                    if (t >= cutoff && t <= maxTime) indices.push(i);
+            const parseToDate = (value) => {
+                if (value instanceof Date) return value;
+                if (value == null) return new Date(NaN);
+
+                if (typeof value === 'number') return new Date(value);
+
+                if (typeof value === 'string') {
+                    const s = value.trim();
+                    // Fast path: native Date can parse most ISO strings including timezone offsets
+                    const d1 = new Date(s);
+                    if (!isNaN(d1)) return d1;
+
+                    // Fallback: handle "YYYY-MM-DD HH:MM[:SS]" (assume UTC)
+                    const m = s.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?$/);
+                    if (m) {
+                        const d2 = new Date(`${m[1]}T${m[2]}Z`);
+                        if (!isNaN(d2)) return d2;
+                    }
+
+                    return new Date(NaN);
                 }
-                if (indices.length) {
-                    finalLabels = indices.map(i => labelDates[i]);
-                    finalDatasets = rawDatasets.map(ds => ({
-                        ...ds,
-                        values: indices.map(i => ds.values[i])
-                    }));
-                } else {
-                    // No points fall within the requested window
-                    finalLabels = [];
-                    finalDatasets = rawDatasets.map(ds => ({ ...ds, values: [] }));
-                }
-            }
-            
-            const effectiveChartType = (chart_type || '').toString().toLowerCase();
-            newChartData[spotterId] = {
-                labels: finalLabels,
-                datasets: finalDatasets,
-                lastUpdated: new Date().toISOString(),
-                meta: metaBase,
-                noData: false,
-                // Pass through API hint to influence rendering style (scatter vs line)
-                chartType: effectiveChartType,
-                sampleMinutes
+
+                return new Date(value);
             };
-            // Store sampling interval for next fetch sizing without creating state dependency loops
-            sampleMinutesRef.current[spotterId] = sampleMinutes;
-        }));
-        setChartData(newChartData);
-        isLoadingChartsRef.current = false;
+
+            const processStation = async (spotterId) => {
+                const station = getStationDetails(spotterId);
+                const stationId = station.spotter_id; // use station_id instead of numeric id
+
+                // Create base chart data structure for all cases
+                const metaBase = { ...(stationData[spotterId] || {}) };
+                if (!metaBase.country_short && sharedCountryMap[spotterId]) {
+                    metaBase.country_short = (sharedCountryMap[spotterId] || '').toUpperCase();
+                }
+
+                if (!stationId) {
+                    newChartData[spotterId] = {
+                        labels: [],
+                        datasets: [],
+                        lastUpdated: new Date().toISOString(),
+                        meta: metaBase,
+                        noData: true,
+                        isEmpty: true
+                    };
+                    return;
+                }
+
+                // Determine fetch size (effectiveLimit) purely from hourWindow & prior sampling interval.
+                const priorStep = sampleMinutesRef.current[spotterId] || 1; // assume 1-minute if unknown
+                const effectiveLimit = hourWindow
+                    ? Math.max(1, Math.ceil((Number(hourWindow) * 60) / priorStep))
+                    : 4000;
+
+                const data = await fetchInsituData(
+                    stationId,
+                    effectiveLimit,
+                    `initializeChartData - Live: ${liveMode} - Hours: ${hourWindow ?? 'all'}`
+                );
+
+                if (!data) {
+                    newChartData[spotterId] = {
+                        labels: [],
+                        datasets: [],
+                        lastUpdated: new Date().toISOString(),
+                        meta: metaBase,
+                        noData: true,
+                        isEmpty: true
+                    };
+                    return;
+                }
+
+                // station_type currently unused after removal of outlier logic; omit to avoid lint warning
+                const { data: rows = [], data_labels, chart_type, isEmpty, isTimeout, stationNotFound, notFound } = data;
+
+                if (isEmpty || stationNotFound || notFound || !rows.length) {
+                    newChartData[spotterId] = {
+                        labels: [],
+                        datasets: [],
+                        lastUpdated: new Date().toISOString(),
+                        meta: metaBase,
+                        isEmpty: isEmpty || !rows.length,
+                        isTimeout: isTimeout,
+                        stationNotFound: stationNotFound,
+                        notFound: notFound,
+                        noData: true
+                    };
+                    return;
+                }
+
+                // Treat timeouts as transient: prefer to keep previous chart (handled in final merge)
+                if (isTimeout) {
+                    newChartData[spotterId] = {
+                        labels: [],
+                        datasets: [],
+                        lastUpdated: new Date().toISOString(),
+                        meta: metaBase,
+                        isTimeout: true,
+                        noData: true,
+                        isEmpty: true
+                    };
+                    return;
+                }
+
+                // data_labels example: "sea_level,time"; sometimes can be empty even when rows exist
+                let labelsString = (data_labels || '').toString().trim();
+                if (!labelsString && rows.length && rows[0] && typeof rows[0] === 'object' && !Array.isArray(rows[0])) {
+                    labelsString = Object.keys(rows[0]).join(',');
+                }
+
+                if (!labelsString) {
+                    newChartData[spotterId] = {
+                        labels: [],
+                        datasets: [],
+                        lastUpdated: new Date().toISOString(),
+                        meta: metaBase,
+                        noData: true,
+                        isEmpty: true
+                    };
+                    return;
+                }
+
+                const labelsArr = labelsString.split(',').map(s => s.trim()).filter(Boolean);
+                const hintedTimeKey =
+                    labelsArr.find(l => l.toLowerCase() === 'time') ||
+                    labelsArr.find(l => l.toLowerCase().includes('time')) ||
+                    labelsArr.find(l => l.toLowerCase().includes('date')) ||
+                    'time';
+
+                // Resolve time key against actual row keys (case-insensitive and with common aliases)
+                let resolvedTimeKey = hintedTimeKey;
+                if (rows[0] && typeof rows[0] === 'object' && !Array.isArray(rows[0])) {
+                    const objKeys = Object.keys(rows[0]);
+                    const exactCI = objKeys.find(k => k.toLowerCase() === hintedTimeKey.toLowerCase());
+                    if (exactCI) {
+                        resolvedTimeKey = exactCI;
+                    } else if (!(hintedTimeKey in rows[0])) {
+                        resolvedTimeKey =
+                            objKeys.find(k => k.toLowerCase().includes('time')) ||
+                            objKeys.find(k => k.toLowerCase().includes('date')) ||
+                            hintedTimeKey;
+                    }
+                }
+
+                let yKeys = labelsArr.filter(l => l.toLowerCase() !== resolvedTimeKey.toLowerCase());
+                if (!yKeys.length && rows[0] && typeof rows[0] === 'object' && !Array.isArray(rows[0])) {
+                    yKeys = Object.keys(rows[0]).filter(k => k.toLowerCase() !== resolvedTimeKey.toLowerCase());
+                }
+
+                if (!yKeys.length) {
+                    newChartData[spotterId] = {
+                        labels: [],
+                        datasets: [],
+                        lastUpdated: new Date().toISOString(),
+                        meta: metaBase,
+                        noData: true,
+                        isEmpty: true
+                    };
+                    return;
+                }
+
+                // Parse times robustly and drop rows with invalid timestamps (keeps datasets aligned)
+                const parsedDates = rows.map(r => parseToDate(r?.[resolvedTimeKey]));
+                const validIdx = [];
+                for (let i = 0; i < parsedDates.length; i++) {
+                    if (!isNaN(parsedDates[i])) validIdx.push(i);
+                }
+
+                if (!validIdx.length) {
+                    newChartData[spotterId] = {
+                        labels: [],
+                        datasets: [],
+                        lastUpdated: new Date().toISOString(),
+                        meta: metaBase,
+                        noData: true,
+                        isEmpty: true
+                    };
+                    return;
+                }
+
+                const labelDates = validIdx.map(i => parsedDates[i]);
+                const rawDatasets = yKeys.map((k, idx) => {
+                    const rawValues = validIdx.map(i => {
+                        const val = rows[i]?.[k];
+                        if (val === -999) return null; // treat sentinel -999 as missing
+                        return val;
+                    });
+
+                    return {
+                        key: k,
+                        label: k.replace(/_/g, ' '),
+                        values: rawValues,
+                        originalValues: rawValues,
+                        axis: idx === 0 ? 'y1' : idx === 1 ? 'y2' : 'y3'
+                    };
+                });
+
+                // Determine sampling interval (median delta) in minutes for this station
+                let sampleMinutes = 1;
+                if (labelDates.length > 1) {
+                    const deltas = [];
+                    for (let i = 1; i < labelDates.length; i++) {
+                        const dt = labelDates[i].getTime() - labelDates[i - 1].getTime();
+                        if (dt > 0) deltas.push(dt);
+                    }
+                    if (deltas.length) {
+                        deltas.sort((a, b) => a - b);
+                        const mid = Math.floor(deltas.length / 2);
+                        const medianMs = deltas.length % 2 ? deltas[mid] : (deltas[mid - 1] + deltas[mid]) / 2;
+                        sampleMinutes = Math.max(1, Math.round(medianMs / 60000));
+                    }
+                }
+
+                // If an hour window is selected, strictly filter to that time window based on the maximum timestamp
+                let finalLabels = labelDates;
+                let finalDatasets = rawDatasets;
+                let filteredEmpty = false;
+                if (hourWindow && labelDates.length) {
+                    const timesMs = labelDates.map(d => d.getTime());
+                    const maxTime = Math.max(...timesMs);
+                    const cutoff = maxTime - Number(hourWindow) * 3600000;
+                    const indices = [];
+                    for (let i = 0; i < timesMs.length; i++) {
+                        const t = timesMs[i];
+                        if (t >= cutoff && t <= maxTime) indices.push(i);
+                    }
+                    if (indices.length) {
+                        finalLabels = indices.map(i => labelDates[i]);
+                        finalDatasets = rawDatasets.map(ds => ({
+                            ...ds,
+                            values: indices.map(i => ds.values[i])
+                        }));
+                    } else {
+                        // No points fall within the requested window
+                        filteredEmpty = true;
+                        finalLabels = [];
+                        finalDatasets = rawDatasets.map(ds => ({ ...ds, values: [] }));
+                    }
+                }
+
+                const effectiveChartType = (chart_type || '').toString().toLowerCase();
+                newChartData[spotterId] = {
+                    labels: finalLabels,
+                    datasets: finalDatasets,
+                    lastUpdated: new Date().toISOString(),
+                    meta: metaBase,
+                    noData: false,
+                    filteredEmpty,
+                    chartType: effectiveChartType,
+                    sampleMinutes
+                };
+
+                // Store sampling interval for next fetch sizing without creating state dependency loops
+                sampleMinutesRef.current[spotterId] = sampleMinutes;
+            };
+
+            // Concurrency-limited worker pool
+            const queue = [...selectedStations];
+            const workerCount = Math.min(CONCURRENCY, queue.length);
+            const workers = Array.from({ length: workerCount }, () => (async () => {
+                while (queue.length) {
+                    const id = queue.shift();
+                    if (!id) return;
+                    await processStation(id);
+                }
+            })());
+
+            await Promise.all(workers);
+
+            // If a newer request started while we were fetching, don't overwrite with stale results.
+            if (requestSeqRef.current !== requestId) return;
+
+            // Merge results: if refresh fails for a station, keep its last good chart instead of flashing "No data".
+            setChartData(prev => {
+                const merged = {};
+                for (const spotterId of selectedStations) {
+                    const next = newChartData[spotterId];
+                    const prevEntry = prev?.[spotterId];
+
+                    const prevHasUsableData =
+                        prevEntry &&
+                        !prevEntry.noData &&
+                        Array.isArray(prevEntry.labels) &&
+                        prevEntry.labels.length &&
+                        Array.isArray(prevEntry.datasets) &&
+                        prevEntry.datasets.length;
+
+                    const nextLooksBad =
+                        !next ||
+                        next.isTimeout ||
+                        next.noData ||
+                        (!next.filteredEmpty &&
+                            (!Array.isArray(next.labels) ||
+                                !next.labels.length ||
+                                !Array.isArray(next.datasets) ||
+                                !next.datasets.length));
+
+                    if (prevHasUsableData && nextLooksBad) {
+                        merged[spotterId] = {
+                            ...prevEntry,
+                            lastUpdated: new Date().toISOString(),
+                            // keeps UI stable; used for debugging if needed
+                            stale: true
+                        };
+                    } else {
+                        merged[spotterId] = next;
+                    }
+                }
+                return merged;
+            });
+        } finally {
+            isLoadingChartsRef.current = false;
+            if (pendingInitRef.current) {
+                pendingInitRef.current = false;
+                // Defer so we don't recurse in the same tick
+                setTimeout(() => initializeChartData(), 0);
+            }
+        }
     }, [selectedStations, hourWindow, fetchInsituData, getStationDetails, stationData, sharedCountryMap, liveMode]);
 
     useEffect(() => { fetchStationData(); }, [fetchStationData]);
@@ -876,14 +1100,8 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                                                 <FaWaveSquare className="me-2" />
                                                 <strong>{st.label}</strong>
                                                 <div className="small" style={{color:'var(--color-text)'}}>
-                                                    Last update: {(() => { 
-                                                        const raw = chartData[id]?.lastUpdated || st.latest_date; 
-                                                        const d = new Date(raw); 
-                                                        if (isNaN(d)) return 'N/A';
-                                                        return d.toISOString().replace('T',' ').replace(/\.\d{3}Z$/,' UTC');
-                                                    })()}
-                                                    {' '}|{' '}
-                                                    Last data: {(() => {
+                                                    
+                                                    Last update: {(() => {
                                                         const labels = chartData[id]?.labels;
                                                         const raw = Array.isArray(labels) && labels.length ? labels[labels.length - 1] : null;
                                                         if (!raw) return 'N/A';
