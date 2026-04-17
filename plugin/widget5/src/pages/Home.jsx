@@ -5,6 +5,7 @@ import addWMSTileLayer from "./addWMSTileLayer";
 import BottomOffCanvas from "./BottomOffCanvas";
 import BottomBuoyOffCanvas from "./BottomBuoyOffCanvas";
 import { useForecast } from "../hooks/useForecast";
+import useRiskOverlay from "../hooks/useRiskOverlay";
 import ForecastApp from "../components/ForecastApp";
 import ModernHeader from "../components/ModernHeader";
 import WorldClassVisualization from "../utils/WorldClassVisualization";
@@ -12,6 +13,9 @@ import LegendCleanup from "../components/LegendCleanup";
 
 // Initialize world-class visualization system
 const worldClassViz = new WorldClassVisualization();
+// TEMPORARY: Using ncWMS while THREDDS server is down
+const FORECAST_WMS_URL = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc";
+const FORECAST_DATASET = "cook_forecast";
 
 const getResponsiveLegendDimensions = () => {
   const screenWidth = window.innerWidth;
@@ -35,11 +39,11 @@ const getWorldClassLegendUrl = (variable, range, unit) => {
 };
 
 const getRarotongaInundationLegendUrl = () => {
-  const baseUrl = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_reproj.nc";
+  const baseUrl = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_epsg4326.nc";
   const { width, height } = getResponsiveLegendDimensions();
   const params = new URLSearchParams({
     REQUEST: 'GetLegendGraphic',
-    LAYER: 'H_max',
+    LAYER: 'hmax',
     PALETTE: 'x-Sst',
     COLORBARONLY: 'true',
     WIDTH: width,
@@ -116,38 +120,42 @@ function CookIslandsForecast() {
 
       {
         label: "Mean Wave Period",
-        value: "cook_forecast/tm02",
+        value: "tm02",
         ...getWorldClassConfig('tm02'),
         id: 4,
-        wmsUrl: "https://gem-ncwms-hpc.spc.int/ncWMS/wms",
+        wmsUrl: FORECAST_WMS_URL,
+        dataset: FORECAST_DATASET,
         legendUrl: getWorldClassLegendUrl('tm02', '0,20', 's'),
         description: "ENHANCED Divergent Spectral palette - maximum visual distinction for wave period analysis with full spectrum color differentiation"
       },
       {
         label: "Peak Wave Period",
-        value: "cook_forecast/tpeak", 
+        value: "tpeak", 
         ...getWorldClassConfig('tpeak'),
         id: 5,
-        wmsUrl: "https://gem-ncwms-hpc.spc.int/ncWMS/wms",
+        wmsUrl: FORECAST_WMS_URL,
+        dataset: FORECAST_DATASET,
         legendUrl: getWorldClassLegendUrl('tpeak', '0,13.68', 's'),
         description: "Enhanced peak period analysis with full range (0-13.68s) using magma color gradation"
       }
     ];
   }, []);
 
-  // Static layers (no time dimension) - these are not forecast variables
+  // Additional forecast layers
   const STATIC_LAYERS = useMemo(() => {
     return [
       {
         label: "Rarotonga Inundation",
-        value: "H_max",
+        value: "hmax",
         ...getWorldClassConfig('raro_inun'),
         id: 200,
-        dataset: 'H_max',
-        wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_reproj.nc",
+        dataset: 'sfincs_map_epsg4326',
+        wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_epsg4326.nc",
         legendUrl: getRarotongaInundationLegendUrl(),
-        description: "Modeled inundation depth for Rarotonga (0–1.63 m above ground)",
-        isStatic: true // Flag to identify static layers
+        description: "SFINCS model maximum water depth",
+        version: '1.3.0',
+        crs: L.CRS.EPSG4326,
+        isStatic: false
       }
     ];
   }, []);
@@ -190,6 +198,14 @@ function CookIslandsForecast() {
   useEffect(() => {
     console.log("🎯 BottomCanvas State - show:", showBottomCanvas, "data:", bottomCanvasData);
   }, [showBottomCanvas, bottomCanvasData]);
+
+  useRiskOverlay({
+    mapInstance,
+    enabled: activeLayers?.riskPoints !== false,
+    selectedRiskPointId: bottomCanvasData?.mode === 'risk' ? bottomCanvasData?.point?.id : null,
+    setBottomCanvasData,
+    setShowBottomCanvas
+  });
 
   return (
     <div style={widgetContainerStyle}>

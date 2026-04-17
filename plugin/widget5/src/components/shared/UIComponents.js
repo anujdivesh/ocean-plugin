@@ -81,7 +81,6 @@ export const TimeControl = ({
   onSliderChange,
   onPlayToggle,
   formatDateTime,
-  stepHours = 1,
   playIcon = '▶️',
   pauseIcon = '⏸️',
   minIndex = 0,
@@ -89,7 +88,7 @@ export const TimeControl = ({
 }) => (
   <div className="time-control">
     <div className="forecast-info">
-      <div>Forecast Hour: <span>+{sliderIndex * stepHours}h</span></div>
+      {/* <div>Forecast Hour: <span>+{sliderIndex * stepHours}h</span></div> */}
       <div>Valid DateTime: <span>{formatDateTime(currentSliderDate)}</span></div>
     </div>
     
@@ -119,9 +118,9 @@ export const TimeControl = ({
       </div>
     </div>
     
-    <div className="forecast-info">
-      <div>Forecast Length: <strong>{totalSteps + 1} hours</strong></div>
-    </div>
+    {/* <div className="forecast-info">
+      {<div>Forecast Length: <strong>{totalSteps + 1} hours</strong></div> }
+    </div> */}
     {disabled && (
       <div style={{ 
         marginTop: '0.5rem', 
@@ -166,6 +165,63 @@ export const OpacityControl = ({
 );
 
 /**
+ * Island zoom selector.
+ */
+export const IslandZoomControl = ({
+  islands,
+  selectedIsland,
+  onIslandChange,
+  onZoomToIsland,
+  disabled = false
+}) => {
+  const groupedIslands = islands.reduce((groups, island) => {
+    const group = island.group || 'Islands';
+    if (!groups[group]) {
+      groups[group] = [];
+    }
+    groups[group].push(island);
+    return groups;
+  }, {});
+
+  return (
+    <div className="island-zoom-control">
+      <label htmlFor="island-zoom-select">Island</label>
+      <div className="island-zoom-row">
+        <select
+          id="island-zoom-select"
+          className="island-zoom-select"
+          value={selectedIsland}
+          onChange={(event) => onIslandChange(event.target.value)}
+          disabled={disabled}
+          aria-label="Select island to zoom to"
+          title="Select island to zoom to"
+        >
+          {Object.entries(groupedIslands).map(([group, groupIslands]) => (
+            <optgroup key={group} label={group}>
+              {groupIslands.map((island) => (
+                <option key={island.id} value={island.id}>
+                  {island.label}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="island-zoom-btn"
+          onClick={onZoomToIsland}
+          disabled={disabled || !selectedIsland}
+          aria-label="Zoom to selected island"
+          title="Zoom to selected island"
+        >
+          Zoom
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/**
  * Data Information Display
  * Simplified to show only Source and Update fields.
  * (Removed model, resolution, and coverage as part of UI simplification)
@@ -199,6 +255,7 @@ const UIComponents = {
   VariableButtons,
   TimeControl,
   OpacityControl,
+  IslandZoomControl,
   DataInfo,
   //StatusBar
 };

@@ -89,7 +89,7 @@ export const useMapRendering = ({
     wmsLayerRefs.current = [];
 
     // Determine if layer is time-dimensionless
-    const isTimeDimensionless = selectedLayer.isStatic || selectedLayer.id === 200;
+    const isTimeDimensionless = selectedLayer.isStatic === true;
     
     // Prepare layers to add - handle composite layers (which already include direction overlay)
     const layersToAdd = selectedLayer.composite ? selectedLayer.layers : [selectedLayer];
@@ -101,8 +101,8 @@ export const useMapRendering = ({
         transparent: true,
         opacity: wmsOpacity,
         styles: layerConfig.style,
-        version: '1.3.0',
-        crs: L.CRS.EPSG4326,
+        version: layerConfig.version || '1.3.0',
+        crs: layerConfig.crs || L.CRS.EPSG4326,
         pane: 'overlayPane',
       };
       
@@ -178,10 +178,9 @@ export const useMapRendering = ({
         // Check if this layer should have time dimension
         const layerName = layer.wmsParams.layers || '';
         const isDirectionLayer = layerName.includes('dirm');
-        const isInundationLayer = layerName.includes('raro_inun') || layerName.includes('H_max'); // Static layer, no time dimension
         
-        // Skip time update for static/time-dimensionless layers
-        if (!isDirectionLayer && !isInundationLayer) {
+        // Skip time update only for direction layers
+        if (!isDirectionLayer) {
           // Format time for THREDDS if needed
           const isThredds = layer._url && layer._url.includes('thredds');
           const timeValue = isThredds 
@@ -192,7 +191,7 @@ export const useMapRendering = ({
           layer.setParams({ time: timeValue }, false);
           console.log(`   ✅ Updated TIME for layer: ${layerName}`);
         } else {
-          console.log(`   ⏭️  Skipped TIME for static/direction layer: ${layerName}`);
+          console.log(`   ⏭️  Skipped TIME for direction layer: ${layerName}`);
         }
       }
     });

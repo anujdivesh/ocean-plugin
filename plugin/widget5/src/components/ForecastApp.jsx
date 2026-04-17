@@ -1,20 +1,22 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './ForecastApp.css';
 import '../styles/MapMarker.css';
 import useMapInteraction from '../hooks/useMapInteraction';
 import { UI_CONFIG } from '../config/UIConfig';
 import { MARINE_CONFIG } from '../config/marineVariables';
 import { getLayerBounds } from '../config/layerConfig';
+import { ISLAND_ZOOM_TARGETS, findIslandZoomTarget } from '../config/islandConfig';
 import CompassRose from './CompassRose';
 import { 
   ControlGroup, 
   VariableButtons, 
   TimeControl, 
   OpacityControl, 
+  IslandZoomControl,
   DataInfo, 
   //StatusBar 
 } from './shared/UIComponents';
-import { Waves, Wind, Navigation, Activity, Info, Settings, Timer, Triangle,  BadgeInfo , CloudRain, FastForward} from 'lucide-react';
+import { Waves, Wind, Navigation, Activity, Info, Settings, Timer, Triangle,  BadgeInfo , CloudRain, FastForward, MapPin} from 'lucide-react';
 import FancyIcon from './FancyIcon';
 import '../styles/fancyIcons.css';
 
@@ -107,6 +109,7 @@ const ForecastApp = ({
   minIndex
 }) => {
   const lastZoomedLayerRef = useRef(null);
+  const [selectedIslandId, setSelectedIslandId] = useState(ISLAND_ZOOM_TARGETS[0]?.id || '');
   const selectedLayer = useMemo(() => {
     return ALL_LAYERS.find(l => l.value === selectedWaveForecast) || null;
   }, [ALL_LAYERS, selectedWaveForecast]);
@@ -142,6 +145,27 @@ const ForecastApp = ({
     lastZoomedLayerRef.current = layerValue;
     console.log('🏝️ Zoomed to layer bounds for:', layerValue, isInundation ? '(Inundation - higher zoom)' : '');
   }, [mapInstance, ALL_LAYERS]);
+
+  const zoomToIsland = useCallback((islandId = selectedIslandId) => {
+    const island = findIslandZoomTarget(islandId);
+    const map = mapInstance?.current;
+    if (!island || !map) {
+      return;
+    }
+
+    setActiveLayers(prev => ({ ...prev, riskPoints: true }));
+    map.fitBounds(
+      [
+        island.bounds.southWest,
+        island.bounds.northEast
+      ],
+      {
+        padding: [42, 42],
+        maxZoom: 12,
+        animate: true
+      }
+    );
+  }, [mapInstance, selectedIslandId, setActiveLayers]);
 
   useEffect(() => {
     zoomToLayerBounds(selectedWaveForecast);
@@ -209,7 +233,7 @@ const ForecastApp = ({
       };
     }
     
-    if (varLower.includes('inun') || varLower.includes('h_max')) {
+    if (varLower.includes('inun') || varLower.includes('hmax') || varLower.includes('h_max')) {
       // DYNAMIC DATA RANGE - Updates with actual inundation data
       const minVal = colorRange?.min ?? -0.05;
       const maxVal = colorRange?.max ?? 1.63;
@@ -437,6 +461,19 @@ const ForecastApp = ({
             labelMap={UI_CONFIG.VARIABLE_LABELS}
             ariaLabel={UI_CONFIG.ARIA_LABELS.variableButton}
             getVariableIcon={getVariableIcon}
+          />
+        </ControlGroup>
+
+        <ControlGroup
+          icon={<FancyIcon icon={MapPin} animationType="pulse" color="#4caf50" />}
+          title={UI_CONFIG.SECTIONS.ISLAND_NAVIGATION.title}
+          ariaLabel={UI_CONFIG.SECTIONS.ISLAND_NAVIGATION.ariaLabel}
+        >
+          <IslandZoomControl
+            islands={ISLAND_ZOOM_TARGETS}
+            selectedIsland={selectedIslandId}
+            onIslandChange={setSelectedIslandId}
+            onZoomToIsland={() => zoomToIsland()}
           />
         </ControlGroup>
 

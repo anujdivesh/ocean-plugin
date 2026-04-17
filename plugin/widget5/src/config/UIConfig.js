@@ -16,6 +16,11 @@ export const UI_CONFIG = {
       title: 'Forecast Time',
       ariaLabel: 'Forecast time controls'
     },
+    islandNavigation: {
+      icon: '📍',
+      title: 'Island Navigation',
+      ariaLabel: 'Island zoom controls'
+    },
     displayOptions: {
       icon: '🎨',
       title: 'Display Options',
@@ -32,6 +37,7 @@ export const UI_CONFIG = {
   SECTIONS: {
     get FORECAST_VARIABLES() { return UI_CONFIG.sections.forecastVariables; },
     get FORECAST_TIME() { return UI_CONFIG.sections.forecastTime; },
+    get ISLAND_NAVIGATION() { return UI_CONFIG.sections.islandNavigation; },
     get DISPLAY_OPTIONS() { return UI_CONFIG.sections.displayOptions; },
     get DATA_INFO() { return UI_CONFIG.sections.dataInfo; }
   },
@@ -47,7 +53,7 @@ export const UI_CONFIG = {
 
   // Format functions
   FORMATS: {
-    opacityPercent: (n) => `${n}%`
+    opacityPercent: (n) => `${Math.round(n * 100)}%`
   },
 
   // Data source with uppercase alias

@@ -57,19 +57,19 @@ export const createCORSWMSLayer = (url, options = {}) => {
       
       // Enhanced THREDDS compatibility with multiple fallback strategies
       const attemptDirectLoad = (attemptUrl, retryCount = 0) => {
-        // For THREDDS servers, clean up time format
         let cleanUrl = attemptUrl;
-        if (cleanUrl.includes('time=')) {
-          cleanUrl = cleanUrl.replace(/time=([^&]+)/, (match, timeParam) => {
-            try {
-              const decoded = decodeURIComponent(timeParam);
-              // THREDDS prefers simpler time format without milliseconds
-              const simpleTime = decoded.replace(/\.\d{3}Z$/, 'Z');
-              return `time=${encodeURIComponent(simpleTime)}`;
-            } catch (e) {
-              return match;
-            }
-          });
+
+        // Use URL APIs so parameter edits never corrupt the query string.
+        try {
+          const parsedUrl = new URL(attemptUrl, window.location.origin);
+          const timeParam = parsedUrl.searchParams.get('time');
+          if (timeParam) {
+            const simpleTime = timeParam.replace(/\.\d{3}Z$/, 'Z');
+            parsedUrl.searchParams.set('time', simpleTime);
+          }
+          cleanUrl = parsedUrl.toString();
+        } catch (error) {
+          console.warn('⚠️ Could not normalize THREDDS tile URL with URL API:', error);
         }
         
         // Set crossOrigin for CORS requests
@@ -87,22 +87,29 @@ export const createCORSWMSLayer = (url, options = {}) => {
           
           // Try different time formats or remove time entirely
           if (retryCount === 0 && cleanUrl.includes('time=')) {
-            // First retry: remove time parameter entirely for static data
-            const noTimeUrl = cleanUrl.replace(/[&?]time=[^&]*&?/g, '').replace(/[&?]$/, '');
-            console.log(`🔄 Retrying without time parameter`);
-            setTimeout(() => attemptDirectLoad(noTimeUrl, 1), 100);
-            return;
+            try {
+              const parsedUrl = new URL(cleanUrl, window.location.origin);
+              parsedUrl.searchParams.delete('time');
+              console.log(`🔄 Retrying without time parameter`);
+              setTimeout(() => attemptDirectLoad(parsedUrl.toString(), 1), 100);
+              return;
+            } catch (urlError) {
+              console.warn('⚠️ Failed to remove time parameter cleanly:', urlError);
+            }
           }
           
           if (retryCount === 1) {
-            // Second retry: try with current timestamp
-            const currentTime = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-            const currentTimeUrl = cleanUrl.includes('time=') 
-              ? cleanUrl.replace(/time=[^&]*/, `time=${encodeURIComponent(currentTime)}`)
-              : cleanUrl + (cleanUrl.includes('?') ? '&' : '?') + `time=${encodeURIComponent(currentTime)}`;
-            console.log(`🔄 Retrying with current time`);
-            setTimeout(() => attemptDirectLoad(currentTimeUrl, 2), 200);
-            return;
+            try {
+              // Second retry: try with current timestamp
+              const currentTime = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+              const parsedUrl = new URL(cleanUrl, window.location.origin);
+              parsedUrl.searchParams.set('time', currentTime);
+              console.log(`🔄 Retrying with current time`);
+              setTimeout(() => attemptDirectLoad(parsedUrl.toString(), 2), 200);
+              return;
+            } catch (urlError) {
+              console.warn('⚠️ Failed to set fallback time parameter cleanly:', urlError);
+            }
           }
           
           // Final fallback: report error

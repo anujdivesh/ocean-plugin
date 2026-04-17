@@ -5,7 +5,8 @@
 
 class ProfessionalLegendSystem {
   constructor() {
-    this.baseUrl = "https://gem-ncwms-hpc.spc.int/ncWMS/wms";
+    this.baseUrl = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc";
+    this.dataset = "cook_forecast";
     this.fallbackUrl = "https://ocean-plotter.spc.int/plotter/GetLegendGraphic";
   }
 
@@ -24,7 +25,7 @@ class ProfessionalLegendSystem {
     return {
       // Primary ncWMS legend (preferred)
       primary: {
-        url: this.generateNcWMSLegend("cook_forecast/hs", {
+        url: this.generateNcWMSLegend("hs", {
           palette: palette,
           colorscalerange: actualRange,
           numcolorbands: optimalBands,

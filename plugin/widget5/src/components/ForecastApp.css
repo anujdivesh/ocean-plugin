@@ -1080,6 +1080,62 @@
   cursor: pointer;
 }
 
+.island-zoom-control {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.65rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.island-zoom-control label {
+  display: block;
+  color: #70d8ff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.45rem;
+}
+
+.island-zoom-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.island-zoom-select,
+.island-zoom-btn {
+  min-height: 38px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 212, 255, 0.65);
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+.island-zoom-select {
+  width: 100%;
+  min-width: 0;
+  background: rgba(15, 23, 42, 0.92);
+  padding: 0 0.6rem;
+}
+
+.island-zoom-btn {
+  background: linear-gradient(135deg, #00bcd4 0%, #00897b 100%);
+  padding: 0 0.85rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.island-zoom-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 188, 212, 0.28);
+}
+
+.island-zoom-select:disabled,
+.island-zoom-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .time-slider::-webkit-slider-thumb:hover, .opacity-slider::-webkit-slider-thumb:hover {
   transform: scale(1.2);
   box-shadow: 0 4px 15px rgba(0, 212, 255, 0.5);
@@ -2048,4 +2104,3 @@
 .dark-mode .inundation-leaflet-popup .leaflet-popup-tip {
   background: #2d3748 !important;
 }
-

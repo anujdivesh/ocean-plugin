@@ -8,6 +8,7 @@ import LayerCollectionManager from '../services/LayerCollectionManager';
 export const useLayerManagement = (WAVE_FORECAST_LAYERS, STATIC_LAYERS) => {
   const [activeLayers, setActiveLayers] = useState({ 
     waveForecast: true, 
+    riskPoints: true,
     "stamen-toner": true 
   });
   

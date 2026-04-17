@@ -89,19 +89,19 @@ export class IntelligentVisualizationSystem {
    */
   getDefaultVisualization(layerName) {
     const defaults = {
-      'cook_forecast/hs': {
+      'hs': {
         colorScheme: { palette: 'psu-viridis', style: 'default-scalar/psu-viridis' },
         adaptiveRanges: { min: 0, max: 4, unit: 'm' },
         weatherPattern: { type: 'UNKNOWN', confidence: 0 },
         temporalContext: { trend: 'stable', variability: 'normal' }
       },
-      'cook_forecast/tm02': {
+      'tm02': {
         colorScheme: { palette: 'seq-ylgnbu', style: 'default-scalar/seq-YlGnBu' },
         adaptiveRanges: { min: 0, max: 20, unit: 's' },
         weatherPattern: { type: 'UNKNOWN', confidence: 0 },
         temporalContext: { trend: 'stable', variability: 'normal' }
       },
-      'cook_forecast/tpeak': {
+      'tpeak': {
         colorScheme: { palette: 'psu-magma', style: 'default-scalar/psu-magma' },
         adaptiveRanges: { min: 9, max: 14, unit: 's' },
         weatherPattern: { type: 'UNKNOWN', confidence: 0 },
@@ -109,7 +109,7 @@ export class IntelligentVisualizationSystem {
       }
     };
 
-    return defaults[layerName] || defaults['cook_forecast/hs'];
+    return defaults[layerName] || defaults['hs'];
   }
 
   /**

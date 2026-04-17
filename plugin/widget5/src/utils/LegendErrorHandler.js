@@ -96,18 +96,18 @@ class LegendErrorHandler {
    */
   generateNcWMSUrl(variable, range, unit, palette) {
     const layerMapping = {
-      'tm02': 'cook_forecast/tm02',
-      'tpeak': 'cook_forecast/tpeak', 
-      'hs': 'cook_forecast/hs',
-      'dirm': 'cook_forecast/dirm'
+      'tm02': 'tm02',
+      'tpeak': 'tpeak', 
+      'hs': 'hs',
+      'dirm': 'dirm'
     };
 
     // Known problematic combinations that return 500 errors
     const knownProblematic = [
-      { layer: 'cook_forecast/tpeak', palette: 'psu-plasma' }
+      { layer: 'tpeak', palette: 'psu-plasma' }
     ];
 
-    const layer = layerMapping[variable] || 'cook_forecast/hs';
+    const layer = layerMapping[variable] || 'hs';
     const isProblematic = knownProblematic.some(p => 
       p.layer === layer && p.palette === palette
     );
@@ -118,7 +118,8 @@ class LegendErrorHandler {
       throw new Error('Known 500 error combination - using fallback');
     }
 
-    const baseUrl = "https://gem-ncwms-hpc.spc.int/ncWMS/wms";
+    const baseUrl = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc";
+    const dataset = "cook_forecast";
     
     const params = new URLSearchParams({
       REQUEST: 'GetLegendGraphic',

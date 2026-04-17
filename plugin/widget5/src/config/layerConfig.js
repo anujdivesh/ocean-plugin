@@ -5,7 +5,8 @@
 
 // Inundation layer identifiers - exact match to avoid false positives
 export const INUNDATION_LAYER_IDS = [
-  'H_max',          // THREDDS inundation layer
+  'hmax',           // SFINCS maximum water depth (THREDDS)
+  'H_max',          // Legacy capitalized variant (deprecated)
   'raro_inun/Band1',
   'raro_inun'
 ];
@@ -23,7 +24,11 @@ export const isInundationLayer = (layerValue) => {
 
 // Layer bounds for auto-zoom functionality
 export const LAYER_BOUNDS = {
-  // Rarotonga inundation layer bounds (THREDDS - actual data extent from GetCapabilities)
+  // Rarotonga SFINCS inundation layer bounds (THREDDS - actual data extent from GetCapabilities)
+  'hmax': {
+    southWest: [-21.281671213355985, -159.83717346191406],
+    northEast: [-21.19118441998148, -159.71783447265625]
+  },
   'H_max': {
     southWest: [-21.281671213355985, -159.83717346191406],
     northEast: [-21.19118441998148, -159.71783447265625]

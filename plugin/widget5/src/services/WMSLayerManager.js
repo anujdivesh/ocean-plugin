@@ -5,7 +5,7 @@
  * 
  * INVARIANTS:
  * - Only one WMS layer group per map instance
- * - Static layers never receive time parameters
+ * - Only explicitly static layers never receive time parameters
  * - Layer opacity changes don't trigger full re-render
  * - Composite layers are flattened before rendering
  * - Layer removal always cleans up references
@@ -43,7 +43,7 @@ export class WMSLayerManager {
    * @returns {boolean} True if layer is time-dimensional
    */
   isTimeDimensional(layerConfig) {
-    return !layerConfig.isStatic && layerConfig.id !== 200;
+    return layerConfig?.isStatic !== true;
   }
 
   /**
