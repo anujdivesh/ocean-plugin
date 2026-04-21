@@ -274,23 +274,14 @@ const getTimeRangeFromDimension = (timeDimString) => {
         .sort((a, b) => a.getTime() - b.getTime());
       
       if (validTimestamps.length > 0) {
-        // ✅ Infer model run time: First timestamp might be +6h forecast, not model run (T+0)
-        // Calculate step size from first two timestamps
-        let stepMillis = 6 * 60 * 60 * 1000; // Default 6 hours
-        if (validTimestamps.length > 1) {
-          stepMillis = validTimestamps[1].getTime() - validTimestamps[0].getTime();
-        }
-        
-        // Model run time = first available timestamp - step size
+        // ✅ Use first available timestamp as-is (no inference needed)
+        // The first timestamp in the data is the actual start of the forecast
         const firstAvailable = validTimestamps[0];
-        const inferredModelRunTime = new Date(firstAvailable.getTime() - stepMillis);
         
-        console.log(`🎯 Inferring model run time:`);
+        console.log(`🎯 Using first available timestamp as start:`);
         console.log(`   First available: ${firstAvailable.toISOString()}`);
-        console.log(`   Step size: ${stepMillis / (60 * 60 * 1000)} hours`);
-        console.log(`   Inferred model run: ${inferredModelRunTime.toISOString()}`);
         
-        const originalStart = firstAvailable; // For warm-up calculations, use first available
+        const originalStart = firstAvailable; // Use first available timestamp directly
         const originalEnd = validTimestamps[validTimestamps.length - 1];
         
         // ✅ Skip warm-up period if enabled
@@ -328,7 +319,7 @@ const getTimeRangeFromDimension = (timeDimString) => {
           end: originalEnd,
           step: 'PT1H', // Default step
           availableTimestamps: filteredTimestamps,
-          originalStart: inferredModelRunTime, // ✅ Use inferred model run time (T+0)
+          originalStart: originalStart, // ✅ Use actual first timestamp (no inference)
           warmupDays: ENABLE_WARMUP_SKIP ? WARMUP_DAYS : 0,
           warmupSkipped: ENABLE_WARMUP_SKIP && filteredTimestamps.length < validTimestamps.length
         };

@@ -97,8 +97,8 @@ export const UI_CONFIG = {
   layerLabels: {
     'Significant Wave Height': 'Wave Height',
     'Inundation Depth': 'Inundation',
-    'Peak Wave Period': 'Wave Period',
-    'Mean Wave Period': 'Mean Period',
+    'Peak Wave Period': 'Peak Wave Period',
+    'Mean Wave Period': 'Mean Wave Period',
     'Zero-crossing Period': 'Zero Period',
     'Mean Wave Direction': 'Mean Dir',
     'Peak Wave Direction': 'Peak Dir',

@@ -1,8 +1,10 @@
-const publicBaseUrl = process.env.PUBLIC_URL || '';
+// const publicBaseUrl = process.env.PUBLIC_URL || '';
+const defaultThreddsRiskBaseUrl =
+  'https://gemthreddshpc.spc.int/thredds/fileServer/POP/model/country/spc/forecast/hourly/COK/risk';
 
 export const RISK_DATA_CONFIG = {
   version: '1.0',
-  basePath: `${publicBaseUrl}/data/risk`,
+  basePath: process.env.REACT_APP_RISK_DATA_BASE_URL || defaultThreddsRiskBaseUrl,
   pointsFile: 'points.json',
   detailsDirectory: 'details',
   representativeZoomThreshold: 10

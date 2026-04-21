@@ -123,51 +123,41 @@ export const useTimeAnimation = (capTime) => {
   // Reset slider when capabilities change - Initialize to (last available - 7 days)
   useEffect(() => {
     if (!capTime.loading && totalSteps > 0) {
-      const MS_IN_DAY = 24 * 60 * 60 * 1000;
-      const offsetDays = 7; // Default offset
-      let initialIndex = 0;
-
-      try {
-        if (capTime.availableTimestamps && capTime.availableTimestamps.length > 0) {
-          const timestamps = capTime.availableTimestamps;
-          const last = timestamps[timestamps.length - 1];
-          const targetTime = new Date(last.getTime() - offsetDays * MS_IN_DAY);
-          
-          // Find first index >= targetTime; if none, use 0
-          let idx = timestamps.findIndex(t => t.getTime() >= targetTime.getTime());
-          if (idx === -1) {
-            idx = 0;
-          }
-          initialIndex = Math.max(0, Math.min(idx, totalSteps));
-          
-          console.log(`🎯 Slider Initialization (last-7days):`);
-          console.log(`   Last time: ${last.toISOString()}`);
-          console.log(`   Target time (last-7d): ${targetTime.toISOString()}`);
-          console.log(`   Using index: ${initialIndex}/${timestamps.length - 1}`);
-          console.log(`   Selected time: ${timestamps[initialIndex]?.toISOString()}`);
-        } else if (capTime.start && capTime.end && capTime.stepHours) {
-          const stepMs = (capTime.stepHours || 6) * 60 * 60 * 1000;
-          const targetTime = new Date(capTime.end.getTime() - offsetDays * MS_IN_DAY);
-          const rawIndex = Math.round((targetTime.getTime() - capTime.start.getTime()) / stepMs);
-          initialIndex = Math.max(0, Math.min(rawIndex, totalSteps));
-          
-          console.log(`🎯 Slider Initialization (computed from start/end/step):`);
-          console.log(`   Start: ${capTime.start.toISOString()}`);
-          console.log(`   End: ${capTime.end.toISOString()}`);
-          console.log(`   Target (last-7d): ${targetTime.toISOString()}`);
-          console.log(`   Using index: ${initialIndex}/${totalSteps}`);
+      let initialIndex = MARINE_CONFIG.DEFAULT_SLIDER_INDEX;
+      
+      // If we have timestamps, try to find the one closest to "now" (or slightly in the past)
+      if (capTime.availableTimestamps && capTime.availableTimestamps.length > 0) {
+        const timestamps = capTime.availableTimestamps;
+        const now = Date.now();
+        
+        // Find the first timestamp that is >= now, or use the last one if all are in the past
+        let idx = timestamps.findIndex(t => t.getTime() >= now);
+        
+        if (idx === -1) {
+          // All timestamps are in the past, use the last one (most recent)
+          initialIndex = timestamps.length - 1;
+        } else if (idx > 0) {
+          // Found a future timestamp, but use the one just before it (most recent past/current)
+          initialIndex = idx - 1;
         } else {
-          // Fallback to configured default index
-          initialIndex = Math.min(MARINE_CONFIG.DEFAULT_SLIDER_INDEX, totalSteps);
-          console.log(`🎯 Slider Initialization (fallback config index): ${initialIndex}`);
+          // The first timestamp is in the future, use it
+          initialIndex = 0;
         }
-      } catch (e) {
-        console.warn('⚠️ Error determining initial slider index, using fallback.', e);
-        initialIndex = Math.min(MARINE_CONFIG.DEFAULT_SLIDER_INDEX, totalSteps);
+        
+        initialIndex = Math.max(0, Math.min(initialIndex, totalSteps));
+        
+        console.log(`🎯 Slider Initialization (closest to now):`);
+        console.log(`   Current time: ${new Date().toISOString()}`);
+        console.log(`   Using index: ${initialIndex} / ${totalSteps}`);
+        console.log(`   Selected time: ${timestamps[initialIndex]?.toISOString()}`);
+        console.log(`   First available: ${timestamps[0]?.toISOString()}`);
+        console.log(`   Last available: ${timestamps[timestamps.length - 1]?.toISOString()}`);
+      } else {
+        console.log(`🎯 Slider Initialization (using config default): ${initialIndex}`);
       }
 
-  setSliderIndex(initialIndex);
-  setMinIndex(initialIndex); // Prevent sliding earlier than last-7-days
+      setSliderIndex(initialIndex);
+      setMinIndex(0); // Allow sliding to the beginning
       setIsPlaying(false);
 
       // Reset performance tracking and buffer

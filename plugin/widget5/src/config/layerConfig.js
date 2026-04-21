@@ -11,6 +11,16 @@ export const INUNDATION_LAYER_IDS = [
   'raro_inun'
 ];
 
+// Shared inundation visualization range used across tile rendering, metadata fallbacks,
+// and legends so the displayed palette matches the popup values.
+export const INUNDATION_VISUAL_RANGE = {
+  min: -0.05,
+  max: 3.0
+};
+
+export const INUNDATION_VISUAL_COLOR_SCALE_RANGE =
+  `${INUNDATION_VISUAL_RANGE.min},${INUNDATION_VISUAL_RANGE.max}`;
+
 /**
  * Check if a layer value corresponds to an inundation layer
  * Uses exact matching against known inundation layer identifiers

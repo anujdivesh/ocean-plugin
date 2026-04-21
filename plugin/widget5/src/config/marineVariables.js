@@ -12,10 +12,10 @@ export const MARINE_CONFIG = {
   ENABLE_WARMUP_SKIP: false, // Toggle warm-up skip feature (disabled to match Widget1 behavior)
   
   // First timestep configuration
-  SKIP_FIRST_TIMESTEP: true,  // Skip the 0-hour forecast (often analysis/nowcast, not forecast)
+  SKIP_FIRST_TIMESTEP: false,  // Don't skip the 0-hour forecast
   
   // Slider initialization configuration
-  DEFAULT_SLIDER_INDEX: 1,  // Start at index 1 (first forecast timestep after skipping 0-hour)
+  DEFAULT_SLIDER_INDEX: 0,  // Start at index 0 (first available timestamp)
   
   // Time dimension configuration
   DEFAULT_STEP_HOURS: 6,    // Default timestep for marine forecasts

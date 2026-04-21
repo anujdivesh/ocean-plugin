@@ -1,3 +1,5 @@
+import { INUNDATION_VISUAL_RANGE } from '../config/layerConfig';
+
 async function requestMinMax(wmsUrl, layerName, time, bounds) {
   // For gem-ncwms-hpc.spc.int, use simpler parameter structure
   const params = new URLSearchParams({
@@ -112,9 +114,9 @@ export async function fetchLayerMinMax(wmsUrl, layerName, time, bounds) {
     'tm02': { min: 0, max: 20 },          // Wave period range
     'tpeak': { min: 9, max: 14 },         // Peak period optimized range
     'dirm': { min: 0, max: 360 },         // Direction range
-    'hmax': { min: -0.04149, max: 1.632 },     // SFINCS maximum water depth (THREDDS)
-    'H_max': { min: -0.04149, max: 1.632 },    // Legacy capitalized variant
-    'raro_inun/Band1': { min: -0.04149, max: 1.632 }    // Rarotonga inundation depth (legacy)
+    'hmax': { ...INUNDATION_VISUAL_RANGE },     // SFINCS maximum water depth (THREDDS)
+    'H_max': { ...INUNDATION_VISUAL_RANGE },    // Legacy capitalized variant
+    'raro_inun/Band1': { ...INUNDATION_VISUAL_RANGE }    // Rarotonga inundation depth (legacy)
   };
 
   if (knownRanges[layerName]) {

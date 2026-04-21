@@ -10,6 +10,7 @@ import ForecastApp from "../components/ForecastApp";
 import ModernHeader from "../components/ModernHeader";
 import WorldClassVisualization from "../utils/WorldClassVisualization";
 import LegendCleanup from "../components/LegendCleanup";
+import { INUNDATION_VISUAL_COLOR_SCALE_RANGE } from "../config/layerConfig";
 
 // Initialize world-class visualization system
 const worldClassViz = new WorldClassVisualization();
@@ -48,7 +49,7 @@ const getRarotongaInundationLegendUrl = () => {
     COLORBARONLY: 'true',
     WIDTH: width,
     HEIGHT: height,
-    COLORSCALERANGE: '-0.05,1.63',
+    COLORSCALERANGE: INUNDATION_VISUAL_COLOR_SCALE_RANGE,
     NUMCOLORBANDS: '250',
     COLORSCALING: 'linear',
     VERTICAL: 'true',
@@ -72,7 +73,7 @@ const variableConfigMap = {
   }),
   inun: () => ({
     style: "default-scalar/x-Sst",
-    colorscalerange: "-0.05,1.63",
+    colorscalerange: INUNDATION_VISUAL_COLOR_SCALE_RANGE,
     numcolorbands: 250,
     belowmincolor: "transparent",
     abovemaxcolor: "extend",
@@ -146,14 +147,14 @@ function CookIslandsForecast() {
     return [
       {
         label: "Rarotonga Inundation",
-        value: "hmax",
+        value: "Cook_island_national_sfincs/hmax",
         ...getWorldClassConfig('raro_inun'),
         id: 200,
-        dataset: 'sfincs_map_epsg4326',
-        wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_epsg4326.nc",
+        wmsUrl: "https://gem-ncwms-hpc.spc.int/ncWMS/wms",
         legendUrl: getRarotongaInundationLegendUrl(),
         description: "SFINCS model maximum water depth",
-        version: '1.3.0',
+        style: 'default-scalar/x-Sst',
+        version: '1.1.1',
         crs: L.CRS.EPSG4326,
         isStatic: false
       }

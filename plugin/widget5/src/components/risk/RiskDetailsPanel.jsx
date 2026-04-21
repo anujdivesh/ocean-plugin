@@ -37,6 +37,7 @@ const normalizeIsland = (value) => {
 function RiskDetailsPanel({ data, isDarkMode = false }) {
   const point = data?.point || {};
   const details = data?.details || null;
+  const metadata = details?.metadata || null;
   const riskLevel = Number.isFinite(point?.riskLevel) ? point.riskLevel : Number(details?.riskLevel) || 0;
   const riskColor = RISK_COLORS[riskLevel] || RISK_COLORS[0];
   const riskLabel = RISK_LABELS[riskLevel] || RISK_LABELS[0];
@@ -52,6 +53,24 @@ function RiskDetailsPanel({ data, isDarkMode = false }) {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? `${numeric.toFixed(4)}°` : 'N/A';
   };
+
+  const formatUtcTimestamp = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString('en-NZ', {
+      timeZone: 'UTC',
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }) + ' UTC';
+  };
+
+  const modelRunLabel = formatUtcTimestamp(metadata?.model_run);
+  const generatedAtLabel = formatUtcTimestamp(metadata?.generated_at);
 
   useEffect(() => {
     if (previousRiskLevelRef.current === riskLevel) {
@@ -130,6 +149,13 @@ function RiskDetailsPanel({ data, isDarkMode = false }) {
         {/* <span>Strategy: {point?.type || 'detailed'}</span>
         <span>Thresholds: {thresholds.length}</span> */}
         {!!islandName && <span>Island: {islandName}</span>}
+        {(modelRunLabel || generatedAtLabel) && (
+          <span>
+            THREDDS risk dataset
+            {modelRunLabel ? ` · Model run: ${modelRunLabel}` : ''}
+            {generatedAtLabel ? ` · Generated: ${generatedAtLabel}` : ''}
+          </span>
+        )}
       </div>
 
       <div className="risk-chart-card">

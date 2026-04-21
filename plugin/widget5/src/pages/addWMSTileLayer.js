@@ -2,6 +2,7 @@ import L from 'leaflet';
 import $ from 'jquery';
 import WMSTileLoadingService from '../services/WMSTileLoadingService.js';
 import createCORSWMSLayer from '../utils/CORSWMSLayer.js';
+import { INUNDATION_VISUAL_COLOR_SCALE_RANGE } from '../config/layerConfig';
 
 /**
  * Adds a    const handleTileError = (event) => {
@@ -73,8 +74,8 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
     if (targetLayerName.includes('hmax') || targetLayerName.includes('H_max') || targetLayerName.includes('raro_inun')) {
         // Ensure proper color scale range for inundation data
         if (!finalOptions.colorscalerange) {
-            finalOptions.colorscalerange = '-0.05,1.63';
-            console.log('🌊 Setting inundation color scale range: -0.05-1.63m');
+            finalOptions.colorscalerange = INUNDATION_VISUAL_COLOR_SCALE_RANGE;
+            console.log(`🌊 Setting inundation color scale range: ${INUNDATION_VISUAL_COLOR_SCALE_RANGE}m`);
         }
         // Ensure proper style for inundation visualization
         if (!finalOptions.styles) {

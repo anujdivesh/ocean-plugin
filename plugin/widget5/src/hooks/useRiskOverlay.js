@@ -201,7 +201,16 @@ export const useRiskOverlay = ({
           : [];
         renderMarkers();
       } catch (error) {
-        console.error('Failed to fetch risk points:', error);
+        console.error('❌ Failed to fetch risk points from THREDDS:', error);
+        
+        // Show error to user
+        if (error.message.includes('THREDDS')) {
+          alert(`⚠️ Risk Points Error\n\nCannot load coastal risk data from THREDDS server.\n\nError: ${error.message}\n\nPlease check:\n1. Internet connection\n2. THREDDS server availability\n3. Browser console for details`);
+        }
+        
+        // Clear points on error
+        pointsRef.current = [];
+        renderMarkers();
       }
     };
 

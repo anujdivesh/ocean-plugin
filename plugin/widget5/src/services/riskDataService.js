@@ -95,18 +95,37 @@ const selectRepresentativePoints = (points) => {
   return Array.from(representatives.values());
 };
 
-const loadRiskPointsCatalog = async () => {
-  const response = await fetch(getRiskPointsUrl(), {
-    headers: {
-      Accept: 'application/json'
+const fetchRiskJson = async (url) => {
+  console.log('🌊 Fetching risk data from THREDDS:', url);
+  
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      console.error('❌ THREDDS risk data fetch failed:', response.status, response.statusText);
+      throw new Error(`Failed to fetch risk data from THREDDS: ${response.status} ${response.statusText}`);
     }
-  });
 
-  if (!response.ok) {
-    throw new Error(`Risk points request failed (${response.status})`);
+    const data = await response.json();
+    console.log('✅ THREDDS risk data loaded successfully:', {
+      url,
+      pointCount: data?.points?.length || 0,
+      metadata: data?.metadata
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('❌ Error fetching risk data from THREDDS:', error);
+    throw error;
   }
+};
 
-  const payload = await response.json();
+const loadRiskPointsCatalog = async () => {
+  const payload = await fetchRiskJson(getRiskPointsUrl());
   const rawPoints = Array.isArray(payload?.points) ? payload.points : [];
 
   return {
@@ -116,14 +135,21 @@ const loadRiskPointsCatalog = async () => {
 };
 
 export const fetchRiskPoints = async ({ zoom = 8, bbox = null } = {}) => {
+  console.log('🎯 fetchRiskPoints called:', { zoom, bbox });
+  
   if (!riskPointsPromise) {
     riskPointsPromise = loadRiskPointsCatalog().catch((error) => {
+      console.error('❌ Failed to load risk points catalog:', error);
       riskPointsPromise = null;
       throw error;
     });
   }
 
   const catalog = await riskPointsPromise;
+  console.log('📊 Risk catalog loaded:', {
+    totalPoints: catalog.points.length,
+    metadata: catalog.metadata
+  });
   const bboxBounds = parseBbox(bbox);
   const filteredPoints = catalog.points.filter((point) => {
     if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon)) {
@@ -148,17 +174,7 @@ export const fetchRiskPoints = async ({ zoom = 8, bbox = null } = {}) => {
 };
 
 export const fetchRiskDetails = async (pointId) => {
-  const response = await fetch(getRiskDetailsUrl(pointId), {
-    headers: {
-      Accept: 'application/json'
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`Risk detail request failed (${response.status})`);
-  }
-
-  const payload = await response.json();
+  const payload = await fetchRiskJson(getRiskDetailsUrl(pointId));
 
   return {
     ...payload,

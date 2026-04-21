@@ -1,6 +1,18 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 
+const removeExistingLegendControls = () => {
+  const legendNodes = document.querySelectorAll('.forecast-map-legend');
+  legendNodes.forEach((node) => {
+    const controlNode = node.closest('.leaflet-control');
+    if (controlNode) {
+      controlNode.remove();
+    } else {
+      node.remove();
+    }
+  });
+};
+
 /**
  * Hook for managing Leaflet map rendering and WMS layer visualization
  * Handles map instance, layer addition/removal, and rendering logic
@@ -21,6 +33,7 @@ export const useMapRendering = ({
   const wmsLayerGroup = useRef(null);
   const wmsLayerRefs = useRef([]);
   const layerRefs = useRef({});
+  const legendControlRef = useRef(null);
 
   // Initialize map with base layers
   useEffect(() => {
@@ -65,6 +78,27 @@ export const useMapRendering = ({
       }
     };
   }, [bounds]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map) return;
+
+    let selectedLayer = dynamicLayers.find(l => l.value === selectedWaveForecast);
+    if (!selectedLayer) {
+      selectedLayer = staticLayers.find(l => l.value === selectedWaveForecast);
+    }
+
+    if (legendControlRef.current) {
+      map.removeControl(legendControlRef.current);
+      legendControlRef.current = null;
+    }
+
+    removeExistingLegendControls();
+
+    return () => {
+      removeExistingLegendControls();
+    };
+  }, [selectedWaveForecast, dynamicLayers, staticLayers]);
 
   // A+ WMS layer rendering with diff-based updates and layer caching
   useEffect(() => {
