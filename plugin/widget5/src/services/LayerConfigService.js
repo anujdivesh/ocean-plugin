@@ -135,7 +135,11 @@ export const validateLayerConfig = (layer) => {
       });
     }
   } else {
-    if (!layer.wmsUrl || typeof layer.wmsUrl !== 'string') {
+    if (layer.sourceType === 'sfincs-raster') {
+      if (!layer.apiBase || typeof layer.apiBase !== 'string') {
+        errors.push('Raster layers must have a string "apiBase"');
+      }
+    } else if (!layer.wmsUrl || typeof layer.wmsUrl !== 'string') {
       errors.push('Non-composite layer must have a string "wmsUrl"');
     }
   }

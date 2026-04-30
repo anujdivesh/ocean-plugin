@@ -1,9 +1,12 @@
+import { useEffect } from 'react';
 import { useWMSCapabilities } from './useWMSCapabilities';
 import { useTimeAnimation } from './useTimeAnimation';
 import { useUIState } from './useUIState';
 import { useLayerManagement } from './useLayerManagement';
 import { useMapRendering } from './useMapRendering';
 import { useLegendManagement } from './useLegendManagement';
+import { isRasterSourceLayer } from '../config/layerConfig';
+import SfincsRasterService from '../services/SfincsRasterService';
 
 /**
  * Main forecast hook that composes specialized hooks
@@ -24,11 +27,38 @@ export const useForecast = (config) => {
     selectedLayerConfig
   } = layerManagement;
 
+  useEffect(() => {
+    const rasterLayers = allLayers.filter(isRasterSourceLayer);
+
+    if (!rasterLayers.length) {
+      return;
+    }
+
+    rasterLayers.forEach((layer) => {
+      const rasterService = new SfincsRasterService(layer.apiBase);
+
+      Promise.all([
+        rasterService.loadMetadata(),
+        rasterService.loadTimesteps()
+      ])
+        .then(([, timesteps]) => rasterService.warmupFrames({
+          startIndex: 0,
+          count: 4,
+          frameCount: timesteps.length,
+          vmin: layer.rasterMinDepth,
+          vmax: layer.rasterMaxDepth
+        }))
+        .catch((error) => {
+          console.warn(`Failed raster warmup for ${layer.value}:`, error);
+        });
+    });
+  }, [allLayers]);
+
   // 2. WMS Capabilities (time dimensions, metadata)
   const capTime = useWMSCapabilities(selectedWaveForecast, allLayers);
 
   // 3. Time Animation (slider, playback controls)
-  const timeAnimation = useTimeAnimation(capTime);
+  const timeAnimation = useTimeAnimation(capTime, selectedLayerConfig);
   const {
     sliderIndex,
     setSliderIndex,
@@ -37,7 +67,9 @@ export const useForecast = (config) => {
     totalSteps,
     currentSliderDate,
     currentSliderDateStr,
-    minIndex
+    minIndex,
+    getRasterFrame,
+    isBuffering
   } = timeAnimation;
 
   // 4. UI State (canvas visibility, drag state, responsive layout)
@@ -60,9 +92,14 @@ export const useForecast = (config) => {
   const mapRendering = useMapRendering({
     activeLayers,
     selectedWaveForecast,
+    selectedLayerConfig,
     dynamicLayers,
     staticLayers: STATIC_LAYERS,
     currentSliderDateStr,
+    sliderIndex,
+    getRasterFrame,
+    isBuffering,
+    capTime,
     wmsOpacity,
     addWMSTileLayer,
     handleShow: openBottomCanvas,

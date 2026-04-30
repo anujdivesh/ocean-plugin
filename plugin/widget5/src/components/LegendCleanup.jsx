@@ -14,7 +14,7 @@ const LegendCleanup = ({ selectedWaveForecast, WAVE_FORECAST_LAYERS }) => {
       outdatedLegends.forEach(legend => {
         // Check if this is a hardcoded element with outdated psu-plasma palette
         const img = legend.querySelector('img');
-        if (img && img.src.includes('PALETTE=psu-plasma') && img.src.includes('cook_forecast%2Ftm02')) {
+        if (img && img.src.includes('PALETTE=psu-plasma') && img.src.includes('tm02')) {
           console.log('Removing outdated hardcoded legend element:', legend);
           legend.remove();
         }
@@ -23,7 +23,7 @@ const LegendCleanup = ({ selectedWaveForecast, WAVE_FORECAST_LAYERS }) => {
       // Remove any legends with incorrect palette configurations
       const allLegendImages = document.querySelectorAll('.forecast-map-legend__image');
       allLegendImages.forEach(img => {
-        if (img.src.includes('cook_forecast%2Ftm02') && img.src.includes('PALETTE=psu-plasma')) {
+        if (img.src.includes('tm02') && img.src.includes('PALETTE=psu-plasma')) {
           console.log('Removing legend with outdated palette:', img.parentElement);
           img.parentElement.remove();
         }
@@ -44,7 +44,7 @@ const LegendCleanup = ({ selectedWaveForecast, WAVE_FORECAST_LAYERS }) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               // Check if the added node contains outdated legend elements
               const outdatedElements = node.querySelectorAll ? 
-                node.querySelectorAll('.forecast-map-legend img[src*="PALETTE=psu-plasma"][src*="cook_forecast%2Ftm02"]') : 
+                node.querySelectorAll('.forecast-map-legend img[src*="PALETTE=psu-plasma"][src*="tm02"]') : 
                 [];
               
               outdatedElements.forEach(element => {
@@ -85,7 +85,7 @@ const LegendCleanup = ({ selectedWaveForecast, WAVE_FORECAST_LAYERS }) => {
         });
         
         // Validate that tm02 is using divergent palette
-        if (selectedLayer.value === 'cook_forecast/tm02') {
+        if (selectedLayer.value === 'tm02') {
           if (selectedLayer.style?.includes('div-Spectral')) {
             console.log('✅ Mean Wave Period using correct divergent spectral palette');
           } else if (selectedLayer.style?.includes('psu-plasma')) {

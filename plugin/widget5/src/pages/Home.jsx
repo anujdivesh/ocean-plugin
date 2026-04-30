@@ -5,13 +5,20 @@ import addWMSTileLayer from "./addWMSTileLayer";
 import BottomOffCanvas from "./BottomOffCanvas";
 import BottomBuoyOffCanvas from "./BottomBuoyOffCanvas";
 import { useForecast } from "../hooks/useForecast";
+import useRiskOverlay from "../hooks/useRiskOverlay";
 import ForecastApp from "../components/ForecastApp";
 import ModernHeader from "../components/ModernHeader";
 import WorldClassVisualization from "../utils/WorldClassVisualization";
 import LegendCleanup from "../components/LegendCleanup";
+import { INUNDATION_VISUAL_COLOR_SCALE_RANGE, RASTER_SOURCE_TYPE } from "../config/layerConfig";
+import { ISLAND_ZOOM_TARGETS } from "../config/islandConfig";
+import { getSfincsRasterApiBase } from "../config/sfincsRasterConfig";
 
 // Initialize world-class visualization system
 const worldClassViz = new WorldClassVisualization();
+// TEMPORARY: Using ncWMS while THREDDS server is down
+const FORECAST_WMS_URL = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc";
+const FORECAST_DATASET = "cook_forecast";
 
 const getResponsiveLegendDimensions = () => {
   const screenWidth = window.innerWidth;
@@ -35,16 +42,16 @@ const getWorldClassLegendUrl = (variable, range, unit) => {
 };
 
 const getRarotongaInundationLegendUrl = () => {
-  const baseUrl = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_reproj.nc";
+  const baseUrl = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_epsg4326.nc";
   const { width, height } = getResponsiveLegendDimensions();
   const params = new URLSearchParams({
     REQUEST: 'GetLegendGraphic',
-    LAYER: 'H_max',
+    LAYER: 'hmax',
     PALETTE: 'x-Sst',
     COLORBARONLY: 'true',
     WIDTH: width,
     HEIGHT: height,
-    COLORSCALERANGE: '-0.05,1.63',
+    COLORSCALERANGE: INUNDATION_VISUAL_COLOR_SCALE_RANGE,
     NUMCOLORBANDS: '250',
     COLORSCALING: 'linear',
     VERTICAL: 'true',
@@ -68,7 +75,7 @@ const variableConfigMap = {
   }),
   inun: () => ({
     style: "default-scalar/x-Sst",
-    colorscalerange: "-0.05,1.63",
+    colorscalerange: INUNDATION_VISUAL_COLOR_SCALE_RANGE,
     numcolorbands: 250,
     belowmincolor: "transparent",
     abovemaxcolor: "extend",
@@ -97,10 +104,17 @@ const widgetContainerStyle = {
   zIndex: 9999,
 };
 
-// Set default map center to Rarotonga, Cook Islands - matching model domain exactly
-const southWest = L.latLng(-21.7498293078, -160.25042381);
-const northEast = L.latLng(-20.7496610545, -159.2500903777);
-const bounds = L.latLngBounds(southWest, northEast);
+// Set default map extent to the national Cook Islands footprint on initial load.
+const nationalBounds = ISLAND_ZOOM_TARGETS.reduce((acc, island) => {
+  if (!acc) {
+    return L.latLngBounds(island.bounds.southWest, island.bounds.northEast);
+  }
+
+  acc.extend(island.bounds.southWest);
+  acc.extend(island.bounds.northEast);
+  return acc;
+}, null);
+const bounds = nationalBounds;
 
 
 
@@ -116,38 +130,47 @@ function CookIslandsForecast() {
 
       {
         label: "Mean Wave Period",
-        value: "cook_forecast/tm02",
+        value: "tm02",
         ...getWorldClassConfig('tm02'),
         id: 4,
-        wmsUrl: "https://gem-ncwms-hpc.spc.int/ncWMS/wms",
+        wmsUrl: FORECAST_WMS_URL,
+        dataset: FORECAST_DATASET,
         legendUrl: getWorldClassLegendUrl('tm02', '0,20', 's'),
         description: "ENHANCED Divergent Spectral palette - maximum visual distinction for wave period analysis with full spectrum color differentiation"
       },
       {
         label: "Peak Wave Period",
-        value: "cook_forecast/tpeak", 
+        value: "tpeak", 
         ...getWorldClassConfig('tpeak'),
         id: 5,
-        wmsUrl: "https://gem-ncwms-hpc.spc.int/ncWMS/wms",
+        wmsUrl: FORECAST_WMS_URL,
+        dataset: FORECAST_DATASET,
         legendUrl: getWorldClassLegendUrl('tpeak', '0,13.68', 's'),
         description: "Enhanced peak period analysis with full range (0-13.68s) using magma color gradation"
       }
     ];
   }, []);
 
-  // Static layers (no time dimension) - these are not forecast variables
+  // Additional forecast layers
   const STATIC_LAYERS = useMemo(() => {
     return [
       {
         label: "Rarotonga Inundation",
-        value: "H_max",
+        value: "Cook_island_national_sfincs/hmax",
         ...getWorldClassConfig('raro_inun'),
         id: 200,
-        dataset: 'H_max',
-        wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/sfincs_map_reproj.nc",
+        sourceType: RASTER_SOURCE_TYPE,
+        apiBase: getSfincsRasterApiBase(),
         legendUrl: getRarotongaInundationLegendUrl(),
-        description: "Modeled inundation depth for Rarotonga (0–1.63 m above ground)",
-        isStatic: true // Flag to identify static layers
+        description: "SFINCS model maximum water depth",
+        style: 'default-scalar/x-Sst',
+        rasterMinDepth: -0.05,
+        rasterMaxDepth: 3.0,
+        bounds: {
+          southWest: [-21.281671213355985, -159.83717346191406],
+          northEast: [-21.19118441998148, -159.71783447265625]
+        },
+        isStatic: false
       }
     ];
   }, []);
@@ -184,12 +207,21 @@ function CookIslandsForecast() {
     currentSliderDate,
     mapInstance,
     minIndex,
+    isBuffering,
   } = useForecast(cookIslandsConfig);
 
   // Debug: Track state changes
   useEffect(() => {
     console.log("🎯 BottomCanvas State - show:", showBottomCanvas, "data:", bottomCanvasData);
   }, [showBottomCanvas, bottomCanvasData]);
+
+  useRiskOverlay({
+    mapInstance,
+    enabled: activeLayers?.riskPoints !== false,
+    selectedRiskPointId: bottomCanvasData?.mode === 'risk' ? bottomCanvasData?.point?.id : null,
+    setBottomCanvasData,
+    setShowBottomCanvas
+  });
 
   return (
     <div style={widgetContainerStyle}>
@@ -216,6 +248,7 @@ function CookIslandsForecast() {
         setShowBottomCanvas={setShowBottomCanvas}
         isUpdatingVisualization={isUpdatingVisualization}
         minIndex={minIndex}
+        isBuffering={isBuffering}
 
       />
 

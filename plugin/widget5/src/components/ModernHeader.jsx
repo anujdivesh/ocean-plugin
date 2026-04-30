@@ -62,7 +62,7 @@ const ModernHeader = () => {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text'
           }}>
-            Cook Islands Wave and Innundation Forecast System
+            Cook Islands Wave and Inundation Forecast System
           </h1>
           <p style={{
             margin: 0,

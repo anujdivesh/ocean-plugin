@@ -227,7 +227,7 @@ class WorldClassVisualization {
       }
     }
     
-    // Primary: Use ncWMS for reliable legend generation
+    // Primary: Use SWAN_UGRID THREDDS/ncWMS2 legend generation
     const primaryUrl = this.generateNcWMSLegendUrl(variable, range, unit, selectedPalette);
     if (primaryUrl) {
       return primaryUrl;
@@ -238,21 +238,20 @@ class WorldClassVisualization {
   }
 
   /**
-   * Generate reliable ncWMS legend URL (preferred method)
+   * Generate reliable SWAN_UGRID legend URL (preferred method)
    */
   generateNcWMSLegendUrl(variable, range, unit, palette) {
     // Map variable to layer name
     const layerMapping = {
-      'tm02': 'cook_forecast/tm02',
-      'tpeak': 'cook_forecast/tpeak', 
-      'hs': 'cook_forecast/hs',
-      'dirm': 'cook_forecast/dirm',
-      'raro_inun': 'raro_inun/Band1'
+      'tm02': 'tm02',
+      'tpeak': 'tpeak', 
+      'hs': 'hs',
+      'dirm': 'dirm',
+      'raro_inun': 'hmax'
     };
 
-    const fallbackLayer = variable.includes('/') ? variable : `cook_forecast/${variable}`;
-    const layer = layerMapping[variable] || layerMapping[variable.split('/')[0]] || fallbackLayer;
-    const baseUrl = "https://gem-ncwms-hpc.spc.int/ncWMS/wms";
+    const layer = layerMapping[variable] || variable;
+    const baseUrl = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc";
     
     // Get responsive dimensions
     const screenWidth = window.innerWidth || 1024;
@@ -425,13 +424,12 @@ class WorldClassVisualization {
       description: "Professional-grade wave analysis combining height and direction",
       layers: [
         {
-          value: "cook_forecast/hs",
+          value: "hs",
           ...this.getAdaptiveWaveHeightConfig(6.0, "tropical"),
-          wmsUrl: "https://gem-ncwms-hpc.spc.int/ncWMS/wms",
+          wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc",
           id: 1001,
           legendUrl: this.getWorldClassLegendUrl("hs", "0,4", "m", "x-Sst"),
           zIndex: 1,
-          // Add additional config needed for capabilities
           style: "default-scalar/x-Sst",
           colorscalerange: "0,4",
           numcolorbands: 250,
@@ -439,15 +437,15 @@ class WorldClassVisualization {
           colorscaling: "linear"
         },
         {
-          value: "dirm", // THREDDS layer name (without dataset prefix)
+          value: "dirm",
           style: "black-arrow",
           colorscalerange: "",
-          wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/Rarotonga_UGRID.nc",
+          wmsUrl: "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc",
           id: 1002,
+          dataset: "cook_forecast",
           zIndex: 2,
           opacity: 0.9,
-          // THREDDS-specific config (no dataset parameter needed)
-          description: "Wave direction arrows from THREDDS server (direct access with CORS layer)"
+          description: "Wave direction arrows"
         }
       ]
     };

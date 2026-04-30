@@ -117,7 +117,7 @@ class WMSLayerConfigService {
    * Check if layer is a static (non-time-dimensional) layer
    */
   static isStaticLayer(layer) {
-    return layer?.isStatic === true || layer?.id === 200; // Legacy ID check
+    return layer?.isStatic === true;
   }
   
   /**

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MARINE_CONFIG } from '../config/marineVariables';
+import { isRasterSourceLayer } from '../config/layerConfig';
+import SfincsRasterService from '../services/SfincsRasterService';
 
 /**
  * Hook for fetching and managing WMS capabilities
@@ -37,6 +39,31 @@ export const useWMSCapabilities = (selectedLayer, allLayers) => {
         
         console.log(`🔍 Fetching capabilities for layer: ${selectedLayer}`);
         console.log(`🔍 Layer config:`, selectedLayerConfig);
+
+        if (isRasterSourceLayer(selectedLayerConfig)) {
+          const rasterService = new SfincsRasterService(selectedLayerConfig.apiBase);
+          const [metadata, availableTimestamps] = await Promise.all([
+            rasterService.loadMetadata(),
+            rasterService.loadTimesteps()
+          ]);
+
+          const stepHours = getStepHoursFromTimestamps(availableTimestamps) || 1;
+          const start = availableTimestamps[0] || new Date();
+          const end = availableTimestamps[availableTimestamps.length - 1] || start;
+
+          setCapTime({
+            loading: false,
+            start,
+            end,
+            stepHours,
+            totalSteps: Math.max(availableTimestamps.length - 1, 0),
+            availableTimestamps,
+            originalStart: start,
+            metadata,
+            sourceType: selectedLayerConfig.sourceType
+          });
+          return;
+        }
         
         // Skip capabilities fetch for static layers
         if (selectedLayerConfig?.isStatic) {
@@ -48,7 +75,9 @@ export const useWMSCapabilities = (selectedLayer, allLayers) => {
             stepHours: 1,
             totalSteps: 0,
             availableTimestamps: [],
-            originalStart: new Date() // Add for consistency
+            originalStart: new Date(), // Add for consistency
+            metadata: null,
+            sourceType: selectedLayerConfig?.sourceType || 'wms'
           });
           return;
         }
@@ -151,7 +180,9 @@ export const useWMSCapabilities = (selectedLayer, allLayers) => {
           stepHours: stepHours || 6,
           totalSteps: newTotalSteps,
           availableTimestamps: availableTimestamps || [],
-          originalStart: originalStart || start || new Date() // Store original model run time
+          originalStart: originalStart || start || new Date(), // Store original model run time
+          metadata: null,
+          sourceType: 'wms'
         });
       } catch (error) {
         console.error("Error fetching capabilities:", error.message);
@@ -165,6 +196,19 @@ export const useWMSCapabilities = (selectedLayer, allLayers) => {
   }, [selectedLayer, allLayers]);
 
   return capTime;
+};
+
+const getStepHoursFromTimestamps = (timestamps) => {
+  if (!Array.isArray(timestamps) || timestamps.length < 2) {
+    return 1;
+  }
+
+  const firstStepMs = timestamps[1].getTime() - timestamps[0].getTime();
+  if (!Number.isFinite(firstStepMs) || firstStepMs <= 0) {
+    return 1;
+  }
+
+  return firstStepMs / (60 * 60 * 1000);
 };
 
 // Helper functions (move these from the main file)
@@ -274,23 +318,14 @@ const getTimeRangeFromDimension = (timeDimString) => {
         .sort((a, b) => a.getTime() - b.getTime());
       
       if (validTimestamps.length > 0) {
-        // ✅ Infer model run time: First timestamp might be +6h forecast, not model run (T+0)
-        // Calculate step size from first two timestamps
-        let stepMillis = 6 * 60 * 60 * 1000; // Default 6 hours
-        if (validTimestamps.length > 1) {
-          stepMillis = validTimestamps[1].getTime() - validTimestamps[0].getTime();
-        }
-        
-        // Model run time = first available timestamp - step size
+        // ✅ Use first available timestamp as-is (no inference needed)
+        // The first timestamp in the data is the actual start of the forecast
         const firstAvailable = validTimestamps[0];
-        const inferredModelRunTime = new Date(firstAvailable.getTime() - stepMillis);
         
-        console.log(`🎯 Inferring model run time:`);
+        console.log(`🎯 Using first available timestamp as start:`);
         console.log(`   First available: ${firstAvailable.toISOString()}`);
-        console.log(`   Step size: ${stepMillis / (60 * 60 * 1000)} hours`);
-        console.log(`   Inferred model run: ${inferredModelRunTime.toISOString()}`);
         
-        const originalStart = firstAvailable; // For warm-up calculations, use first available
+        const originalStart = firstAvailable; // Use first available timestamp directly
         const originalEnd = validTimestamps[validTimestamps.length - 1];
         
         // ✅ Skip warm-up period if enabled
@@ -328,7 +363,7 @@ const getTimeRangeFromDimension = (timeDimString) => {
           end: originalEnd,
           step: 'PT1H', // Default step
           availableTimestamps: filteredTimestamps,
-          originalStart: inferredModelRunTime, // ✅ Use inferred model run time (T+0)
+          originalStart: originalStart, // ✅ Use actual first timestamp (no inference)
           warmupDays: ENABLE_WARMUP_SKIP ? WARMUP_DAYS : 0,
           warmupSkipped: ENABLE_WARMUP_SKIP && filteredTimestamps.length < validTimestamps.length
         };

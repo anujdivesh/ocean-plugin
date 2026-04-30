@@ -3,6 +3,7 @@ import Offcanvas from "react-bootstrap/Offcanvas";
 import "./BottomOffCanvas.css";
 import Tabular from "./tabular.js";
 import Timeseries from "./timeseries.js";
+import RiskDetailsPanel from "../components/risk/RiskDetailsPanel";
 
 
 // ---- Variables & config for Cook Islands (adapted from Widget 1) ----
@@ -49,10 +50,6 @@ function normalizeBboxToLonLat(bboxStr) {
 async function fetchLayerTimeseries(layer, data) {
   if (!data || !data.bbox || (data.x === undefined && data.i === undefined) || (data.y === undefined && data.j === undefined)) return null;
   
-  // Strip dataset prefix if present (e.g., "cook_forecast/hs" -> "hs")
-  // THREDDS server doesn't use dataset prefixes in GetTimeseries requests
-  const cleanLayer = layer.includes('/') ? layer.split('/').pop() : layer;
-  
   let timeParam = "";
   if (data.timeDimension) {
     if (data.timeDimension.includes("/")) {
@@ -70,13 +67,15 @@ async function fetchLayerTimeseries(layer, data) {
   }
   const x = data.x !== undefined ? data.x : data.i;
   const y = data.y !== undefined ? data.y : data.j;
-  // Normalize bbox axis order for THREDDS (expects lon,lat when SRS=CRS:84)
+  // Normalize bbox axis order (expects lon,lat when SRS=CRS:84)
   const bbox = normalizeBboxToLonLat(data.bbox);
+  
+  const baseUrl = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc";
   const url =
-    "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/Rarotonga_UGRID.nc" +
+    baseUrl +
     `?REQUEST=GetTimeseries` +
-    `&LAYERS=${cleanLayer}` +
-    `&QUERY_LAYERS=${cleanLayer}` +
+    `&LAYERS=${layer}` +
+    `&QUERY_LAYERS=${layer}` +
     `&BBOX=${encodeURIComponent(bbox)}` +
     `&SRS=CRS:84` +
     `&FEATURE_COUNT=5` +
@@ -88,18 +87,30 @@ async function fetchLayerTimeseries(layer, data) {
     `&VERSION=1.1.1` +
     (timeParam ? `&TIME=${encodeURIComponent(timeParam)}` : "") +
     `&INFO_FORMAT=text/json`;
+  
+  // Add timeout to prevent app hanging when THREDDS is down
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+  
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (!response.ok) {
-      console.warn("GetTimeseries failed", { layer: cleanLayer, status: response.status, url });
+      console.warn("GetTimeseries failed", { layer: layer, status: response.status, url });
       return null;
     }
     const json = await response.json();
     if (!json || !json.ranges || !json.domain) {
-      console.warn("GetTimeseries returned empty payload", { layer: cleanLayer, url });
+      console.warn("GetTimeseries returned empty payload", { layer: layer, url });
     }
     return json;
-  } catch {
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.warn(`GetTimeseries request timed out for layer: ${layer} (THREDDS server may be down)`);
+    } else {
+      console.warn(`GetTimeseries error for layer ${layer}:`, error.message);
+    }
     return null;
   }
 }
@@ -113,10 +124,12 @@ const tabLabels = [
 ];
 
 function BottomOffCanvas({ show, onHide, data }) {
+  const isRiskMode = data?.mode === "risk";
   const [height, setHeight] = useState(() => {
     if (typeof window === "undefined") return 500;
     const viewportMax = Math.max(DEFAULT_MIN_HEIGHT, window.innerHeight - 120);
-    return Math.min(500, viewportMax);
+    const defaultHeight = isRiskMode ? 620 : 500;
+    return Math.min(defaultHeight, viewportMax);
   });
   const [maxHeight, setMaxHeight] = useState(() => {
     if (typeof window === "undefined") return DEFAULT_MAX_HEIGHT;
@@ -164,6 +177,18 @@ function BottomOffCanvas({ show, onHide, data }) {
     }
   }, [height, maxHeight, minHeight]);
 
+  useEffect(() => {
+    if (!show) {
+      return;
+    }
+
+    const preferredHeight = isRiskMode ? 620 : 500;
+    setHeight((currentHeight) => {
+      const nextHeight = Math.min(Math.max(preferredHeight, currentHeight), maxHeight);
+      return nextHeight;
+    });
+  }, [isRiskMode, maxHeight, show]);
+
   // Drag handle logic
   const dragging = useRef(false);
   const startY = useRef(0);
@@ -196,9 +221,16 @@ function BottomOffCanvas({ show, onHide, data }) {
   // Centralized network fetching
   useEffect(() => {
     let isMounted = true;
+    if (isRiskMode) {
+      setPerVariableData({});
+      setFetchError("");
+      setLoading(false);
+      return () => { isMounted = false; };
+    }
     if (!data || !data.bbox || (data.x === undefined && data.i === undefined) || (data.y === undefined && data.j === undefined)) {
       setPerVariableData({});
       setFetchError("No data available");
+      setLoading(false);
       return;
     }
     setLoading(true);
@@ -226,7 +258,7 @@ function BottomOffCanvas({ show, onHide, data }) {
       if (Object.values(out).every(x => !x)) setFetchError("No data returned from server.");
     })();
     return () => { isMounted = false; };
-  }, [data]);
+  }, [data, isRiskMode]);
 
   return (
     <Offcanvas
@@ -243,7 +275,7 @@ function BottomOffCanvas({ show, onHide, data }) {
         background: isDarkMode ? "rgba(63, 72, 84, 0.98)" : "rgba(255,255,255,0.98)",
         color: isDarkMode ? "#f1f5f9" : "#1e293b",
         overflow: "visible",
-        transition: "height 0.1s",
+        transition: "height 0.18s ease-out",
         borderTop: `1px solid ${isDarkMode ? "#44454a" : "#e2e8f0"}`,
       }}
       backdrop={false}
@@ -308,32 +340,41 @@ function BottomOffCanvas({ show, onHide, data }) {
         borderBottom: `1px solid ${isDarkMode ? "#44454a" : "#eee"}`, 
         padding: "0 1rem 0 0.5rem" 
       }}>
-        {/* Custom CSS Tabs */}
         <div style={{ display: "flex", flex: 1, paddingTop: 10 }}>
-          {tabLabels.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                border: "none",
-                borderBottom: activeTab === tab.key ? `2px solid ${isDarkMode ? "#60a5fa" : "#007bff"}` : "2px solid transparent",
-                background: "none",
-                padding: "8px 20px",
-                marginRight: 8,
-                fontWeight: activeTab === tab.key ? "bold" : "normal",
-                color: activeTab === tab.key ? (isDarkMode ? "#60a5fa" : "#007bff") : (isDarkMode ? "#a1a1aa" : "#555"),
-                cursor: "pointer",
-                fontSize: 16,
-                transition: "border-bottom 0.1s"
-              }}
-
-              aria-controls={`tab-panel-${tab.key}`}
-              tabIndex={activeTab === tab.key ? 0 : -1}
-              type="button"
-            >
-              {tab.label}
-            </button>
-          ))}
+          {isRiskMode ? (
+            <div style={{
+              padding: "8px 20px",
+              fontWeight: "bold",
+              color: isDarkMode ? "#60a5fa" : "#007bff",
+              fontSize: 16
+            }}>
+              Coastal Risk
+            </div>
+          ) : (
+            tabLabels.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                style={{
+                  border: "none",
+                  borderBottom: activeTab === tab.key ? `2px solid ${isDarkMode ? "#60a5fa" : "#007bff"}` : "2px solid transparent",
+                  background: "none",
+                  padding: "8px 20px",
+                  marginRight: 8,
+                  fontWeight: activeTab === tab.key ? "bold" : "normal",
+                  color: activeTab === tab.key ? (isDarkMode ? "#60a5fa" : "#007bff") : (isDarkMode ? "#a1a1aa" : "#555"),
+                  cursor: "pointer",
+                  fontSize: 16,
+                  transition: "border-bottom 0.1s"
+                }}
+                aria-controls={`tab-panel-${tab.key}`}
+                tabIndex={activeTab === tab.key ? 0 : -1}
+                type="button"
+              >
+                {tab.label}
+              </button>
+            ))
+          )}
         </div>
         <button
           onClick={onHide}
@@ -353,7 +394,9 @@ function BottomOffCanvas({ show, onHide, data }) {
         </button>
       </div>
       <Offcanvas.Body style={{ paddingTop: 16 }}>
-        {loading
+        {isRiskMode ? (
+          <RiskDetailsPanel data={data} isDarkMode={isDarkMode} />
+        ) : loading
           ? <div style={{ textAlign: "center", padding: "2rem" }}>Loading data...</div>
           : fetchError
               ? <div style={{ color: "red", textAlign: "center" }}>{fetchError}</div>

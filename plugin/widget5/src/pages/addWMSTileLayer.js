@@ -2,6 +2,7 @@ import L from 'leaflet';
 import $ from 'jquery';
 import WMSTileLoadingService from '../services/WMSTileLoadingService.js';
 import createCORSWMSLayer from '../utils/CORSWMSLayer.js';
+import { INUNDATION_VISUAL_COLOR_SCALE_RANGE } from '../config/layerConfig';
 
 /**
  * Adds a    const handleTileError = (event) => {
@@ -69,12 +70,12 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
         }
     }
 
-    // Handle inundation layer configuration (both THREDDS H_max and legacy raro_inun)
-    if (targetLayerName.includes('H_max') || targetLayerName.includes('raro_inun')) {
+    // Handle inundation layer configuration (SFINCS hmax and legacy raro_inun)
+    if (targetLayerName.includes('hmax') || targetLayerName.includes('H_max') || targetLayerName.includes('raro_inun')) {
         // Ensure proper color scale range for inundation data
         if (!finalOptions.colorscalerange) {
-            finalOptions.colorscalerange = '-0.05,1.63';
-            console.log('🌊 Setting inundation color scale range: -0.05-1.63m');
+            finalOptions.colorscalerange = INUNDATION_VISUAL_COLOR_SCALE_RANGE;
+            console.log(`🌊 Setting inundation color scale range: ${INUNDATION_VISUAL_COLOR_SCALE_RANGE}m`);
         }
         // Ensure proper style for inundation visualization
         if (!finalOptions.styles) {
@@ -122,8 +123,8 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
     
     // Helper function to determine layer type
     function getLayerType(layerName) {
-        // Inundation layers are static (no time dimension)
-        if (layerName.includes('H_max') || layerName.includes('raro_inun')) return 'static';
+        // Inundation layers are now multitemporal forecast layers
+        if (layerName.includes('hmax') || layerName.includes('H_max') || layerName.includes('raro_inun')) return 'forecast';
         return 'forecast'; // All forecast layers including tpeak should be treated as 'forecast'
     }
 
@@ -268,7 +269,7 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
                             if (jsonData.type === 'Coverage' && jsonData.ranges) {
                                 const paramNames = Object.keys(jsonData.ranges);
                                 if (paramNames.length > 0) {
-                                    const paramName = paramNames[0]; // Usually 'H_max'
+                                    const paramName = paramNames[0]; // Usually 'hmax' or 'H_max'
                                     const values = jsonData.ranges[paramName].values;
                                     console.log('📈 Values array:', values);
                                     
@@ -340,7 +341,8 @@ const addWMSTileLayer = (map, url, options = {}, handleShow) => {
                     // If still no data and this is a THREDDS server, show appropriate message
                     if (featureInfo === "No Data" && url.includes('thredds')) {
                         // Check if this is the inundation layer
-                        const isInundationLayer = wmsLayer.options.layers.includes('H_max') || 
+                        const isInundationLayer = wmsLayer.options.layers.includes('hmax') || 
+                                                  wmsLayer.options.layers.includes('H_max') || 
                                                  wmsLayer.options.layers.includes('inun');
                         if (isInundationLayer) {
                             featureInfo = "Click on colored areas for values";

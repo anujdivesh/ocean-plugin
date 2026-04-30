@@ -13,10 +13,10 @@ export class DynamicVisualizationManager {
     this.dataCache = new Map();
     this.styleManager = new WMSStyleManager();
     this.adaptiveRanges = {
-      'cook_forecast/hs': { min: 0, max: 4, unit: 'm' },
-      'cook_forecast/tm02': { min: 0, max: 20, unit: 's' },
-      'cook_forecast/tpeak': { min: 0, max: 20, unit: 's' },
-      'cook_forecast/dirm': { min: 0, max: 360, unit: '°' }
+      'hs': { min: 0, max: 4, unit: 'm' },
+      'tm02': { min: 0, max: 20, unit: 's' },
+      'tpeak': { min: 0, max: 20, unit: 's' },
+      'dirm': { min: 0, max: 360, unit: '°' }
     };
   }
 

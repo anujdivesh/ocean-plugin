@@ -8,6 +8,10 @@ import React from 'react';
 import './WorldClassLegend.css';
 import wmsStyleManager, { WMSStylePresets } from '../utils/WMSStyleManager';
 import DynamicColorManager from '../utils/DynamicColorManager';
+import {
+  INUNDATION_VISUAL_RANGE,
+  isInundationLayer
+} from '../config/layerConfig';
 
 const EPSILON = 1e-6;
 
@@ -42,6 +46,21 @@ const interpolateXSst = (normalized) => {
   
   return `rgb(${r}, ${g}, ${b})`;
 };
+
+const parseColorRange = (rangeString) => {
+  if (!rangeString) return null;
+  const parts = rangeString.split(',');
+  if (parts.length !== 2) return null;
+
+  const min = Number(parts[0]);
+  const max = Number(parts[1]);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    return null;
+  }
+
+  return { min, max };
+};
+
 const selectTickValues = (values, limit = 5) => {
   if (!values || values.length === 0) {
     return [];
@@ -529,30 +548,33 @@ const WorldClassLegend = ({
       };
     }
 
-    if (variable.includes('inun')) {
-      const minValue = 0;
-      const maxValue = 1.6;
-      const gradientPalette = [
-        '#f7fbff',
-        '#deebf7',
-        '#c6dbef',
-        '#9ecae1',
-        '#6baed6',
-        '#3182bd',
-        '#08519c'
-      ];
+    if (isInundationLayer(variable) || variable.includes('inun')) {
+      const configuredRange = parseColorRange(layer.colorscalerange);
+      const minValue = configuredRange?.min ?? INUNDATION_VISUAL_RANGE.min;
+      const maxValue = configuredRange?.max ?? INUNDATION_VISUAL_RANGE.max;
 
-      const gradientStops = gradientPalette.map((color, index) => {
-        const percent = (index / (gradientPalette.length - 1)) * 100;
+      const gradientStopCount = 128;
+      const gradientStops = Array.from({ length: gradientStopCount }, (_, index) => {
+        const normalized = index / (gradientStopCount - 1);
+        const color = interpolateXSst(normalized);
+        const percent = normalized * 100;
         return `${color} ${percent.toFixed(2)}%`;
       });
 
-      const scaleTicks = [0, 0.25, 0.5, 1.0, 1.5];
+      const scaleTicks = selectTickValues([
+        minValue,
+        0,
+        0.25,
+        0.5,
+        1.0,
+        1.5,
+        maxValue
+      ]);
       const rangeDefinitions = [
         {
-          min: -0.05,
+          min: minValue,
           max: 0.0,
-          color: '#f7fbff',
+          color: interpolateXSst(0),
           label: 'Dry Ground',
           value: '≤ 0.0 m',
           description: 'No surface water present',
@@ -561,7 +583,7 @@ const WorldClassLegend = ({
         {
           min: 0.0,
           max: 0.15,
-          color: '#deebf7',
+          color: interpolateXSst(0.18),
           label: 'Minor Ponding',
           value: '0 – 0.15 m',
           description: 'Shallow nuisance water on low-lying surfaces',
@@ -570,7 +592,7 @@ const WorldClassLegend = ({
         {
           min: 0.15,
           max: 0.4,
-          color: '#c6dbef',
+          color: interpolateXSst(0.34),
           label: 'Shallow Flooding',
           value: '0.15 – 0.40 m',
           description: 'Curb-deep flooding across roads and properties',
@@ -579,7 +601,7 @@ const WorldClassLegend = ({
         {
           min: 0.4,
           max: 0.8,
-          color: '#6baed6',
+          color: interpolateXSst(0.58),
           label: 'Significant Flooding',
           value: '0.40 – 0.80 m',
           description: 'Knee-to-waist depth inundation impacting structures',
@@ -588,7 +610,7 @@ const WorldClassLegend = ({
         {
           min: 0.8,
           max: 1.2,
-          color: '#3182bd',
+          color: interpolateXSst(0.76),
           label: 'Deep Flooding',
           value: '0.80 – 1.20 m',
           description: 'Substantial inundation with unsafe currents',
@@ -597,11 +619,11 @@ const WorldClassLegend = ({
         {
           min: 1.2,
           max: maxValue,
-          color: '#08519c',
+          color: interpolateXSst(1),
           label: 'Extreme Flooding',
           value: '≥ 1.20 m',
           description: 'Life-threatening inundation requiring evacuation',
-          tooltip: 'High-depth flooding possibly exceeding 1.6 m'
+          tooltip: `High-depth flooding possibly exceeding ${maxValue.toFixed(2)} m`
         }
       ];
 
@@ -609,7 +631,7 @@ const WorldClassLegend = ({
         title: 'Rarotonga Inundation Depth',
         subtitle: 'Modelled water depth above ground level',
         unit: 'meters (m)',
-        palette: 'Sequential Blues (Flood Depth)',
+        palette: 'X-SST (Cook Islands Inundation)',
         displayType: 'gradient',
         gradientStops,
         minValue,

@@ -21,8 +21,8 @@ const MIN_HEIGHT = 100;
 const MAX_HEIGHT = 800;
 
 const MODEL_VARIABLES = ["hs_p1", "tp_p1", "dirp_p1"];
-const LATEST_CAPABILITY_URL = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/Rarotonga_UGRID.nc?service=WMS&version=1.3.0&request=GetCapabilities";
-const PREVIOUS_CAPABILITY_URL = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/Rarotonga_UGRID_01.nc?service=WMS&version=1.3.0&request=GetCapabilities";
+const LATEST_CAPABILITY_URL = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities";
+const PREVIOUS_CAPABILITY_URL = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities";
 
 // Time parsing functions from NiueForecast.js
 function parseTimeDimensionFromCapabilities(xml, layerName) {
@@ -80,25 +80,50 @@ function formatDateISOString(date) {
 }
 
 // New functions for fetching forecast data
-async function fetchCapabilities(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch capabilities from ${url}`);
-  const xml = await res.text();
-  return xml;
+async function fetchCapabilities(url, timeoutMs = 5000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`Failed to fetch capabilities from ${url}`);
+    const xml = await res.text();
+    return xml;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error(`GetCapabilities request timed out after ${timeoutMs}ms: ${url}`);
+      throw new Error(`THREDDS server timeout (server may be down)`);
+    }
+    throw error;
+  }
 }
 
-async function fetchForecastData(baseUrl, layer, timeRange) {
+async function fetchForecastData(baseUrl, layer, timeRange, timeoutMs = 5000) {
   const timeParam = `${formatDateISOString(timeRange.start)}/${formatDateISOString(timeRange.end)}`;
+  
   const url = `${baseUrl}?REQUEST=GetTimeseries&LAYERS=${layer}&QUERY_LAYERS=${layer}&BBOX=-169.9315,-19.05455,-169.9314,-19.05445&SRS=CRS:84&FEATURE_COUNT=5&HEIGHT=1&WIDTH=1&X=0&Y=0&STYLES=default/default&VERSION=1.1.1&TIME=${timeParam}&INFO_FORMAT=text/json`;
   
   console.log(`Fetching forecast data from: ${url}`);
   
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch forecast data from ${baseUrl}`);
-  const json = await res.json();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   
-  
-  return json;
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`Failed to fetch forecast data from ${baseUrl}`);
+    const json = await res.json();
+    return json;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error(`GetTimeseries request timed out after ${timeoutMs}ms: ${url}`);
+      throw new Error(`THREDDS server timeout (server may be down)`);
+    }
+    throw error;
+  }
 }
 
 async function fetchCombinedForecastData() {
@@ -146,12 +171,12 @@ async function fetchCombinedForecastData() {
       // Fetch both latest and previous for this variable
       const [latestData, previousData] = await Promise.all([
         fetchForecastData(
-          "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/Rarotonga_UGRID.nc",
+          "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc",
           v,
           { start: latestStart, end: latestEnd }
         ),
         fetchForecastData(
-          "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/Rarotonga_UGRID_01.nc",
+          "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc",
           v,
           { start: previousStart, end: previousEnd }
         )
