@@ -1,0 +1,772 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>SWAN UGRID - GPU Ocean Currents</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='8' fill='%234a90d9'/%3E%3C/svg%3E" />
+
+  <!-- MapLibre GL (local copies) -->
+  <link rel="stylesheet" href="maplibre-gl.css" />
+  <script src="maplibre-gl.js"></script>
+
+  <!-- zarr.js (local copy from node_modules) -->
+  <script src="zarr.umd.js"></script>
+
+  <style>
+    html, body { margin:0; height:100%; background:#0f1117; font-family: system-ui, -apple-system, sans-serif; }
+    #map { position:absolute; inset:0; z-index: 0; }
+    #gl-canvas { position:absolute; inset:0; pointer-events:none; z-index: 10; }
+    .hud {
+      position:absolute; left:12px; top:12px; z-index: 20;
+      background:rgba(5,8,20,0.72); color:rgba(200,220,255,0.9);
+      padding:10px 14px; border-radius:14px; font-size:11px; line-height:1.7;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(100,160,255,0.18);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    #time-panel {
+      position:absolute; left:50%; transform:translateX(-50%); bottom:16px; z-index: 20;
+      background:rgba(5,8,20,0.80); color:rgba(200,220,255,0.9);
+      padding:9px 18px; border-radius:14px; font-size:13px;
+      display:flex; align-items:center; gap:12px; min-width:380px;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(100,160,255,0.18);
+    }
+    #time-panel button {
+      background:rgba(0,140,255,0.18); color:rgba(180,220,255,0.9);
+      border:1px solid rgba(0,160,255,0.25);
+      border-radius:8px; padding:4px 12px; cursor:pointer; font-size:16px;
+    }
+    #time-panel button:hover { background:rgba(0,160,255,0.32); }
+    #time-slider { flex:1; cursor:pointer; accent-color:#00b4ff; }
+    #fps-counter {
+      position:absolute; top:60px; left:12px; z-index: 20;
+      background:rgba(5,8,20,0.72); color:rgba(200,220,255,0.9);
+      padding:8px 12px; border-radius:12px; font-family:monospace; font-size:11px;
+      backdrop-filter: blur(12px); border: 1px solid rgba(100,160,255,0.18);
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <canvas id="gl-canvas"></canvas>
+  <div class="hud" id="hud">Loading SWAN UGRID data…</div>
+  <div class="hud" id="fps-counter">FPS: <span id="fps-value">--</span> | Particles: <span id="particle-count">--</span></div>
+
+  <div id="time-panel">
+    <button id="btn-playpause" title="Play/Pause">▶</button>
+    <input id="time-slider" type="range" min="0" max="180" value="0" step="1">
+    <span id="time-step">t 0/181</span>
+    <span id="time-label">Loading…</span>
+  </div>
+
+<script>
+// ============================================================
+// GPU OCEAN CURRENT PARTICLE SYSTEM - SWAN UGRID Edition
+// Adapted from working deckgl experiment/index_zarr.html
+// ============================================================
+
+const hud = document.getElementById('hud');
+const _logs = [];
+function hudLog(msg, isError = false) {
+  console[isError ? 'error' : 'log']('[hudLog]', msg);
+  _logs.push((isError ? '⚠ ' : '✓ ') + msg);
+  hud.innerHTML = _logs.slice(-6).join('<br>');
+}
+window.onerror = (msg, src, line) => { hudLog(`Error at line ${line}: ${msg}`, true); };
+
+hudLog('Script started');
+
+// Map centered on Cook Islands (SWAN UGRID location)
+const map = new maplibregl.Map({
+  container: "map",
+  style: {
+    version: 8,
+    sources: {
+      carto: {
+        type: 'raster',
+        tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'],
+        tileSize: 256, maxzoom: 19
+      }
+    },
+    layers: [{ id:'carto', type:'raster', source:'carto' }]
+  },
+  center: [-159.8, -21.2], // Cook Islands
+  zoom: 7
+});
+
+// WebGL2 setup
+const canvas = document.getElementById('gl-canvas');
+const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true });
+if (!gl) { hudLog('WebGL2 not supported', true); throw new Error('WebGL2 unavailable'); }
+hudLog('WebGL2 context OK');
+
+const extFloat = gl.getExtension('EXT_color_buffer_float');
+const canRenderFloat = !!extFloat;
+if (!canRenderFloat) hudLog('⚠ No float-renderable FBO', true);
+
+// Constants
+const PARTICLE_RES = 256; // 65,536 particles
+const WIND_RES = 256; // Grid resolution for interpolation
+const SPEED_FACTOR = 0.5; // Visual speed multiplier
+const FADE_AMOUNT = 0.95; // Slower fade = more visible trails
+const DROP_RATE = 0.003;
+const MAX_AGE_FRAMES = 100;
+
+// Shaders
+const vertQuad = `#version 300 es
+layout(location = 0) in vec2 a_pos;
+out vec2 v_uv;
+void main(){ v_uv = a_pos * 0.5 + 0.5; gl_Position = vec4(a_pos, 0.0, 1.0); }`;
+
+const fragUpdate = `#version 300 es
+precision highp float;
+uniform sampler2D u_particles;
+uniform sampler2D u_wind;
+uniform float u_rand_seed;
+uniform float u_speed_x;
+uniform float u_speed_y;
+uniform float u_drop_rate;
+out vec4 fragColor;
+
+float rand(vec2 co){
+  return fract(sin(dot(co, vec2(12.9898,78.233))) * 43758.5453 + u_rand_seed);
+}
+
+vec2 sampleWind(vec2 uv){
+  return texture(u_wind, uv).rg;
+}
+
+void main(){
+  ivec2 texel = ivec2(gl_FragCoord.xy);
+  vec4 state = texelFetch(u_particles, texel, 0);
+  vec2 pos = state.rg;
+  float age = state.b;
+  
+  vec2 vel = sampleWind(pos);
+  pos += vec2(vel.x * u_speed_x, vel.y * u_speed_y);
+  age += 1.0 / float(${MAX_AGE_FRAMES});
+  
+  vec2 seed = state.rg + u_rand_seed;
+  if (age >= 1.0 || pos.x < 0.0 || pos.x > 1.0 || pos.y < 0.0 || pos.y > 1.0 || rand(seed) < u_drop_rate) {
+    pos = vec2(rand(seed), rand(seed + 1.0));
+    age = 0.0;
+  }
+  
+  float speed = length(vel);
+  fragColor = vec4(pos, age, speed);
+}`;
+
+const vertDraw = `#version 300 es
+precision highp float;
+uniform sampler2D u_particles_prev;
+uniform sampler2D u_particles_curr;
+uniform float u_particle_res;
+uniform float u_world_size;
+uniform vec2 u_center_merc;
+uniform vec2 u_canvas_size;
+uniform vec2 u_domain_min;
+uniform vec2 u_domain_span;
+uniform float u_line_width;
+out vec3 v_color;
+out float v_alpha;
+
+vec3 speedToColor(float s){
+  vec3 c0=vec3(36,104,180)/255.;
+  vec3 c1=vec3(69,162,196)/255.;
+  vec3 c2=vec3(128,205,193)/255.;
+  vec3 c3=vec3(255,255,191)/255.;
+  vec3 c4=vec3(254,174,97)/255.;
+  vec3 c5=vec3(215,25,28)/255.;
+  if(s<0.3) return mix(c0,c1,s/0.3);
+  if(s<0.6) return mix(c1,c2,(s-0.3)/0.3);
+  if(s<1.0) return mix(c2,c3,(s-0.6)/0.4);
+  if(s<1.5) return mix(c3,c4,(s-1.0)/0.5);
+  return mix(c4,c5,clamp((s-1.5)/1.0,0.,1.));
+}
+
+vec2 toPixel(vec2 pos_norm){
+  vec2 lonlat = pos_norm * u_domain_span + u_domain_min;
+  float sin_lat = sin(lonlat.y * 3.14159265 / 180.0);
+  float mx = lonlat.x / 360.0 + 0.5;
+  float my = 0.5 - 0.25 * log((1.0 + sin_lat) / (1.0 - sin_lat)) / 3.14159265;
+  return (vec2(mx, my) - u_center_merc) * u_world_size + u_canvas_size * 0.5;
+}
+
+void main(){
+  float idx = floor(float(gl_VertexID) / 6.0);
+  float seg = mod(float(gl_VertexID), 6.0);
+  
+  float y = floor(idx / u_particle_res);
+  float x = idx - y * u_particle_res;
+  vec2 uv = (vec2(x,y) + 0.5) / u_particle_res;
+  
+  vec4 prev = texture(u_particles_prev, uv);
+  vec4 curr = texture(u_particles_curr, uv);
+  
+  vec2 p0_px = toPixel(prev.rg);
+  vec2 p1_px = toPixel(curr.rg);
+  
+  vec2 dir = p1_px - p0_px;
+  float len = length(dir);
+  if(len < 0.01){ gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
+  
+  vec2 norm = normalize(vec2(-dir.y, dir.x)) * u_line_width;
+  
+  vec2 offset;
+  if(seg<1.0) offset = -norm;
+  else if(seg<2.0) offset = norm;
+  else if(seg<3.0) offset = norm;
+  else if(seg<4.0) offset = -norm;
+  else if(seg<5.0) offset = norm + dir;
+  else offset = -norm + dir;
+  
+  vec2 px = p0_px + offset;
+  vec2 ndc = vec2(px.x / u_canvas_size.x * 2.0 - 1.0, 1.0 - px.y / u_canvas_size.y * 2.0);
+  gl_Position = vec4(ndc, 0.0, 1.0);
+  
+  float speed = curr.a;
+  v_color = vec3(0.0, 1.0, 1.0); // DEBUG: Force bright cyan for visibility
+  v_alpha = 1.0; // DEBUG: Full opacity
+}`;
+
+const fragDraw = `#version 300 es
+precision mediump float;
+in vec3 v_color;
+in float v_alpha;
+out vec4 fragColor;
+void main(){ fragColor = vec4(v_color * v_alpha, v_alpha); }`;
+
+const fragComposite = `#version 300 es
+precision mediump float;
+uniform sampler2D u_trail;
+uniform sampler2D u_lines;
+uniform float u_fade;
+in vec2 v_uv;
+out vec4 fragColor;
+void main(){
+  vec4 l = texture(u_lines, v_uv);
+  vec4 t = texture(u_trail, v_uv) * u_fade;
+  fragColor = l + t * (1.0 - l.a);
+}`;
+
+const fragDisplay = `#version 300 es
+precision mediump float;
+uniform sampler2D u_trail;
+in vec2 v_uv;
+out vec4 fragColor;
+void main(){ fragColor = texture(u_trail, v_uv); }`;
+
+// Helper functions
+function compileShader(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+
+function linkProgram(vsSrc, fsSrc){
+  const p = gl.createProgram();
+  gl.attachShader(p, compileShader(gl.VERTEX_SHADER, vsSrc));
+  gl.attachShader(p, compileShader(gl.FRAGMENT_SHADER, fsSrc));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+
+function makeTexture(w, h, internalFmt, fmt, type, data=null){
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, internalFmt, w, h, 0, fmt, type, data);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return tex;
+}
+
+function makeFBO(tex){
+  const fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+  if (status !== gl.FRAMEBUFFER_COMPLETE) throw new Error(`FBO incomplete: ${status}`);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  return fbo;
+}
+
+const _uniCache = new WeakMap();
+function uni(p, name){
+  let cache = _uniCache.get(p);
+  if (!cache) { cache = {}; _uniCache.set(p, cache); }
+  if (!(name in cache)) cache[name] = gl.getUniformLocation(p, name);
+  return cache[name];
+}
+
+// Programs
+const updateProg = linkProgram(vertQuad, fragUpdate);
+const drawProg = linkProgram(vertDraw, fragDraw);
+const compositeProg = linkProgram(vertQuad, fragComposite);
+const displayProg = linkProgram(vertQuad, fragDisplay);
+hudLog('All shaders compiled');
+
+// Quad VAO
+const quadVAO = gl.createVertexArray();
+gl.bindVertexArray(quadVAO);
+const quadBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+// Draw VAO (no attributes, uses gl_VertexID)
+const drawVAO = gl.createVertexArray();
+
+// State
+let windTex = null;
+let particleTex = [null, null], particleFBO = [null, null];
+let trailTex = [null, null], trailFBO = [null, null];
+let linesTex = null, linesFBO = null;
+let curr = 0;
+let W = 0, H = 0;
+let meshData = null;
+let currentTimeIdx = 0;
+let isPlaying = false;
+let domainMin = [0, 0], domainSpan = [1, 1];
+let domainLonCenter = 0;
+let speedX = 0, speedY = 0;
+let randSeed = 0;
+let frameCount = 0;
+
+// Zarr handles
+let _zarrU = null, _zarrV = null, _zarrLon = null, _zarrLat = null;
+let numTimesteps = 0;
+
+// Initialize particle textures
+function initParticleTextures(){
+  const initData = new Float32Array(PARTICLE_RES * PARTICLE_RES * 4);
+  for (let i = 0; i < PARTICLE_RES * PARTICLE_RES; i++) {
+    initData[i*4] = Math.random();
+    initData[i*4+1] = Math.random();
+    initData[i*4+2] = Math.random();
+    initData[i*4+3] = 0;
+  }
+  for (let i = 0; i < 2; i++) {
+    particleTex[i] = makeTexture(PARTICLE_RES, PARTICLE_RES, gl.RGBA32F, gl.RGBA, gl.FLOAT, initData);
+    particleFBO[i] = makeFBO(particleTex[i]);
+  }
+  hudLog(`Particles: ${PARTICLE_RES}×${PARTICLE_RES} = ${PARTICLE_RES*PARTICLE_RES}`);
+  document.getElementById('particle-count').textContent = PARTICLE_RES * PARTICLE_RES;
+}
+
+function initScreenTextures(w, h){
+  for (let i = 0; i < 2; i++) {
+    if (trailTex[i]) gl.deleteTexture(trailTex[i]);
+    if (trailFBO[i]) gl.deleteFramebuffer(trailFBO[i]);
+    trailTex[i] = makeTexture(w, h, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE);
+    trailFBO[i] = makeFBO(trailTex[i]);
+  }
+  if (linesTex) gl.deleteTexture(linesTex);
+  if (linesFBO) gl.deleteFramebuffer(linesFBO);
+  linesTex = makeTexture(w, h, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE);
+  linesFBO = makeFBO(linesTex);
+  hudLog(`Screen textures: ${w}×${h}`);
+}
+
+function resizeCanvas(){
+  const dpr = window.devicePixelRatio || 1;
+  W = Math.floor(window.innerWidth * dpr);
+  H = Math.floor(window.innerHeight * dpr);
+  canvas.width = W;
+  canvas.height = H;
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+  initScreenTextures(W, H);
+}
+window.addEventListener('resize', resizeCanvas);
+
+function unwrapLongitudes(values){
+  const wrapped = Array.from(values, lon => {
+    let v = lon % 360;
+    if (v < 0) v += 360;
+    return v;
+  });
+  if (!wrapped.length) {
+    return { values: [], min: 0, max: 0, center: 0 };
+  }
+
+  const sorted = wrapped.map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v);
+  let maxGap = -1;
+  let gapIdx = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    const curr = sorted[i].v;
+    const next = i === sorted.length - 1 ? sorted[0].v + 360 : sorted[i + 1].v;
+    const gap = next - curr;
+    if (gap > maxGap) {
+      maxGap = gap;
+      gapIdx = i;
+    }
+  }
+
+  const cut = (sorted[gapIdx].v + maxGap) % 360;
+  const unwrapped = new Array(wrapped.length);
+  let min = Infinity;
+  let max = -Infinity;
+  for (let i = 0; i < wrapped.length; i++) {
+    let v = wrapped[i];
+    if (v < cut) v += 360;
+    unwrapped[i] = v;
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+
+  return {
+    values: unwrapped,
+    min,
+    max,
+    center: (min + max) * 0.5
+  };
+}
+
+function unwrapLongitudeNear(lon, referenceLon){
+  let v = lon;
+  while (v - referenceLon > 180) v -= 360;
+  while (v - referenceLon < -180) v += 360;
+  return v;
+}
+
+// Get MapLibre projection uniforms
+function getProjectionUniforms(){
+  const zoom = map.getZoom();
+  const worldSize = 512 * Math.pow(2, zoom);
+  const { lng, lat } = map.getCenter();
+  const centerLon = unwrapLongitudeNear(lng, domainLonCenter);
+  const sinLat = Math.sin(lat * Math.PI / 180);
+  const cx = centerLon / 360 + 0.5;
+  const cy = 0.5 - 0.25 * Math.log((1 + sinLat) / (1 - sinLat)) / Math.PI;
+  return { worldSize, cx, cy };
+}
+
+// Build wind texture from SWAN UGRID mesh data
+function buildWindTexture(u, v, lon, lat){
+  // Create 256x256 regular grid from scattered mesh points using inverse distance weighting
+  const gridData = new Float32Array(WIND_RES * WIND_RES * 4);
+  
+  // Compute bounds
+  const unwrappedLon = unwrapLongitudes(lon);
+  const lonMin = unwrappedLon.min;
+  const lonMax = unwrappedLon.max;
+  const latMin = Math.min(...lat);
+  const latMax = Math.max(...lat);
+  
+  domainMin = [lonMin, latMin];
+  domainSpan = [lonMax - lonMin, latMax - latMin];
+  domainLonCenter = unwrappedLon.center;
+  
+  // Simple nearest-neighbor for speed (can upgrade to IDW later)
+  for (let gy = 0; gy < WIND_RES; gy++) {
+    for (let gx = 0; gx < WIND_RES; gx++) {
+      const gridLon = lonMin + (gx / (WIND_RES - 1)) * (lonMax - lonMin);
+      const gridLat = latMin + (gy / (WIND_RES - 1)) * (latMax - latMin);
+      
+      // Find nearest mesh point
+      let minDist = Infinity;
+      let nearestIdx = 0;
+      for (let i = 0; i < lon.length; i++) {
+        const dx = gridLon - unwrappedLon.values[i];
+        const dy = gridLat - lat[i];
+        const dist = dx*dx + dy*dy;
+        if (dist < minDist) {
+          minDist = dist;
+          nearestIdx = i;
+        }
+      }
+      
+      const idx = (gy * WIND_RES + gx) * 4;
+      gridData[idx] = u[nearestIdx] || 0;
+      gridData[idx+1] = v[nearestIdx] || 0;
+      gridData[idx+2] = 0;
+      gridData[idx+3] = 1;
+    }
+  }
+  
+  if (windTex) gl.deleteTexture(windTex);
+  windTex = makeTexture(WIND_RES, WIND_RES, gl.RGBA32F, gl.RGBA, gl.FLOAT, gridData);
+  
+  // Compute speed scale factors
+  const lonSpan = lonMax - lonMin;
+  const latSpan = latMax - latMin;
+  const avgLat = (latMin + latMax) / 2;
+  const metersPerDegLon = 111320 * Math.cos(avgLat * Math.PI / 180);
+  const metersPerDegLat = 110540;
+  
+  speedX = SPEED_FACTOR / (metersPerDegLon * lonSpan);
+  speedY = SPEED_FACTOR / (metersPerDegLat * latSpan);
+  
+  hudLog(`Wind field: ${WIND_RES}×${WIND_RES}, bounds: [${lonMin.toFixed(2)}, ${latMin.toFixed(2)}, ${lonMax.toFixed(2)}, ${latMax.toFixed(2)}]`);
+}
+
+// Load SWAN UGRID data from Zarr
+async function loadMesh(){
+  hudLog('Opening Zarr store (SWAN_UGRID.zarr/)…');
+  
+  const storeUrl = 'http://172.20.187.192:8080/SWAN_UGRID.zarr';
+  const store = new zarr.HTTPStore(storeUrl);
+  
+  // Open arrays
+  [_zarrU, _zarrV, _zarrLon, _zarrLat] = await Promise.all([
+    zarr.openArray({ store, path: 'transp_x', mode: 'r' }),
+    zarr.openArray({ store, path: 'transp_y', mode: 'r' }),
+    zarr.openArray({ store, path: 'mesh_node_lon', mode: 'r' }),
+    zarr.openArray({ store, path: 'mesh_node_lat', mode: 'r' }),
+  ]);
+  
+  numTimesteps = _zarrU.shape[0];
+  document.getElementById('time-slider').max = numTimesteps - 1;
+  
+  // Read lon/lat (same for all timesteps)
+  const [lonSlice, latSlice] = await Promise.all([
+    _zarrLon.get(null),
+    _zarrLat.get(null)
+  ]);
+  
+  meshData = {
+    lon: lonSlice.data,
+    lat: latSlice.data,
+    numNodes: lonSlice.data.length
+  };
+  
+  hudLog(`SWAN UGRID: ${meshData.numNodes} nodes, ${numTimesteps} timesteps`);
+  
+  // Load initial timestep
+  await switchTimestep(0);
+  
+  // Start render loop
+  hudLog('Starting render loop');
+  requestAnimationFrame(render);
+}
+
+// Load specific timestep
+async function switchTimestep(t){
+  if (t < 0 || t >= numTimesteps) return;
+  currentTimeIdx = t;
+  
+  // Read u, v for this timestep
+  const [uSlice, vSlice] = await Promise.all([
+    _zarrU.get([t, null]),
+    _zarrV.get([t, null])
+  ]);
+  
+  buildWindTexture(uSlice.data, vSlice.data, meshData.lon, meshData.lat);
+  
+  // Update UI
+  document.getElementById('time-slider').value = t;
+  document.getElementById('time-step').textContent = `t ${t}/${numTimesteps}`;
+  document.getElementById('time-label').textContent = `Timestep ${t}`;
+  
+  hudLog(`Loaded timestep ${t}`);
+}
+
+// FPS tracking
+let fpsTimes = [];
+let lastNow = performance.now();
+function trackFPS(){
+  const now = performance.now();
+  const dt = now - lastNow;
+  lastNow = now;
+  fpsTimes.push(1000 / dt);
+  if (fpsTimes.length > 30) fpsTimes.shift();
+  const fps = fpsTimes.reduce((a,b)=>a+b,0) / fpsTimes.length;
+  document.getElementById('fps-value').textContent = fps.toFixed(1);
+}
+
+// Main render loop
+let debugCount = 0;
+function render(now){
+  requestAnimationFrame(render);
+  trackFPS();
+  
+  if (!windTex || W === 0 || H === 0) {
+    if (debugCount++ % 60 === 0) console.log('Waiting for windTex or canvas size...');
+    return;
+  }
+  
+  if (debugCount === 1) {
+    const { worldSize, cx, cy } = getProjectionUniforms();
+    const dpr = window.devicePixelRatio || 1;
+    console.log('🎨 First render!');
+    console.log('  Canvas:', W, 'x', H, '| DPR:', dpr);
+    console.log('  Map center:', map.getCenter());
+    console.log('  Map zoom:', map.getZoom());
+    console.log('  World size:', worldSize);
+    console.log('  Center merc:', cx, cy);
+    console.log('  Domain min:', domainMin);
+    console.log('  Domain span:', domainSpan);
+    console.log('  Speed factors:', speedX, speedY);
+    console.log('  Particles drawn:', PARTICLE_RES * PARTICLE_RES * 6);
+    
+    // Test a few particle positions manually
+    const testUV = 0.5; // middle of domain
+    const testLonLat = [
+      testUV * domainSpan[0] + domainMin[0],
+      testUV * domainSpan[1] + domainMin[1]
+    ];
+    const sinLat = Math.sin(testLonLat[1] * Math.PI / 180);
+    const mx = testLonLat[0] / 360 + 0.5;
+    const my = 0.5 - 0.25 * Math.log((1 + sinLat) / (1 - sinLat)) / Math.PI;
+    const px = [(mx - cx) * worldSize + W / 2, (my - cy) * worldSize + H / 2];
+    console.log('  TEST: domain center (0.5,0.5) =>', testLonLat, '=> merc:', [mx, my], '=> pixel:', px);
+    
+    hudLog('First render frame!');
+  }
+  if (debugCount < 5) debugCount++;
+  
+  // Update particles
+  gl.bindFramebuffer(gl.FRAMEBUFFER, particleFBO[1 - curr]);
+  gl.viewport(0, 0, PARTICLE_RES, PARTICLE_RES);
+  gl.useProgram(updateProg);
+  gl.bindVertexArray(quadVAO);
+  
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, particleTex[curr]);
+  gl.uniform1i(uni(updateProg, 'u_particles'), 0);
+  
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, windTex);
+  gl.uniform1i(uni(updateProg, 'u_wind'), 1);
+  
+  gl.uniform1f(uni(updateProg, 'u_rand_seed'), randSeed);
+  gl.uniform1f(uni(updateProg, 'u_speed_x'), speedX);
+  gl.uniform1f(uni(updateProg, 'u_speed_y'), speedY);
+  gl.uniform1f(uni(updateProg, 'u_drop_rate'), DROP_RATE);
+  
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  
+  randSeed = (randSeed + 0.01) % 1000;
+  
+  // Draw particles
+  gl.bindFramebuffer(gl.FRAMEBUFFER, linesFBO);
+  gl.viewport(0, 0, W, H);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  
+  gl.useProgram(drawProg);
+  gl.bindVertexArray(drawVAO);
+  
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, particleTex[curr]);
+  gl.uniform1i(uni(drawProg, 'u_particles_prev'), 0);
+  
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, particleTex[1 - curr]);
+  gl.uniform1i(uni(drawProg, 'u_particles_curr'), 1);
+  
+  const dpr = window.devicePixelRatio || 1;
+  const { worldSize, cx, cy } = getProjectionUniforms();
+  
+  gl.uniform1f(uni(drawProg, 'u_particle_res'), PARTICLE_RES);
+  gl.uniform1f(uni(drawProg, 'u_world_size'), worldSize * dpr);
+  gl.uniform2f(uni(drawProg, 'u_center_merc'), cx, cy);
+  gl.uniform2f(uni(drawProg, 'u_canvas_size'), W, H);
+  gl.uniform2f(uni(drawProg, 'u_domain_min'), domainMin[0], domainMin[1]);
+  gl.uniform2f(uni(drawProg, 'u_domain_span'), domainSpan[0], domainSpan[1]);
+  gl.uniform1f(uni(drawProg, 'u_line_width'), 4.0); // Thicker for visibility
+  
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  
+  gl.drawArrays(gl.TRIANGLES, 0, PARTICLE_RES * PARTICLE_RES * 6);
+  
+  if (debugCount === 2) {
+    console.log(`✏️ Drew ${PARTICLE_RES * PARTICLE_RES * 6} triangles (${PARTICLE_RES * PARTICLE_RES} particles)`);
+  }
+  
+  gl.disable(gl.BLEND);
+  
+  // Composite trails
+  gl.bindFramebuffer(gl.FRAMEBUFFER, trailFBO[1 - curr]);
+  gl.viewport(0, 0, W, H);
+  gl.useProgram(compositeProg);
+  gl.bindVertexArray(quadVAO);
+  
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, trailTex[curr]);
+  gl.uniform1i(uni(compositeProg, 'u_trail'), 0);
+  
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, linesTex);
+  gl.uniform1i(uni(compositeProg, 'u_lines'), 1);
+  
+  gl.uniform1f(uni(compositeProg, 'u_fade'), FADE_AMOUNT);
+  
+  // Debug: log particle draw stats every 60 frames
+  if (debugCount > 2 && frameCount % 60 === 0) {
+    console.log('🔵 Particle stats:', {
+      frameCount,
+      particleCount: PARTICLE_RES * PARTICLE_RES,
+      trianglesDrawn: PARTICLE_RES * PARTICLE_RES * 6,
+      windTex: !!windTex,
+      curr
+    });
+  }
+  
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.disable(gl.BLEND);
+  
+  // Display to screen
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, W, H);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  
+  gl.useProgram(displayProg);
+  gl.bindVertexArray(quadVAO);
+  
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, trailTex[1 - curr]);
+  gl.uniform1i(uni(displayProg, 'u_trail'), 0);
+  
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.disable(gl.BLEND);
+  
+  curr = 1 - curr;
+  frameCount++;
+  
+  // Auto-advance if playing
+  if (isPlaying && frameCount % 60 === 0) {
+    const nextIdx = (currentTimeIdx + 1) % numTimesteps;
+    switchTimestep(nextIdx);
+  }
+}
+
+// UI controls
+document.getElementById('btn-playpause').addEventListener('click', () => {
+  isPlaying = !isPlaying;
+  document.getElementById('btn-playpause').textContent = isPlaying ? '⏸' : '▶';
+});
+
+document.getElementById('time-slider').addEventListener('input', (e) => {
+  switchTimestep(parseInt(e.target.value));
+});
+
+// Bootstrap
+map.on('load', async () => {
+  if (typeof zarr === 'undefined') {
+    hudLog('zarr.js failed to load - check console', true);
+    console.error('zarr is not defined. Make sure zarr.umd.js is loaded.');
+    return;
+  }
+  resizeCanvas();
+  initParticleTextures();
+  await loadMesh();
+});
+</script>
+</body>
+</html>

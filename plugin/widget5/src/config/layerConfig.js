@@ -21,6 +21,8 @@ export const INUNDATION_VISUAL_RANGE = {
 export const INUNDATION_VISUAL_COLOR_SCALE_RANGE =
   `${INUNDATION_VISUAL_RANGE.min},${INUNDATION_VISUAL_RANGE.max}`;
 
+export const RASTER_SOURCE_TYPE = 'sfincs-raster';
+
 /**
  * Check if a layer value corresponds to an inundation layer
  * Uses exact matching against known inundation layer identifiers
@@ -31,6 +33,9 @@ export const isInundationLayer = (layerValue) => {
   if (!layerValue) return false;
   return INUNDATION_LAYER_IDS.some(id => layerValue === id || layerValue.endsWith(id));
 };
+
+export const isRasterSourceLayer = (layerConfig) =>
+  layerConfig?.sourceType === RASTER_SOURCE_TYPE;
 
 // Layer bounds for auto-zoom functionality
 export const LAYER_BOUNDS = {

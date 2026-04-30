@@ -1,0 +1,5 @@
+[xpublish.plugin]
+dataset_info = xpublish.plugins.included.dataset_info:DatasetInfoPlugin
+module_version = xpublish.plugins.included.module_version:ModuleVersionPlugin
+plugin_info = xpublish.plugins.included.plugin_info:PluginInfoPlugin
+zarr = xpublish.plugins.included.zarr:ZarrPlugin

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
+import { isRasterSourceLayer } from '../config/layerConfig';
 
 const removeExistingLegendControls = () => {
   const legendNodes = document.querySelectorAll('.forecast-map-legend');
@@ -13,6 +14,30 @@ const removeExistingLegendControls = () => {
   });
 };
 
+const toLeafletBounds = (layerConfig, timelineMetadata) => {
+  if (timelineMetadata?.lat_min !== undefined && timelineMetadata?.lon_min !== undefined &&
+      timelineMetadata?.lat_max !== undefined && timelineMetadata?.lon_max !== undefined) {
+    return L.latLngBounds(
+      [timelineMetadata.lat_min, timelineMetadata.lon_min],
+      [timelineMetadata.lat_max, timelineMetadata.lon_max]
+    );
+  }
+
+  if (layerConfig?.bounds?.southWest && layerConfig?.bounds?.northEast) {
+    return L.latLngBounds(layerConfig.bounds.southWest, layerConfig.bounds.northEast);
+  }
+
+  return null;
+};
+
+const formatThreddsTime = (timeValue) => {
+  if (!timeValue) {
+    return timeValue;
+  }
+
+  return new Date(timeValue).toISOString().replace(/\.\d{3}Z$/, 'Z');
+};
+
 /**
  * Hook for managing Leaflet map rendering and WMS layer visualization
  * Handles map instance, layer addition/removal, and rendering logic
@@ -20,9 +45,14 @@ const removeExistingLegendControls = () => {
 export const useMapRendering = ({
   activeLayers,
   selectedWaveForecast,
+  selectedLayerConfig,
   dynamicLayers,
   staticLayers,
   currentSliderDateStr,
+  sliderIndex,
+  getRasterFrame,
+  isBuffering,
+  capTime,
   wmsOpacity,
   addWMSTileLayer,
   handleShow,
@@ -32,8 +62,12 @@ export const useMapRendering = ({
   const mapInstance = useRef(null);
   const wmsLayerGroup = useRef(null);
   const wmsLayerRefs = useRef([]);
+  const rasterOverlayRef = useRef(null);
+  const rasterDisplayedFrameRef = useRef(null);
+  const rasterDisplayedFrameKeyRef = useRef(null);
   const layerRefs = useRef({});
   const legendControlRef = useRef(null);
+  const capTimeMetadata = capTime?.metadata;
 
   // Initialize map with base layers
   useEffect(() => {
@@ -100,6 +134,72 @@ export const useMapRendering = ({
     };
   }, [selectedWaveForecast, dynamicLayers, staticLayers]);
 
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map) return;
+
+    if (!selectedLayerConfig || !isRasterSourceLayer(selectedLayerConfig)) {
+      if (rasterOverlayRef.current) {
+        map.removeLayer(rasterOverlayRef.current);
+        rasterOverlayRef.current = null;
+      }
+      rasterDisplayedFrameRef.current = null;
+      rasterDisplayedFrameKeyRef.current = null;
+      return;
+    }
+
+    if (!activeLayers.waveForecast) {
+      if (rasterOverlayRef.current) {
+        map.removeLayer(rasterOverlayRef.current);
+        rasterOverlayRef.current = null;
+      }
+      rasterDisplayedFrameRef.current = null;
+      rasterDisplayedFrameKeyRef.current = null;
+      return;
+    }
+
+    const preloadedFrame = getRasterFrame?.(sliderIndex);
+    const renderFrame = preloadedFrame || rasterDisplayedFrameRef.current;
+    const overlayBounds = toLeafletBounds(selectedLayerConfig, capTimeMetadata);
+
+    if (!overlayBounds) {
+      console.warn('Missing raster overlay bounds for layer:', selectedLayerConfig.value);
+      return;
+    }
+
+    if (!renderFrame) {
+      return;
+    }
+
+    if (rasterOverlayRef.current) {
+      rasterOverlayRef.current.setBounds(overlayBounds);
+      rasterOverlayRef.current.setOpacity(wmsOpacity);
+
+      if (rasterDisplayedFrameKeyRef.current !== renderFrame.cacheKey) {
+        rasterOverlayRef.current.setUrl(renderFrame.url);
+        rasterDisplayedFrameRef.current = renderFrame;
+        rasterDisplayedFrameKeyRef.current = renderFrame.cacheKey;
+      }
+      return;
+    }
+
+    rasterOverlayRef.current = L.imageOverlay(renderFrame.image, overlayBounds, {
+      opacity: wmsOpacity,
+      interactive: false,
+      crossOrigin: true
+    }).addTo(map);
+    rasterDisplayedFrameRef.current = renderFrame;
+    rasterDisplayedFrameKeyRef.current = renderFrame.cacheKey;
+  }, [
+    activeLayers.waveForecast,
+    selectedLayerConfig,
+    sliderIndex,
+    getRasterFrame,
+    isBuffering,
+    capTimeMetadata,
+    wmsOpacity
+  ]);
+
   // A+ WMS layer rendering with diff-based updates and layer caching
   useEffect(() => {
     if (!mapInstance.current || !wmsLayerGroup.current) return;
@@ -111,6 +211,17 @@ export const useMapRendering = ({
       selectedLayer = staticLayers.find(l => l.value === selectedWaveForecast);
     }
     if (!selectedLayer) return;
+
+    if (isRasterSourceLayer(selectedLayer)) {
+      wmsLayerGroup.current.clearLayers();
+      wmsLayerRefs.current.forEach(layer => {
+        if (layer && mapInstance.current.hasLayer(layer)) {
+          mapInstance.current.removeLayer(layer);
+        }
+      });
+      wmsLayerRefs.current = [];
+      return;
+    }
 
     // Performance optimization: Clear and rebuild layers efficiently
     // TODO: Implement layer diffing in future iteration for even better performance
@@ -158,9 +269,7 @@ export const useMapRendering = ({
           // Skip time parameter for wave direction - let it use latest available data
           console.log('🌊 Skipping time parameter for wave direction layer');
         } else if (isThreddsServer) {
-          // Format for THREDDS: Remove milliseconds and use simpler format
-          const threddsTime = new Date(currentSliderDateStr).toISOString().replace(/\.\d{3}Z$/, 'Z');
-          commonOptions.time = threddsTime;
+          commonOptions.time = formatThreddsTime(currentSliderDateStr);
         } else {
           commonOptions.time = currentSliderDateStr;
         }
@@ -203,6 +312,10 @@ export const useMapRendering = ({
 
   // ✅ NEW: Efficiently update TIME parameter without recreating layers
   useEffect(() => {
+    if (selectedLayerConfig && isRasterSourceLayer(selectedLayerConfig)) {
+      return;
+    }
+
     if (!wmsLayerRefs.current.length || !currentSliderDateStr) return;
 
     console.log(`🕒 Updating TIME parameter for ${wmsLayerRefs.current.length} layers to: ${currentSliderDateStr}`);
@@ -217,8 +330,8 @@ export const useMapRendering = ({
         if (!isDirectionLayer) {
           // Format time for THREDDS if needed
           const isThredds = layer._url && layer._url.includes('thredds');
-          const timeValue = isThredds 
-            ? new Date(currentSliderDateStr).toISOString().replace(/\.\d{3}Z$/, 'Z')
+          const timeValue = isThredds
+            ? formatThreddsTime(currentSliderDateStr)
             : currentSliderDateStr;
           
           // Update time parameter without full redraw
@@ -237,10 +350,17 @@ export const useMapRendering = ({
       }
     });
 
-  }, [currentSliderDateStr]);
+  }, [currentSliderDateStr, selectedLayerConfig]);
 
   // ✅ NEW: Update opacity for all active layers when opacity changes
   useEffect(() => {
+    if (selectedLayerConfig && isRasterSourceLayer(selectedLayerConfig)) {
+      if (rasterOverlayRef.current) {
+        rasterOverlayRef.current.setOpacity(wmsOpacity);
+      }
+      return;
+    }
+
     if (!wmsLayerRefs.current.length) return;
 
     console.log(`🎨 Updating opacity for ${wmsLayerRefs.current.length} layers to: ${wmsOpacity}`);
@@ -253,7 +373,7 @@ export const useMapRendering = ({
       }
     });
 
-  }, [wmsOpacity]);
+  }, [wmsOpacity, selectedLayerConfig]);
 
   return {
     mapRef,

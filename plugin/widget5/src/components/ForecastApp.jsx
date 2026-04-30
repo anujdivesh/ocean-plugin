@@ -4,7 +4,7 @@ import '../styles/MapMarker.css';
 import useMapInteraction from '../hooks/useMapInteraction';
 import { UI_CONFIG } from '../config/UIConfig';
 import { MARINE_CONFIG } from '../config/marineVariables';
-import { getLayerBounds } from '../config/layerConfig';
+import { getLayerBounds, isRasterSourceLayer } from '../config/layerConfig';
 import { ISLAND_ZOOM_TARGETS, findIslandZoomTarget } from '../config/islandConfig';
 import CompassRose from './CompassRose';
 import { 
@@ -106,13 +106,15 @@ const ForecastApp = ({
   setShowBottomCanvas,
   isUpdatingVisualization,
   currentSliderDateStr,
-  minIndex
+  minIndex,
+  isBuffering
 }) => {
   const lastZoomedLayerRef = useRef(null);
   const [selectedIslandId, setSelectedIslandId] = useState(ISLAND_ZOOM_TARGETS[0]?.id || '');
   const selectedLayer = useMemo(() => {
     return ALL_LAYERS.find(l => l.value === selectedWaveForecast) || null;
   }, [ALL_LAYERS, selectedWaveForecast]);
+  const isRasterInundation = isRasterSourceLayer(selectedLayer);
 
   const zoomToLayerBounds = useCallback((layerValue, { force = false } = {}) => {
     if (!layerValue || !mapInstance?.current) {
@@ -166,6 +168,26 @@ const ForecastApp = ({
       }
     );
   }, [mapInstance, selectedIslandId, setActiveLayers]);
+
+  const zoomToRarotonga = useCallback(() => {
+    const map = mapInstance?.current;
+    const rarotonga = findIslandZoomTarget('rarotonga');
+    if (!map || !rarotonga) {
+      return;
+    }
+
+    map.fitBounds(
+      [
+        rarotonga.bounds.southWest,
+        rarotonga.bounds.northEast
+      ],
+      {
+        padding: [20, 20],
+        maxZoom: 17,
+        animate: true
+      }
+    );
+  }, [mapInstance]);
 
   useEffect(() => {
     zoomToLayerBounds(selectedWaveForecast);
@@ -356,6 +378,13 @@ const ForecastApp = ({
   const handleVariableChange = (layerValue) => {
     setSelectedWaveForecast(layerValue);
     setActiveLayers(prev => ({ ...prev, waveForecast: true }));
+
+    const nextLayer = ALL_LAYERS.find((layer) => layer.value === layerValue);
+    if (isRasterSourceLayer(nextLayer)) {
+      zoomToRarotonga();
+      return;
+    }
+
     zoomToLayerBounds(layerValue, { force: true });
   };
 
@@ -385,9 +414,11 @@ const ForecastApp = ({
   useMapInteraction({
     mapInstance,
     currentSliderDate,
+    sliderIndex,
     setBottomCanvasData,
     setShowBottomCanvas,
     selectedWaveForecast, // Pass to enable popup for inundation layer
+    selectedLayerConfig: selectedLayer,
     debugMode: true // Enable debug logging
   });
 
@@ -516,6 +547,24 @@ const ForecastApp = ({
               <span>
                 Showing reliable forecast data (excluding {capTime.warmupDays}-day model initialization)
               </span>
+            </div>
+          )}
+
+          {isRasterInundation && isBuffering && (
+            <div style={{
+              marginTop: '0.75rem',
+              padding: '0.5rem 0.75rem',
+              background: 'rgba(14, 165, 233, 0.12)',
+              border: '1px solid rgba(14, 165, 233, 0.28)',
+              borderRadius: '6px',
+              fontSize: '0.85rem',
+              color: '#7dd3fc',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <FancyIcon icon={CloudRain} animationType="pulse" size={16} color="#38bdf8" />
+              <span>Buffering inundation frames near the current time.</span>
             </div>
           )}
         </ControlGroup>

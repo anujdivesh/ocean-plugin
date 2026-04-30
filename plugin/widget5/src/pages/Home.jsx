@@ -10,7 +10,9 @@ import ForecastApp from "../components/ForecastApp";
 import ModernHeader from "../components/ModernHeader";
 import WorldClassVisualization from "../utils/WorldClassVisualization";
 import LegendCleanup from "../components/LegendCleanup";
-import { INUNDATION_VISUAL_COLOR_SCALE_RANGE } from "../config/layerConfig";
+import { INUNDATION_VISUAL_COLOR_SCALE_RANGE, RASTER_SOURCE_TYPE } from "../config/layerConfig";
+import { ISLAND_ZOOM_TARGETS } from "../config/islandConfig";
+import { getSfincsRasterApiBase } from "../config/sfincsRasterConfig";
 
 // Initialize world-class visualization system
 const worldClassViz = new WorldClassVisualization();
@@ -102,10 +104,17 @@ const widgetContainerStyle = {
   zIndex: 9999,
 };
 
-// Set default map center to Rarotonga, Cook Islands - matching model domain exactly
-const southWest = L.latLng(-21.7498293078, -160.25042381);
-const northEast = L.latLng(-20.7496610545, -159.2500903777);
-const bounds = L.latLngBounds(southWest, northEast);
+// Set default map extent to the national Cook Islands footprint on initial load.
+const nationalBounds = ISLAND_ZOOM_TARGETS.reduce((acc, island) => {
+  if (!acc) {
+    return L.latLngBounds(island.bounds.southWest, island.bounds.northEast);
+  }
+
+  acc.extend(island.bounds.southWest);
+  acc.extend(island.bounds.northEast);
+  return acc;
+}, null);
+const bounds = nationalBounds;
 
 
 
@@ -150,12 +159,17 @@ function CookIslandsForecast() {
         value: "Cook_island_national_sfincs/hmax",
         ...getWorldClassConfig('raro_inun'),
         id: 200,
-        wmsUrl: "https://gem-ncwms-hpc.spc.int/ncWMS/wms",
+        sourceType: RASTER_SOURCE_TYPE,
+        apiBase: getSfincsRasterApiBase(),
         legendUrl: getRarotongaInundationLegendUrl(),
         description: "SFINCS model maximum water depth",
         style: 'default-scalar/x-Sst',
-        version: '1.1.1',
-        crs: L.CRS.EPSG4326,
+        rasterMinDepth: -0.05,
+        rasterMaxDepth: 3.0,
+        bounds: {
+          southWest: [-21.281671213355985, -159.83717346191406],
+          northEast: [-21.19118441998148, -159.71783447265625]
+        },
         isStatic: false
       }
     ];
@@ -193,6 +207,7 @@ function CookIslandsForecast() {
     currentSliderDate,
     mapInstance,
     minIndex,
+    isBuffering,
   } = useForecast(cookIslandsConfig);
 
   // Debug: Track state changes
@@ -233,6 +248,7 @@ function CookIslandsForecast() {
         setShowBottomCanvas={setShowBottomCanvas}
         isUpdatingVisualization={isUpdatingVisualization}
         minIndex={minIndex}
+        isBuffering={isBuffering}
 
       />
 

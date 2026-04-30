@@ -13,7 +13,8 @@ import L from 'leaflet';
 import MapInteractionService from '../services/MapInteractionService';
 import BottomCanvasManager from '../services/BottomCanvasManager';
 import MapMarkerService from '../services/MapMarkerService';
-import { isInundationLayer, INUNDATION_POPUP_ZOOM_THRESHOLD, getLayerBounds } from '../config/layerConfig';
+import SfincsRasterService from '../services/SfincsRasterService';
+import { isInundationLayer, INUNDATION_POPUP_ZOOM_THRESHOLD, getLayerBounds, isRasterSourceLayer } from '../config/layerConfig';
 
 /**
  * Create popup content for inundation layer
@@ -48,9 +49,11 @@ const createInundationErrorPopupContent = () => {
 export const useMapInteraction = ({
   mapInstance,
   currentSliderDate,
+  sliderIndex,
   setBottomCanvasData,
   setShowBottomCanvas,
   selectedWaveForecast = '',
+  selectedLayerConfig = null,
   debugMode = false
 }) => {
   // Create stable service instances using useRef
@@ -84,6 +87,7 @@ export const useMapInteraction = ({
     const isInundation = isInundationLayer(selectedWaveForecast);
     const currentZoom = map.getZoom();
     const shouldShowPopup = isInundation && currentZoom >= INUNDATION_POPUP_ZOOM_THRESHOLD;
+    const usesRasterSource = isRasterSourceLayer(selectedLayerConfig);
     
     // If inundation layer is active but not zoomed in enough, zoom to layer center
     if (isInundation && currentZoom < INUNDATION_POPUP_ZOOM_THRESHOLD) {
@@ -115,17 +119,30 @@ export const useMapInteraction = ({
       if (shouldShowPopup) {
         // Immediately hide any open canvas before making the request
         servicesRef.current.canvasManager.hide();
-        
-        // Don't show marker for popup mode
-        // Pass autoShow: false to prevent canvas from showing during loading
-        const result = await servicesRef.current.mapInteractionService.handleMapClick(
-          clickEvent, 
-          map, 
-          currentSliderDate,
-          { autoShow: false } // Prevent canvas from showing
-        );
-        
-        let value = result.data?.featureInfo || result.featureInfo || 'No Data';
+
+        let value = 'No Data';
+        if (usesRasterSource) {
+          const rasterService = new SfincsRasterService(selectedLayerConfig.apiBase);
+          const pointData = await rasterService.getPointValue({
+            lat: clickEvent.latlng.lat,
+            lng: clickEvent.latlng.lng,
+            timeIndex: sliderIndex
+          });
+          value = pointData.available === false
+            ? 'Point sampling unavailable for this raster service.'
+            : pointData.value;
+        } else {
+          // Don't show marker for popup mode
+          // Pass autoShow: false to prevent canvas from showing during loading
+          const result = await servicesRef.current.mapInteractionService.handleMapClick(
+            clickEvent, 
+            map, 
+            currentSliderDate,
+            { autoShow: false } // Prevent canvas from showing
+          );
+          value = result.data?.featureInfo || result.featureInfo || 'No Data';
+        }
+
         const latlng = clickEvent.latlng;
         
         // Only show fallback message if truly no data (not a numeric value or message with instructions)
@@ -200,7 +217,7 @@ export const useMapInteraction = ({
         status: "error"
       });
     }
-  }, [mapInstance, currentSliderDate, selectedWaveForecast]);
+  }, [mapInstance, currentSliderDate, selectedWaveForecast, selectedLayerConfig, sliderIndex]);
   
   // Initialize services when map is available
   useEffect(() => {
