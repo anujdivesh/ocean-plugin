@@ -7,19 +7,21 @@ WORKDIR /app
 # Copy package files first (for better caching)
 COPY package*.json ./
 
-# Install dependencies (prefer npm ci if lock present, fallback to npm install)
+# Install dependencies: try npm ci first; if lock file is out of sync, fall back to npm install
 RUN if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then \
-			echo "Using npm ci (lock file detected)" && npm ci --omit=dev; \
-		else \
-			echo "No lock file found; using npm install (non-reproducible)" && npm install --omit=dev; \
-		fi
+        echo "Lock file detected. Attempting npm ci..."; \
+        (npm ci --omit=dev && echo "npm ci succeeded") || \
+        (echo "npm ci failed (lock file out of sync). Falling back to npm install..." && npm install --omit=dev); \
+    else \
+        echo "No lock file found; using npm install (non-reproducible)" && npm install --omit=dev; \
+    fi
 
 # Copy all source files
 COPY . .
 
 # Build the React application (allow warnings)
-#RUN CI=false npm run build
 RUN CI=false DISABLE_ESLINT_PLUGIN=true npm run build
+
 # Production stage: Use nginx to serve the built files
 FROM nginx:alpine
 
