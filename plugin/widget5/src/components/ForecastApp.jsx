@@ -16,22 +16,11 @@ import {
   DataInfo, 
   //StatusBar 
 } from './shared/UIComponents';
-import { Waves, Wind, Navigation, Activity, Info, Settings, Timer, Triangle,  BadgeInfo , CloudRain, FastForward, MapPin} from 'lucide-react';
+import { Waves, Wind, Navigation, Activity, Info, Settings, Timer, Triangle, BadgeInfo, CloudRain, FastForward, MapPin, SlidersHorizontal } from 'lucide-react';
 import FancyIcon from './FancyIcon';
 import '../styles/fancyIcons.css';
-
-// Wave height and inundation color ramp (blue to red: 0.0 to 4.0 meters)
-const X_SST_GRADIENT_RGB = [
-  [0, 0, 128],       // 0.0m - Dark blue
-  [0, 60, 200],      // 0.5m - Blue
-  [0, 120, 255],     // 1.0m - Light blue
-  [0, 200, 220],     // 1.5m - Cyan
-  [100, 255, 100],   // 2.0m - Light green/yellow
-  [255, 255, 0],     // 2.5m - Yellow
-  [255, 180, 0],     // 3.0m - Orange
-  [255, 100, 0],     // 3.5m - Red-orange
-  [200, 0, 0]        // 4.0m - Dark red
-];
+import InundationThresholdEditor from './InundationThresholdEditor';
+import { X_SST_GRADIENT, buildInundationLegendBands, parseLegendColorRange } from '../domain/inundation/legendBands';
 
 // Spectral divergent palette for mean wave period (div-Spectral from ColorBrewer)
 const SPECTRAL_GRADIENT_RGB = [
@@ -71,14 +60,7 @@ const generateGradientBands = (paletteRGB, bands = 250) => {
   return colors;
 };
 
-// Generate 250-band gradients
-const X_SST_250_BANDS = generateGradientBands(X_SST_GRADIENT_RGB, 250);
 const SPECTRAL_250_BANDS = generateGradientBands(SPECTRAL_GRADIENT_RGB, 250);
-
-// Create gradient with explicit percentage stops for better color distribution
-const X_SST_GRADIENT = `linear-gradient(to top, ${X_SST_250_BANDS.map((color, i) => 
-  `${color} ${(i / (X_SST_250_BANDS.length - 1) * 100).toFixed(2)}%`
-).join(', ')})`;
 
 const SPECTRAL_GRADIENT = `linear-gradient(to top, ${SPECTRAL_250_BANDS.map((color, i) => 
   `${color} ${(i / (SPECTRAL_250_BANDS.length - 1) * 100).toFixed(2)}%`
@@ -107,10 +89,12 @@ const ForecastApp = ({
   isUpdatingVisualization,
   currentSliderDateStr,
   minIndex,
-  isBuffering
+  isBuffering,
+  inundationThresholds,
 }) => {
   const lastZoomedLayerRef = useRef(null);
   const [selectedIslandId, setSelectedIslandId] = useState(ISLAND_ZOOM_TARGETS[0]?.id || '');
+  const [showThresholdEditor, setShowThresholdEditor] = useState(false);
   const selectedLayer = useMemo(() => {
     return ALL_LAYERS.find(l => l.value === selectedWaveForecast) || null;
   }, [ALL_LAYERS, selectedWaveForecast]);
@@ -198,7 +182,7 @@ const ForecastApp = ({
     const varLower = variable.toLowerCase();
     
     // Parse dynamic ranges from layer data
-    const colorRange = layerData ? parseColorRange(layerData.colorscalerange) : null;
+    const colorRange = layerData ? parseLegendColorRange(layerData.colorscalerange) : null;
     const dynamicMax = layerData?.activeBeaufortMax;
     
     if (varLower.includes('hs')) {
@@ -256,17 +240,10 @@ const ForecastApp = ({
     }
     
     if (varLower.includes('inun') || varLower.includes('hmax') || varLower.includes('h_max')) {
-      // DYNAMIC DATA RANGE - Updates with actual inundation data
-      const minVal = colorRange?.min ?? -0.05;
-      const maxVal = colorRange?.max ?? 1.63;
-      const ticks = [minVal, 0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal].map(v => Number(v.toFixed(2)));
-      
+      // Use the memoized bands — computed with lastValidCategories as an explicit dep.
       return {
-        gradient: X_SST_GRADIENT,
-        min: minVal,
-        max: maxVal,
         units: 'm',
-        ticks: ticks.slice(0, 5) // Limit to 5 ticks
+        ...inundationLegendBands,
       };
     }
     
@@ -332,17 +309,15 @@ const ForecastApp = ({
     return layers[0] || baseLayer;
   }, [ALL_LAYERS, WAVE_FORECAST_LAYERS, selectedWaveForecast]);
 
-  const parseColorRange = (rangeString) => {
-    if (!rangeString) return null;
-    const parts = rangeString.split(',');
-    if (parts.length !== 2) return null;
-    const min = Number(parts[0]);
-    const max = Number(parts[1]);
-    if (!Number.isFinite(min) || !Number.isFinite(max)) {
-      return null;
-    }
-    return { min, max };
-  };
+  const inundationLegendBands = useMemo(() => {
+    return buildInundationLegendBands({
+      categories: inundationThresholds.lastValidCategories,
+      minVisibleDepth: inundationThresholds.minVisibleDepth,
+      colorscalerange: selectedLegendLayer?.colorscalerange,
+      rasterMinDepth: selectedLegendLayer?.rasterMinDepth,
+      rasterMaxDepth: selectedLegendLayer?.rasterMaxDepth,
+    });
+  }, [inundationThresholds.lastValidCategories, inundationThresholds.minVisibleDepth, selectedLegendLayer]);
 
   // Function to get fancy icons for different variable types
   const getVariableIcon = (layer) => {
@@ -417,9 +392,10 @@ const ForecastApp = ({
     sliderIndex,
     setBottomCanvasData,
     setShowBottomCanvas,
-    selectedWaveForecast, // Pass to enable popup for inundation layer
+    selectedWaveForecast,
     selectedLayerConfig: selectedLayer,
-    debugMode: true // Enable debug logging
+    inundationCategories: inundationThresholds.lastValidCategories,
+    debugMode: true
   });
 
   return (
@@ -441,34 +417,66 @@ const ForecastApp = ({
               {(() => {
                 const legendConfig = getLegendConfig(selectedLegendLayer.value, selectedLegendLayer);
                 if (!legendConfig) return null;
-                
+                const range = legendConfig.max - legendConfig.min;
+                const toPos = (val) => range > 0 ? ((legendConfig.max - val) / range) * 100 : 0;
+
                 return (
                   <>
                     <div className="marine-legend-title">{selectedLegendLayer.label}</div>
                     <div className="marine-legend-content">
-                      <div 
-                        className="marine-legend-gradient"
-                        style={{ background: legendConfig.gradient }}
-                      />
+
+                      {/* Gradient bar — with threshold boundary hairlines overlaid when available */}
+                      <div className="marine-legend-gradient-wrap">
+                        <div
+                          className="marine-legend-gradient"
+                          style={{ background: legendConfig.gradient }}
+                        />
+                        {legendConfig.gradientMarkers?.map((cat) => (
+                          <div
+                            key={`marker-${cat.id}`}
+                            className="marine-legend-band-marker"
+                            style={{
+                              top: `${toPos(cat.thresholdM)}%`,
+                              borderTopColor: cat.color,
+                            }}
+                            title={`${cat.thresholdM.toFixed(2)} m — ${cat.label}`}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Tick scale */}
                       <div className="marine-legend-scale">
-                        {legendConfig.ticks.slice().reverse().map((tick, index) => {
-                          // Calculate position for each tick - evenly distribute from top (0%) to bottom (100%)
-                          const position = (index / (legendConfig.ticks.length - 1)) * 100;
+                        {legendConfig.ticks.map((tick) => {
+                          const band = legendConfig.tickBands?.[tick];
                           return (
-                            <div 
-                              key={`tick-${tick}`} 
-                              className="marine-legend-tick"
-                              style={{
-                                top: `${position}%`,
-                                transform: 'translateY(-50%)', // Center the tick on its position
-                                left: '0px'
-                              }}
+                            <div
+                              key={`tick-${tick}`}
+                              className={`marine-legend-tick${band ? ' marine-legend-tick--labeled' : ''}`}
+                              style={{ top: `${toPos(tick)}%`, transform: 'translateY(-50%)', left: '0px' }}
                             >
-                              {tick}{legendConfig.units}
+                              {/* Colored swatch — always visible when a band matches this tick */}
+                              {band && (
+                                <span
+                                  className="marine-legend-tick__swatch"
+                                  style={{ background: band.color }}
+                                />
+                              )}
+                              <span className="marine-legend-tick__value">{tick}{legendConfig.units}</span>
+
+                              {/* Full label + description tooltip on hover */}
+                              {band && (
+                                <span className="marine-legend-tick__severity">
+                                  <strong>{band.label}</strong>
+                                  {band.description && (
+                                    <em>{band.description}</em>
+                                  )}
+                                </span>
+                              )}
                             </div>
                           );
                         })}
                       </div>
+
                     </div>
                   </>
                 );
@@ -493,6 +501,33 @@ const ForecastApp = ({
             ariaLabel={UI_CONFIG.ARIA_LABELS.variableButton}
             getVariableIcon={getVariableIcon}
           />
+        </ControlGroup>
+
+        <ControlGroup
+          icon={<FancyIcon icon={SlidersHorizontal} animationType="pulse" color="#90caf9" />}
+          title="Inundation Thresholds"
+          ariaLabel="Inundation threshold configuration"
+        >
+          <div className="inundation-threshold-trigger">
+            <button
+              type="button"
+              className={`inundation-threshold-trigger__btn${inundationThresholds.isDirty ? ' inundation-threshold-trigger__btn--dirty' : ''}`}
+              onClick={() => setShowThresholdEditor(true)}
+              title="Customise depth bands and severity labels"
+            >
+              <SlidersHorizontal size={14} />
+              Edit Thresholds
+              {inundationThresholds.isDirty && (
+                <span className="inundation-threshold-trigger__badge" title="Unsaved changes">●</span>
+              )}
+            </button>
+            <span className="inundation-threshold-trigger__count">
+              {`${inundationThresholds.categories.length} bands`}
+            </span>
+          </div>
+          <div className="inundation-threshold-trigger__hint">
+            Refine depth bands and severity descriptions as observed event data comes in. Changes apply live to the map popup and legend.
+          </div>
         </ControlGroup>
 
         <ControlGroup
@@ -598,8 +633,33 @@ const ForecastApp = ({
           </div>
         </div>
 
-        
       </div>
+
+      <InundationThresholdEditor
+        isOpen={showThresholdEditor}
+        onClose={() => setShowThresholdEditor(false)}
+        categories={inundationThresholds.categories}
+        paletteId={inundationThresholds.paletteId}
+        minVisibleDepth={inundationThresholds.minVisibleDepth}
+        validationErrors={inundationThresholds.validationErrors}
+        isDirty={inundationThresholds.isDirty}
+        savedAt={inundationThresholds.savedAt}
+        saveError={inundationThresholds.saveError}
+        canUndo={inundationThresholds.canUndo}
+        canRedo={inundationThresholds.canRedo}
+        updateRow={inundationThresholds.updateRow}
+        addRow={inundationThresholds.addRow}
+        removeRow={inundationThresholds.removeRow}
+        moveRow={inundationThresholds.moveRow}
+        updateMinVisibleDepth={inundationThresholds.updateMinVisibleDepth}
+        undo={inundationThresholds.undo}
+        redo={inundationThresholds.redo}
+        applyPalette={inundationThresholds.applyPalette}
+        save={inundationThresholds.save}
+        resetToDefaults={inundationThresholds.resetToDefaults}
+        exportJson={inundationThresholds.exportJson}
+        importJson={inundationThresholds.importJson}
+      />
     </div>
   );
 };

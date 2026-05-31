@@ -353,8 +353,10 @@ function GPUParticleDemo() {
 
         {/* Speed Control */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <label style={{ fontSize: 11, opacity: 0.7 }}>Speed</label>
-          <select 
+          <label htmlFor="gpu-speed-select" style={{ fontSize: 11, opacity: 0.7 }}>Speed</label>
+          <select
+            id="gpu-speed-select"
+            name="gpu-speed-select"
             value={animationState?.speed || 1}
             onChange={handleSpeedChange}
             style={{
@@ -377,8 +379,10 @@ function GPUParticleDemo() {
 
         {/* Timeline Slider */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 300 }}>
-          <label style={{ fontSize: 11, opacity: 0.7 }}>Timeline</label>
+          <label htmlFor="gpu-timeline-slider" style={{ fontSize: 11, opacity: 0.7 }}>Timeline</label>
           <input
+            id="gpu-timeline-slider"
+            name="gpu-timeline-slider"
             type="range"
             min="0"
             max={zarrManagerRef.current?.metadata.timestepCount - 1 || 0}
