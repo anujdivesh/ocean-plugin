@@ -94,6 +94,8 @@ export const TimeControl = ({
     
     <div className="time-slider-container">
       <input
+        id="ui-forecast-time-slider"
+        name="ui-forecast-time-slider"
         title="Forecast Time"
         aria-label="Forecast Time"
         type="range"
@@ -141,17 +143,19 @@ export const TimeControl = ({
 /**
  * Opacity Control
  */
-export const OpacityControl = ({ 
-  opacity, 
+export const OpacityControl = ({
+  opacity,
   onOpacityChange,
   formatPercent,
   ariaLabel = "overlay-opacity"
 }) => (
   <div className="opacity-control">
-    <label>
+    <label htmlFor="ui-opacity-slider">
       Overlay Opacity: <span>{formatPercent(opacity)}</span>
     </label>
     <input
+      id="ui-opacity-slider"
+      name="ui-opacity-slider"
       aria-label={ariaLabel}
       title={ariaLabel}
       type="range"

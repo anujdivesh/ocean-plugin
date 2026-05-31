@@ -7,6 +7,7 @@ import BottomBuoyOffCanvas from "./BottomBuoyOffCanvas";
 import { useForecast } from "../hooks/useForecast";
 import useRiskOverlay from "../hooks/useRiskOverlay";
 import ForecastApp from "../components/ForecastApp";
+import useInundationThresholds from "../hooks/useInundationThresholds";
 import ModernHeader from "../components/ModernHeader";
 import WorldClassVisualization from "../utils/WorldClassVisualization";
 import LegendCleanup from "../components/LegendCleanup";
@@ -119,6 +120,8 @@ const bounds = nationalBounds;
 
 
 function CookIslandsForecast() {
+  const inundationThresholds = useInundationThresholds();
+
   // World-class composite layer configuration
   const WAVE_FORECAST_LAYERS = useMemo(() => {
     const worldClassComposite = worldClassViz.getWorldClassCompositeConfig();
@@ -187,7 +190,17 @@ function CookIslandsForecast() {
     WAVE_BUOYS: [], // No buoys for Cook Islands
     bounds,
     addWMSTileLayer,
-  }), [WAVE_FORECAST_LAYERS, STATIC_LAYERS, ALL_LAYERS]);
+    inundationCategories: inundationThresholds.lastValidCategories,
+    inundationMinDepth: inundationThresholds.minVisibleDepth,
+    inundationResampleColors: inundationThresholds.resampleColors,
+  }), [
+    WAVE_FORECAST_LAYERS,
+    STATIC_LAYERS,
+    ALL_LAYERS,
+    inundationThresholds.lastValidCategories,
+    inundationThresholds.minVisibleDepth,
+    inundationThresholds.resampleColors,
+  ]);
   
   const {
     showBuoyCanvas, setShowBuoyCanvas,
@@ -249,7 +262,7 @@ function CookIslandsForecast() {
         isUpdatingVisualization={isUpdatingVisualization}
         minIndex={minIndex}
         isBuffering={isBuffering}
-
+        inundationThresholds={inundationThresholds}
       />
 
       <LegendCleanup 

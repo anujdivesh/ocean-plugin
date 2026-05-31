@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../sfincs-webapp"
+		},
+		{
+			"path": "../widget1"
+		},
+		{
+			"path": "../../../../../mnt/c/marine-suitability-demo"
+		}
+	],
+	"settings": {}
+}

@@ -17,7 +17,13 @@ const clampIndex = (index, max, min = 0) => Math.max(min, Math.min(index, max));
  * - Performance monitoring and optimization
  * - Graceful error handling and recovery
  */
-export const useTimeAnimation = (capTime, selectedLayerConfig = null) => {
+export const useTimeAnimation = (
+  capTime,
+  selectedLayerConfig = null,
+  inundationCategories = null,
+  inundationMinDepth = null,
+  inundationResampleColors = false
+) => {
   const [sliderIndex, setSliderIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [animationSpeed, setAnimationSpeed] = useState(3000); // Adaptive speed
@@ -43,8 +49,14 @@ export const useTimeAnimation = (capTime, selectedLayerConfig = null) => {
     ? [
         selectedLayerConfig.value,
         selectedLayerConfig.apiBase,
-        selectedLayerConfig.rasterMinDepth,
-        selectedLayerConfig.rasterMaxDepth
+        inundationMinDepth ?? selectedLayerConfig.rasterMinDepth,
+        selectedLayerConfig.rasterMaxDepth,
+        Array.isArray(inundationCategories)
+          ? inundationCategories
+            .map((category) => `${category.thresholdM}:${category.color}`)
+            .join('|')
+          : '',
+        inundationResampleColors ? 'resample' : 'direct',
       ].join('|')
     : null;
   
@@ -88,8 +100,10 @@ export const useTimeAnimation = (capTime, selectedLayerConfig = null) => {
     const loadPromise = new Promise((resolve) => {
       rasterService.preloadFrame({
         timeIndex: normalizedIndex,
-        vmin: selectedLayerConfig.rasterMinDepth,
-        vmax: selectedLayerConfig.rasterMaxDepth
+        vmin: inundationMinDepth ?? selectedLayerConfig.rasterMinDepth,
+        vmax: selectedLayerConfig.rasterMaxDepth,
+        thresholdCategories: inundationCategories,
+        resampleColors: inundationResampleColors,
       }).then(({ url, image }) => {
         rasterFrameCache.current.set(cacheKey, {
           cacheKey,
@@ -107,7 +121,7 @@ export const useTimeAnimation = (capTime, selectedLayerConfig = null) => {
 
     rasterFramePromises.current.set(cacheKey, loadPromise);
     return loadPromise;
-  }, [isRasterAnimation, selectedLayerConfig, frameCount, rasterCacheSignature]);
+  }, [isRasterAnimation, selectedLayerConfig, frameCount, rasterCacheSignature, inundationCategories, inundationMinDepth, inundationResampleColors]);
 
   const evictRasterFrames = useCallback((focusIndex) => {
     if (!isRasterAnimation || rasterFrameCache.current.size <= SFINCS_MAX_CACHED_FRAMES || frameCount <= 0) {

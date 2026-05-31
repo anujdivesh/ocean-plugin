@@ -91,6 +91,42 @@ function normalizePointValue(payload) {
   return 'No Data';
 }
 
+function normalizeThresholdColor(color) {
+  const normalized = String(color ?? '').trim().replace(/^#/, '');
+  return /^[0-9a-fA-F]{6}$/.test(normalized) ? normalized.toLowerCase() : null;
+}
+
+function serializeThresholdConfig(categories, options = {}) {
+  const { resampleColors = false } = options;
+  if (!Array.isArray(categories) || categories.length < 2) {
+    return {};
+  }
+
+  const thresholds = [];
+  const colors = [];
+
+  categories.forEach((category) => {
+    const thresholdM = Number(category?.thresholdM);
+    const color = normalizeThresholdColor(category?.color);
+    if (!Number.isFinite(thresholdM) || !color) {
+      return;
+    }
+    thresholds.push(thresholdM);
+    colors.push(color);
+  });
+
+  if (thresholds.length < 2 || thresholds.length !== colors.length) {
+    return {};
+  }
+
+  return {
+    render_mode: 'thresholds',
+    thresholds: thresholds.join(','),
+    colors: colors.join(','),
+    ...(resampleColors ? { resample_colors: true } : {}),
+  };
+}
+
 export default class SfincsRasterService {
   static metadataCache = new Map();
 
@@ -113,21 +149,42 @@ export default class SfincsRasterService {
     return normalizeTimesteps(payload);
   }
 
-  getFrameUrl({ timeIndex, vmin, vmax }) {
+  getFrameUrl({
+    timeIndex,
+    vmin,
+    vmax,
+    thresholdCategories = null,
+    resampleColors = false,
+  }) {
     return buildUrl(this.baseUrl, '/raster-png', {
       time_index: timeIndex,
       vmin,
-      vmax
+      vmax,
+      ...serializeThresholdConfig(thresholdCategories, { resampleColors }),
     });
   }
 
-  async preloadFrame({ timeIndex, vmin, vmax }) {
-    const url = this.getFrameUrl({ timeIndex, vmin, vmax });
+  async preloadFrame({
+    timeIndex,
+    vmin,
+    vmax,
+    thresholdCategories = null,
+    resampleColors = false,
+  }) {
+    const url = this.getFrameUrl({ timeIndex, vmin, vmax, thresholdCategories, resampleColors });
     const image = await preloadImage(url);
     return { url, image };
   }
 
-  async warmupFrames({ startIndex = 0, count = 1, frameCount = count, vmin, vmax }) {
+  async warmupFrames({
+    startIndex = 0,
+    count = 1,
+    frameCount = count,
+    vmin,
+    vmax,
+    thresholdCategories = null,
+    resampleColors = false,
+  }) {
     const totalFrames = Math.max(Number(frameCount) || 0, 0);
     const preloadCount = Math.max(Number(count) || 0, 0);
 
@@ -140,7 +197,13 @@ export default class SfincsRasterService {
 
     for (let offset = 0; offset < Math.min(preloadCount, totalFrames); offset += 1) {
       const index = (startIndex + offset) % totalFrames;
-      const url = this.getFrameUrl({ timeIndex: index, vmin, vmax });
+      const url = this.getFrameUrl({
+        timeIndex: index,
+        vmin,
+        vmax,
+        thresholdCategories,
+        resampleColors,
+      });
 
       if (seenUrls.has(url)) {
         continue;
