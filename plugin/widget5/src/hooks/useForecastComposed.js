@@ -13,7 +13,15 @@ import SfincsRasterService from '../services/SfincsRasterService';
  * This is a thin orchestrator that delegates to focused, testable hooks
  */
 export const useForecast = (config) => {
-  const { WAVE_FORECAST_LAYERS, STATIC_LAYERS, addWMSTileLayer, bounds } = config;
+  const {
+    WAVE_FORECAST_LAYERS,
+    STATIC_LAYERS,
+    addWMSTileLayer,
+    bounds,
+    inundationCategories = null,
+    inundationMinDepth = null,
+    inundationResampleColors = false,
+  } = config;
 
   // 1. Layer Management (selection, active layers, dynamic configs)
   const layerManagement = useLayerManagement(WAVE_FORECAST_LAYERS, STATIC_LAYERS);
@@ -45,20 +53,28 @@ export const useForecast = (config) => {
           startIndex: 0,
           count: 4,
           frameCount: timesteps.length,
-          vmin: layer.rasterMinDepth,
-          vmax: layer.rasterMaxDepth
+          vmin: inundationMinDepth ?? layer.rasterMinDepth,
+          vmax: layer.rasterMaxDepth,
+          thresholdCategories: inundationCategories,
+          resampleColors: inundationResampleColors,
         }))
         .catch((error) => {
           console.warn(`Failed raster warmup for ${layer.value}:`, error);
         });
     });
-  }, [allLayers]);
+  }, [allLayers, inundationCategories, inundationMinDepth, inundationResampleColors]);
 
   // 2. WMS Capabilities (time dimensions, metadata)
   const capTime = useWMSCapabilities(selectedWaveForecast, allLayers);
 
   // 3. Time Animation (slider, playback controls)
-  const timeAnimation = useTimeAnimation(capTime, selectedLayerConfig);
+  const timeAnimation = useTimeAnimation(
+    capTime,
+    selectedLayerConfig,
+    inundationCategories,
+    inundationMinDepth,
+    inundationResampleColors
+  );
   const {
     sliderIndex,
     setSliderIndex,

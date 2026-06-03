@@ -15,20 +15,52 @@ import BottomCanvasManager from '../services/BottomCanvasManager';
 import MapMarkerService from '../services/MapMarkerService';
 import SfincsRasterService from '../services/SfincsRasterService';
 import { isInundationLayer, INUNDATION_POPUP_ZOOM_THRESHOLD, getLayerBounds, isRasterSourceLayer } from '../config/layerConfig';
+import { classifyDepth } from '../config/inundationThresholds';
+
+/** Prevent XSS when threshold label/description are interpolated into HTML. */
+const escapeHtml = (str) =>
+  String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 /**
- * Create popup content for inundation layer
- * @param {string} value - The inundation depth value
- * @returns {string} HTML content for the popup
+ * Create popup content for inundation layer, optionally enriched with
+ * a severity classification badge derived from the active threshold categories.
+ *
+ * @param {string} value              - Raw depth value string from WMS GetFeatureInfo
+ * @param {Array}  [categories]       - Last-valid inundation threshold categories
  */
-const createInundationPopupContent = (value) => {
-  const hasValidValue = value !== 'No Data' && value !== 'Loading...' && value !== 'Error fetching data';
+const createInundationPopupContent = (value, categories) => {
+  const numericDepth = parseFloat(value);
+  const hasValidValue =
+    value !== 'No Data' &&
+    value !== 'Loading...' &&
+    value !== 'Error fetching data' &&
+    Number.isFinite(numericDepth);
   const unit = hasValidValue ? ' m' : '';
-  
+
+  // color is a validated 6-digit hex from the config schema — safe to interpolate.
+  // label and description come from user-supplied JSON/localStorage — must be escaped.
+  let severityHtml = '';
+  if (hasValidValue && Array.isArray(categories) && categories.length > 0) {
+    const match = classifyDepth(categories, numericDepth);
+    if (match) {
+      severityHtml = `
+        <div class="inundation-popup-severity" style="border-left:4px solid ${match.color}">
+          <span class="inundation-popup-severity__label" style="color:${match.color}">${escapeHtml(match.label)}</span>
+          <span class="inundation-popup-severity__desc">${escapeHtml(match.description)}</span>
+        </div>`;
+    }
+  }
+
   return `
     <div class="inundation-popup">
       <div class="inundation-popup-title">Inundation Depth</div>
-      <div class="inundation-popup-value">${value}${unit}</div>
+      <div class="inundation-popup-value">${escapeHtml(value)}${unit}</div>
+      ${severityHtml}
     </div>
   `;
 };
@@ -54,6 +86,7 @@ export const useMapInteraction = ({
   setShowBottomCanvas,
   selectedWaveForecast = '',
   selectedLayerConfig = null,
+  inundationCategories = null,
   debugMode = false
 }) => {
   // Create stable service instances using useRef
@@ -158,7 +191,7 @@ export const useMapInteraction = ({
         // Create popup with specific class for styling
         L.popup({ className: 'inundation-leaflet-popup' })
           .setLatLng(latlng)
-          .setContent(createInundationPopupContent(value))
+          .setContent(createInundationPopupContent(value, inundationCategories))
           .openOn(map);
         
         console.log('🌊 Showing inundation popup:', value, 'at zoom:', currentZoom);
@@ -217,7 +250,7 @@ export const useMapInteraction = ({
         status: "error"
       });
     }
-  }, [mapInstance, currentSliderDate, selectedWaveForecast, selectedLayerConfig, sliderIndex]);
+  }, [mapInstance, currentSliderDate, selectedWaveForecast, selectedLayerConfig, sliderIndex, inundationCategories]);
   
   // Initialize services when map is available
   useEffect(() => {
