@@ -143,6 +143,23 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
       plotlyDivRef.current.removeListener('plotly_click', plotlyClickHandlerRef.current);
     }
     plotlyDivRef.current = graphDiv;
+
+    requestAnimationFrame(() => {
+      const paths = graphDiv?.querySelectorAll?.('.trace.scatter .lines path') || [];
+      paths.forEach((path) => {
+        try {
+          const length = path.getTotalLength();
+          if (!Number.isFinite(length) || length <= 0) return;
+          path.style.setProperty('--forecast-line-length', `${length}px`);
+          path.classList.remove('forecast-line-enter');
+          void path.getBoundingClientRect();
+          path.classList.add('forecast-line-enter');
+        } catch {
+          // Plotly SVG internals can change; animation is optional.
+        }
+      });
+    });
+
     const handler = (data) => {
       const x = data.points?.[0]?.x;
       if (!x || !onTimeSelectRef.current) return;
@@ -162,40 +179,6 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
       filename: 'inundation-forecast',
     });
   }, []);
-
-  const handleExportPDF = useCallback(() => {
-    if (!plotlyDivRef.current) return;
-    Plotly.toImage(plotlyDivRef.current, { format: 'svg', width: 1200, height: 500 }).then((svgDataUrl) => {
-      const win = window.open('', '_blank', 'width=960,height=720');
-      if (!win) return;
-      const statsHtml = stats
-        ? `<p style="margin:4px 0;font-size:13px;color:#334155">
-            Peak depth: <strong>${stats.maxDepth.toFixed(2)} m</strong>
-            &nbsp;·&nbsp; Category: <strong>${stats.maxCat?.label ?? 'N/A'}</strong>
-            &nbsp;·&nbsp; Flood duration: <strong>${stats.floodedHours < 1
-              ? `${Math.round(stats.floodedHours * 60)} min`
-              : `${Math.round(stats.floodedHours)} h`}</strong>
-           </p>`
-        : '';
-      win.document.write(`<!DOCTYPE html><html><head>
-        <title>Point Inundation Forecast</title>
-        <style>
-          body { margin: 20px; font-family: Inter, system-ui, sans-serif; color: #0f172a; }
-          h2 { margin: 0 0 4px; font-size: 16px; }
-          img { max-width: 100%; margin-top: 12px; display: block; }
-          .footer { margin-top: 12px; font-size: 11px; color: #94a3b8; }
-          @media print { body { margin: 0; } }
-        </style>
-      </head><body>
-        <h2>Point Inundation Forecast</h2>
-        ${statsHtml}
-        <img src="${svgDataUrl}" alt="Inundation timeseries chart" />
-        <div class="footer">Generated ${new Date().toLocaleString('en-NZ', { timeZone: 'UTC' })} UTC &nbsp;·&nbsp; Source: SFINCS zarr</div>
-        <script>window.onload = function() { window.print(); };<\/script>
-      </body></html>`);
-      win.document.close();
-    });
-  }, [stats]);
 
   useEffect(() => {
     const el = chartRef.current;
@@ -243,6 +226,40 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
 
     return { maxDepth, maxCat, maxCatIdx, maxCatStyle, severityT, floodedHours };
   }, [timeseries, realCategories, floodThresholdM]);
+
+  const handleExportPDF = useCallback(() => {
+    if (!plotlyDivRef.current) return;
+    Plotly.toImage(plotlyDivRef.current, { format: 'svg', width: 1200, height: 500 }).then((svgDataUrl) => {
+      const win = window.open('', '_blank', 'width=960,height=720');
+      if (!win) return;
+      const statsHtml = stats
+        ? `<p style="margin:4px 0;font-size:13px;color:#334155">
+            Peak depth: <strong>${stats.maxDepth.toFixed(2)} m</strong>
+            &nbsp;·&nbsp; Category: <strong>${stats.maxCat?.label ?? 'N/A'}</strong>
+            &nbsp;·&nbsp; Flood duration: <strong>${stats.floodedHours < 1
+              ? `${Math.round(stats.floodedHours * 60)} min`
+              : `${Math.round(stats.floodedHours)} h`}</strong>
+           </p>`
+        : '';
+      win.document.write(`<!DOCTYPE html><html><head>
+        <title>Point Inundation Forecast</title>
+        <style>
+          body { margin: 20px; font-family: Inter, system-ui, sans-serif; color: #0f172a; }
+          h2 { margin: 0 0 4px; font-size: 16px; }
+          img { max-width: 100%; margin-top: 12px; display: block; }
+          .footer { margin-top: 12px; font-size: 11px; color: #94a3b8; }
+          @media print { body { margin: 0; } }
+        </style>
+      </head><body>
+        <h2>Point Inundation Forecast</h2>
+        ${statsHtml}
+        <img src="${svgDataUrl}" alt="Inundation timeseries chart" />
+        <div class="footer">Generated ${new Date().toLocaleString('en-NZ', { timeZone: 'UTC' })} UTC &nbsp;·&nbsp; Source: SFINCS zarr</div>
+        <script>window.onload = function() { window.print(); };</script>
+      </body></html>`);
+      win.document.close();
+    });
+  }, [stats]);
 
   // Live "at cursor"
   const nowEntry = useMemo(() => closestEntry(timeseries, currentSliderDate), [timeseries, currentSliderDate]);

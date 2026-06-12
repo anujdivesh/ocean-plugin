@@ -169,6 +169,30 @@
   max-width: 100% !important;
 }
 
+.inundation-timeseries__chart .trace.scatter .lines path.forecast-line-enter {
+  stroke-dasharray: var(--forecast-line-length);
+  animation: forecastLineIn 720ms ease-out both;
+}
+
+@keyframes forecastLineIn {
+  from {
+    opacity: 0;
+    stroke-dashoffset: var(--forecast-line-length);
+  }
+  to {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inundation-timeseries__chart .trace.scatter .lines path.forecast-line-enter {
+    animation: none;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+}
+
 @media (max-width: 1200px) {
   .inundation-timeseries__stats {
     grid-template-columns: repeat(2, minmax(180px, 1fr));
