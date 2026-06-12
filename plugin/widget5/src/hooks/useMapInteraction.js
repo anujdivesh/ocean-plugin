@@ -1,82 +1,16 @@
 /**
  * Custom hook for handling map interactions
- * 
+ *
  * Orchestrates MapInteractionService and BottomCanvasManager
  * to provide clean map click handling with proper separation of concerns.
- * 
- * Enhanced for Cook Islands dashboard:
- * - Shows popup instead of bottom canvas for inundation layer when zoomed in
  */
 
 import { useEffect, useCallback, useRef } from 'react';
-import L from 'leaflet';
 import MapInteractionService from '../services/MapInteractionService';
 import BottomCanvasManager from '../services/BottomCanvasManager';
 import MapMarkerService from '../services/MapMarkerService';
 import SfincsRasterService from '../services/SfincsRasterService';
 import { isInundationLayer, INUNDATION_POPUP_ZOOM_THRESHOLD, getLayerBounds, isRasterSourceLayer } from '../config/layerConfig';
-import { classifyDepth } from '../config/inundationThresholds';
-
-/** Prevent XSS when threshold label/description are interpolated into HTML. */
-const escapeHtml = (str) =>
-  String(str ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-
-/**
- * Create popup content for inundation layer, optionally enriched with
- * a severity classification badge derived from the active threshold categories.
- *
- * @param {string} value              - Raw depth value string from WMS GetFeatureInfo
- * @param {Array}  [categories]       - Last-valid inundation threshold categories
- */
-const createInundationPopupContent = (value, categories) => {
-  const numericDepth = parseFloat(value);
-  const hasValidValue =
-    value !== 'No Data' &&
-    value !== 'Loading...' &&
-    value !== 'Error fetching data' &&
-    Number.isFinite(numericDepth);
-  const unit = hasValidValue ? ' m' : '';
-
-  // color is a validated 6-digit hex from the config schema — safe to interpolate.
-  // label and description come from user-supplied JSON/localStorage — must be escaped.
-  let severityHtml = '';
-  if (hasValidValue && Array.isArray(categories) && categories.length > 0) {
-    const match = classifyDepth(categories, numericDepth);
-    if (match) {
-      severityHtml = `
-        <div class="inundation-popup-severity" style="border-left:4px solid ${match.color}">
-          <span class="inundation-popup-severity__label" style="color:${match.color}">${escapeHtml(match.label)}</span>
-          <span class="inundation-popup-severity__desc">${escapeHtml(match.description)}</span>
-        </div>`;
-    }
-  }
-
-  return `
-    <div class="inundation-popup">
-      <div class="inundation-popup-title">Inundation Depth</div>
-      <div class="inundation-popup-value">${escapeHtml(value)}${unit}</div>
-      ${severityHtml}
-    </div>
-  `;
-};
-
-/**
- * Create error popup content for inundation layer
- * @returns {string} HTML content for the error popup
- */
-const createInundationErrorPopupContent = () => {
-  return `
-    <div class="inundation-popup">
-      <div class="inundation-popup-title">Inundation Depth</div>
-      <div class="inundation-popup-value inundation-popup-error">Error loading data</div>
-    </div>
-  `;
-};
 
 export const useMapInteraction = ({
   mapInstance,
@@ -91,7 +25,7 @@ export const useMapInteraction = ({
 }) => {
   // Create stable service instances using useRef
   const servicesRef = useRef(null);
-  
+
   if (!servicesRef.current) {
     servicesRef.current = {
       mapInteractionService: new MapInteractionService({ debugMode }),
@@ -99,7 +33,14 @@ export const useMapInteraction = ({
       markerService: new MapMarkerService({ debugMode })
     };
   }
-  
+
+  // Keep a ref to the canvas setters so the click callback can reach them without
+  // being in the useCallback dep array (they are stable React dispatch functions).
+  const settersRef = useRef({ setBottomCanvasData, setShowBottomCanvas });
+  useEffect(() => {
+    settersRef.current = { setBottomCanvasData, setShowBottomCanvas };
+  }, [setBottomCanvasData, setShowBottomCanvas]);
+
   // Update debug mode when it changes
   useEffect(() => {
     servicesRef.current.mapInteractionService.setDebugMode(debugMode);
@@ -147,55 +88,46 @@ export const useMapInteraction = ({
     }
     
     try {
-      // For inundation layer when zoomed in, show popup instead of bottom canvas
-      // Handle this BEFORE calling handleMapClick to prevent canvas from showing
+      // For inundation layer when zoomed in, open bottom canvas with full timeseries
       if (shouldShowPopup) {
-        // Immediately hide any open canvas before making the request
-        servicesRef.current.canvasManager.hide();
+        const lat = clickEvent.latlng.lat;
+        const lng = clickEvent.latlng.lng;
 
-        let value = 'No Data';
-        if (usesRasterSource) {
-          const rasterService = new SfincsRasterService(selectedLayerConfig.apiBase);
-          const pointData = await rasterService.getPointValue({
-            lat: clickEvent.latlng.lat,
-            lng: clickEvent.latlng.lng,
-            timeIndex: sliderIndex
+        // Drop a pin and show loading state immediately
+        if (!servicesRef.current.markerService.mapInstance) {
+          servicesRef.current.markerService.initialize(map);
+        }
+        servicesRef.current.markerService.addTemporaryMarker(clickEvent.latlng, { usePin: true }, map);
+
+        settersRef.current.setBottomCanvasData({ mode: 'inundation', loading: true, lat, lng });
+        settersRef.current.setShowBottomCanvas(true);
+
+        try {
+          let timeseries = null;
+          if (usesRasterSource) {
+            const rasterService = new SfincsRasterService(selectedLayerConfig.apiBase);
+            const result = await rasterService.getTimeseries({ lat, lng });
+            timeseries = result?.values ?? null;
+          }
+          settersRef.current.setBottomCanvasData({
+            mode: 'inundation',
+            lat,
+            lng,
+            timeseries,
+            categories: inundationCategories,
           });
-          value = pointData.available === false
-            ? 'Point sampling unavailable for this raster service.'
-            : pointData.value;
-        } else {
-          // Don't show marker for popup mode
-          // Pass autoShow: false to prevent canvas from showing during loading
-          const result = await servicesRef.current.mapInteractionService.handleMapClick(
-            clickEvent, 
-            map, 
-            currentSliderDate,
-            { autoShow: false } // Prevent canvas from showing
-          );
-          value = result.data?.featureInfo || result.featureInfo || 'No Data';
+        } catch (err) {
+          console.error('Failed to fetch inundation timeseries:', err);
+          settersRef.current.setBottomCanvasData({
+            mode: 'inundation',
+            lat,
+            lng,
+            timeseries: null,
+            categories: inundationCategories,
+            error: err.message,
+          });
         }
-
-        const latlng = clickEvent.latlng;
-        
-        // Only show fallback message if truly no data (not a numeric value or message with instructions)
-        if (value === 'No Data' || value.includes('Click on colored areas')) {
-          const lat = latlng.lat.toFixed(5);
-          const lng = latlng.lng.toFixed(5);
-          value = `No data at (${lat}, ${lng}). Click on colored inundation areas.`;
-        }
-        
-        // Make sure bottom canvas is hidden
-        servicesRef.current.canvasManager.hide();
-        
-        // Create popup with specific class for styling
-        L.popup({ className: 'inundation-leaflet-popup' })
-          .setLatLng(latlng)
-          .setContent(createInundationPopupContent(value, inundationCategories))
-          .openOn(map);
-        
-        console.log('🌊 Showing inundation popup:', value, 'at zoom:', currentZoom);
-        return; // Exit early - don't show canvas
+        return;
       }
       
       // Normal flow for non-inundation or low zoom: show bottom canvas
@@ -232,15 +164,16 @@ export const useMapInteraction = ({
     } catch (error) {
       console.error('Map interaction failed:', error);
       
-      // For inundation layer errors when zoomed in, still show popup
+      // For inundation layer errors when zoomed in, show error in canvas
       if (shouldShowPopup) {
-        // Hide bottom canvas if it was previously open to avoid stale data lingering
-        servicesRef.current.canvasManager.hide();
-        
-        L.popup({ className: 'inundation-leaflet-popup' })
-          .setLatLng(clickEvent.latlng)
-          .setContent(createInundationErrorPopupContent())
-          .openOn(map);
+        settersRef.current.setBottomCanvasData({
+          mode: 'inundation',
+          lat: clickEvent.latlng.lat,
+          lng: clickEvent.latlng.lng,
+          timeseries: null,
+          categories: inundationCategories,
+          error: error.message,
+        });
         return;
       }
       

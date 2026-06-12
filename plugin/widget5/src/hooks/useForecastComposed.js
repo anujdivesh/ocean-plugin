@@ -85,7 +85,8 @@ export const useForecast = (config) => {
     currentSliderDateStr,
     minIndex,
     getRasterFrame,
-    isBuffering
+    isBuffering,
+    rasterCacheVersion,
   } = timeAnimation;
 
   // 4. UI State (canvas visibility, drag state, responsive layout)
@@ -115,6 +116,7 @@ export const useForecast = (config) => {
     sliderIndex,
     getRasterFrame,
     isBuffering,
+    rasterCacheVersion,
     capTime,
     wmsOpacity,
     addWMSTileLayer,

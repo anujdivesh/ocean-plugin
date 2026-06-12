@@ -66,6 +66,8 @@ export const VariableButtons = ({
  * @param {Function} onSliderChange - Handler for slider changes
  * @param {Function} onPlayToggle - Handler for play/pause button
  * @param {Function} formatDateTime - Function to format date/time
+ * @param {string} timeDisplayZone - Selected display timezone
+ * @param {Function} onTimeDisplayZoneChange - Handler for display timezone changes
  * @param {number} stepHours - Hours per step (default: 1)
  * @param {React.ReactNode} playIcon - Icon for play button
  * @param {React.ReactNode} pauseIcon - Icon for pause button
@@ -80,7 +82,11 @@ export const TimeControl = ({
   capTime,
   onSliderChange,
   onPlayToggle,
+  onPrevious,
+  onNext,
   formatDateTime,
+  timeDisplayZone = 'Pacific/Rarotonga',
+  onTimeDisplayZoneChange,
   playIcon = '▶️',
   pauseIcon = '⏸️',
   minIndex = 0,
@@ -90,8 +96,22 @@ export const TimeControl = ({
     <div className="forecast-info">
       {/* <div>Forecast Hour: <span>+{sliderIndex * stepHours}h</span></div> */}
       <div>Valid DateTime: <span>{formatDateTime(currentSliderDate)}</span></div>
+      <div className="time-zone-row">
+        <label htmlFor="forecast-time-zone">Display Time</label>
+        <select
+          id="forecast-time-zone"
+          className="time-zone-select"
+          value={timeDisplayZone}
+          onChange={(event) => onTimeDisplayZoneChange?.(event.target.value)}
+          disabled={capTime.loading}
+          aria-label="Select forecast display timezone"
+        >
+          <option value="Pacific/Rarotonga">Cook Islands Local</option>
+          <option value="UTC">UTC</option>
+        </select>
+      </div>
     </div>
-    
+
     <div className="time-slider-container">
       <input
         id="ui-forecast-time-slider"
@@ -106,9 +126,19 @@ export const TimeControl = ({
         onChange={(e) => onSliderChange(e.target.value)}
         disabled={capTime.loading || disabled}
       />
-      
+
       <div className="playback-controls">
-        <button 
+        <button
+          type="button"
+          className="prev-btn"
+          onClick={onPrevious}
+          disabled={capTime.loading || disabled || sliderIndex <= minIndex}
+          aria-label="Previous timestep"
+          title="Previous timestep"
+        >
+          &#8249; Prev
+        </button>
+        <button
           type="button"
           className="play-btn"
           onClick={onPlayToggle}
@@ -116,6 +146,16 @@ export const TimeControl = ({
           aria-label={isPlaying ? 'Pause forecast animation' : 'Play forecast animation'}
         >
           <span>{isPlaying ? <>{pauseIcon} Pause</> : <>{playIcon} Play</>}</span>
+        </button>
+        <button
+          type="button"
+          className="next-btn"
+          onClick={onNext}
+          disabled={capTime.loading || disabled || sliderIndex >= totalSteps}
+          aria-label="Next timestep"
+          title="Next timestep"
+        >
+          Next &#8250;
         </button>
       </div>
     </div>

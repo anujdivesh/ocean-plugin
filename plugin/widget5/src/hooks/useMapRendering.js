@@ -52,6 +52,7 @@ export const useMapRendering = ({
   sliderIndex,
   getRasterFrame,
   isBuffering,
+  rasterCacheVersion,
   capTime,
   wmsOpacity,
   addWMSTileLayer,
@@ -183,7 +184,7 @@ export const useMapRendering = ({
       return;
     }
 
-    rasterOverlayRef.current = L.imageOverlay(renderFrame.image, overlayBounds, {
+    rasterOverlayRef.current = L.imageOverlay(renderFrame.url, overlayBounds, {
       opacity: wmsOpacity,
       interactive: false,
       crossOrigin: true
@@ -196,6 +197,7 @@ export const useMapRendering = ({
     sliderIndex,
     getRasterFrame,
     isBuffering,
+    rasterCacheVersion,
     capTimeMetadata,
     wmsOpacity
   ]);

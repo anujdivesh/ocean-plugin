@@ -93,7 +93,7 @@ export default function InundationThresholdEditor({
             <div>
               <div className="ite-header__name">Inundation Thresholds</div>
               <div className="ite-header__sub">
-                Cook Islands · Customise depth bands · auto-saved with revert to defaults
+                Edit depth values, labels, colors, and descriptions
               </div>
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function InundationThresholdEditor({
         {isValid && isDirty && !activeSaveError && (
           <div className="ite-info-banner">
             <CheckCircle size={14} />
-            <span>Map, legend, and popup preview are live. Changes persist automatically when valid.</span>
+            <span>Map, legend, chart labels, and point forecast text use these editable bands.</span>
           </div>
         )}
 
@@ -189,6 +189,7 @@ export default function InundationThresholdEditor({
           <div className="ite-summary-row">
             <span className="ite-summary-pill">Palette: {paletteMeta.label}</span>
             <span className="ite-summary-pill">Bands: {categories.length}</span>
+            <span className="ite-summary-pill">Editable labels and notes</span>
             <span className="ite-summary-pill">Range: {depthMin}m to {depthMax}m</span>
             <span className="ite-summary-pill">Hide below: {minVisibleDepthCm}cm</span>
           </div>

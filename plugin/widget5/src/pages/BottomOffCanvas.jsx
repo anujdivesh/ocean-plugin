@@ -1,9 +1,10 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import Offcanvas from "react-bootstrap/Offcanvas";
 import "./BottomOffCanvas.css";
 import Tabular from "./tabular.js";
 import Timeseries from "./timeseries.js";
 import RiskDetailsPanel from "../components/risk/RiskDetailsPanel";
+import InundationTimeseries from "./InundationTimeseries";
 
 
 // ---- Variables & config for Cook Islands (adapted from Widget 1) ----
@@ -49,7 +50,7 @@ function normalizeBboxToLonLat(bboxStr) {
 
 async function fetchLayerTimeseries(layer, data) {
   if (!data || !data.bbox || (data.x === undefined && data.i === undefined) || (data.y === undefined && data.j === undefined)) return null;
-  
+
   let timeParam = "";
   if (data.timeDimension) {
     if (data.timeDimension.includes("/")) {
@@ -69,7 +70,7 @@ async function fetchLayerTimeseries(layer, data) {
   const y = data.y !== undefined ? data.y : data.j;
   // Normalize bbox axis order (expects lon,lat when SRS=CRS:84)
   const bbox = normalizeBboxToLonLat(data.bbox);
-  
+
   const baseUrl = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/COK/SWAN_UGRID.nc";
   const url =
     baseUrl +
@@ -87,11 +88,11 @@ async function fetchLayerTimeseries(layer, data) {
     `&VERSION=1.1.1` +
     (timeParam ? `&TIME=${encodeURIComponent(timeParam)}` : "") +
     `&INFO_FORMAT=text/json`;
-  
+
   // Add timeout to prevent app hanging when THREDDS is down
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-  
+
   try {
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
@@ -123,8 +124,30 @@ const tabLabels = [
   { key: "timeseries", label: "Timeseries" }
 ];
 
-function BottomOffCanvas({ show, onHide, data }) {
+// Shared loading spinner used across all panel modes
+function PanelSpinner({ isDarkMode, message }) {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "center", padding: "3rem 2rem", gap: 12,
+      color: isDarkMode ? "#475569" : "#94a3b8",
+    }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: "50%",
+        border: `3px solid ${isDarkMode ? "#334155" : "#e2e8f0"}`,
+        borderTopColor: isDarkMode ? "#60a5fa" : "#3b82f6",
+        animation: "spin 0.8s linear infinite",
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <span style={{ fontSize: 13 }}>{message || "Loading…"}</span>
+    </div>
+  );
+}
+
+function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }) {
+  const offcanvasRef = useRef(null);
   const isRiskMode = data?.mode === "risk";
+  const isInundationMode = data?.mode === "inundation";
   const [height, setHeight] = useState(() => {
     if (typeof window === "undefined") return 500;
     const viewportMax = Math.max(DEFAULT_MIN_HEIGHT, window.innerHeight - 120);
@@ -140,7 +163,19 @@ function BottomOffCanvas({ show, onHide, data }) {
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const minHeight = DEFAULT_MIN_HEIGHT;
+
+  // Track previous show value so height only resets on open, not on mode change
+  const wasShowingRef = useRef(false);
+
+  const handleClose = useCallback((event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    offcanvasRef.current?.classList?.remove("offcanvas-toggling");
+    offcanvasRef.current?.classList?.remove("show");
+    onHide?.();
+  }, [onHide]);
 
   // Check for dark mode
   useEffect(() => {
@@ -148,13 +183,12 @@ function BottomOffCanvas({ show, onHide, data }) {
       const isDark = document.body.classList.contains('dark-mode');
       setIsDarkMode(isDark);
     };
-    
+
     checkTheme();
-    
-    // Listen for theme changes
+
     const observer = new MutationObserver(checkTheme);
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    
+
     return () => observer.disconnect();
   }, []);
 
@@ -177,27 +211,39 @@ function BottomOffCanvas({ show, onHide, data }) {
     }
   }, [height, maxHeight, minHeight]);
 
+  // Only reset to the preferred default when the panel first opens — not when
+  // the user clicks a different map point while it is already visible.
   useEffect(() => {
-    if (!show) {
-      return;
-    }
-
+    const justOpened = show && !wasShowingRef.current;
+    wasShowingRef.current = show;
+    if (!justOpened) return;
     const preferredHeight = isRiskMode ? 620 : 500;
-    setHeight((currentHeight) => {
-      const nextHeight = Math.min(Math.max(preferredHeight, currentHeight), maxHeight);
-      return nextHeight;
-    });
-  }, [isRiskMode, maxHeight, show]);
+    setHeight((h) => Math.min(Math.max(preferredHeight, h), maxHeight));
+  }, [show, isRiskMode, maxHeight]);
+
+  useEffect(() => {
+    if (!show) return undefined;
+    offcanvasRef.current?.classList?.remove("offcanvas-toggling");
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        handleClose(event);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleClose, show]);
 
   // Drag handle logic
   const dragging = useRef(false);
   const startY = useRef(0);
   const startHeight = useRef(height);
+
   const onMouseDown = (e) => {
     e.preventDefault();
     dragging.current = true;
     startY.current = e.clientY;
     startHeight.current = height;
+    setIsDragging(true);
     document.body.style.cursor = "ns-resize";
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
@@ -206,22 +252,20 @@ function BottomOffCanvas({ show, onHide, data }) {
     if (!dragging.current) return;
     let newHeight = startHeight.current - (e.clientY - startY.current);
     newHeight = Math.min(Math.max(newHeight, minHeight), maxHeight);
-    console.log(`[BottomCanvas] MouseMove: startHeight=${startHeight.current}, clientY=${e.clientY}, startY=${startY.current}, newHeight=${newHeight}, minHeight=${minHeight}, maxHeight=${maxHeight}`);
     setHeight(newHeight);
-    console.log(`[BottomCanvas] height: ${Math.round(newHeight)}px`);
   };
   const onMouseUp = () => {
     dragging.current = false;
+    setIsDragging(false);
     document.body.style.cursor = "";
     document.removeEventListener("mousemove", onMouseMove);
     document.removeEventListener("mouseup", onMouseUp);
-    console.log(`[BottomCanvas] resize end height: ${Math.round(height)}px`);
   };
 
   // Centralized network fetching
   useEffect(() => {
     let isMounted = true;
-    if (isRiskMode) {
+    if (isRiskMode || isInundationMode) {
       setPerVariableData({});
       setFetchError("");
       setLoading(false);
@@ -241,7 +285,6 @@ function BottomOffCanvas({ show, onHide, data }) {
       for (let i = 0; i < variableDefs.length; i++) {
         const { key } = variableDefs[i];
         if (key === "transp_x") {
-          // Only fetch both transp_x and transp_y ONCE
           transpX = await fetchLayerTimeseries("transp_x", data);
           transpY = await fetchLayerTimeseries("transp_y", data);
           out["transp_x"] = transpX;
@@ -258,24 +301,26 @@ function BottomOffCanvas({ show, onHide, data }) {
       if (Object.values(out).every(x => !x)) setFetchError("No data returned from server.");
     })();
     return () => { isMounted = false; };
-  }, [data, isRiskMode]);
+  }, [data, isRiskMode, isInundationMode]);
 
   return (
     <Offcanvas
+      ref={offcanvasRef}
       show={show}
       onHide={onHide}
       placement="bottom"
       className="bottom-offcanvas"
+      transition={false}
       style={{
-        // Ensure Bootstrap offcanvas-bottom respects dynamic height
         height,
         maxHeight,
         "--bs-offcanvas-height": `${Math.round(height)}px`,
         zIndex: 15000,
         background: isDarkMode ? "rgba(63, 72, 84, 0.98)" : "rgba(255,255,255,0.98)",
         color: isDarkMode ? "#f1f5f9" : "#1e293b",
-        overflow: "visible",
-        transition: "height 0.18s ease-out",
+        overflow: "hidden",
+        // Disable animation while dragging so the panel tracks the cursor instantly
+        transition: isDragging ? "none" : "height 0.18s ease-out",
         borderTop: `1px solid ${isDarkMode ? "#44454a" : "#e2e8f0"}`,
       }}
       backdrop={false}
@@ -283,6 +328,10 @@ function BottomOffCanvas({ show, onHide, data }) {
     >
       {/* Drag Handle */}
       <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize panel — drag or use Up/Down arrow keys"
+        tabIndex={0}
         style={{
           height: 16,
           cursor: "ns-resize",
@@ -294,30 +343,40 @@ function BottomOffCanvas({ show, onHide, data }) {
           margin: "-8px 0 0 0",
           position: "relative",
           zIndex: 15002,
+          outline: "none",
         }}
         onMouseDown={onMouseDown}
+        onKeyDown={(e) => {
+          const step = e.shiftKey ? 50 : 20;
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setHeight((h) => Math.min(h + step, maxHeight));
+          } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setHeight((h) => Math.max(h - step, minHeight));
+          }
+        }}
         onTouchStart={(e) => {
           e.preventDefault();
           if (!e.touches || !e.touches.length) return;
           dragging.current = true;
           startY.current = e.touches[0].clientY;
           startHeight.current = height;
+          setIsDragging(true);
           document.body.style.cursor = "ns-resize";
           const onTouchMove = (ev) => {
             ev.preventDefault();
             if (!dragging.current || !ev.touches || !ev.touches.length) return;
             let newHeight = startHeight.current - (ev.touches[0].clientY - startY.current);
             newHeight = Math.min(Math.max(newHeight, minHeight), maxHeight);
-            console.log(`[BottomCanvas] TouchMove: startHeight=${startHeight.current}, clientY=${ev.touches[0].clientY}, startY=${startY.current}, newHeight=${newHeight}, minHeight=${minHeight}, maxHeight=${maxHeight}`);
             setHeight(newHeight);
-            console.log(`[BottomCanvas] height: ${Math.round(newHeight)}px`);
           };
           const onTouchEnd = () => {
             dragging.current = false;
+            setIsDragging(false);
             document.body.style.cursor = "";
             document.removeEventListener("touchmove", onTouchMove);
             document.removeEventListener("touchend", onTouchEnd);
-            console.log(`[BottomCanvas] resize end height: ${Math.round(height)}px`);
           };
           document.addEventListener("touchmove", onTouchMove, { passive: false });
           document.addEventListener("touchend", onTouchEnd);
@@ -326,7 +385,7 @@ function BottomOffCanvas({ show, onHide, data }) {
       >
         <div
           style={{
-            width: 40,
+            width: 80,
             height: 4,
             background: isDarkMode ? "#a1a1aa" : "#aaa",
             borderRadius: 2,
@@ -334,13 +393,13 @@ function BottomOffCanvas({ show, onHide, data }) {
           }}
         />
       </div>
-      <div style={{ 
-        display: "flex", 
-        alignItems: "center", 
-        borderBottom: `1px solid ${isDarkMode ? "#44454a" : "#eee"}`, 
-        padding: "0 1rem 0 0.5rem" 
-      }}>
-        <div style={{ display: "flex", flex: 1, paddingTop: 10 }}>
+
+      {/* Header */}
+      <div
+        className="bottom-offcanvas__header"
+        style={{ borderBottom: `1px solid ${isDarkMode ? "#44454a" : "#eee"}` }}
+      >
+        <div style={{ display: "flex", flex: 1, alignItems: "center", paddingTop: 10, minWidth: 0 }}>
           {isRiskMode ? (
             <div style={{
               padding: "8px 20px",
@@ -350,60 +409,128 @@ function BottomOffCanvas({ show, onHide, data }) {
             }}>
               Coastal Risk
             </div>
+          ) : isInundationMode ? (
+            <div style={{
+              padding: "6px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              minWidth: 0,
+              flex: 1,
+            }}>
+              <span style={{
+                fontWeight: 700,
+                color: isDarkMode ? "#f1f5f9" : "#0f172a",
+                fontSize: 15,
+                letterSpacing: "-0.01em",
+              }}>
+                Point Inundation Forecast
+              </span>
+              {data?.lat != null && (
+                <span style={{
+                  fontSize: 11,
+                  color: isDarkMode ? "#cbd5e1" : "#475569",
+                  fontFamily: "ui-monospace, monospace",
+                  background: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+                  borderRadius: 5,
+                  padding: "2px 7px",
+                  whiteSpace: "nowrap",
+                }}>
+                  {data.lat.toFixed(5)}, {data.lng.toFixed(5)}
+                </span>
+              )}
+              <span style={{
+                marginLeft: "auto",
+                fontSize: 10,
+                color: isDarkMode ? "#64748b" : "#94a3b8",
+                fontFamily: "ui-monospace, monospace",
+                whiteSpace: "nowrap",
+              }}>
+                Source: SFINCS zarr
+              </span>
+            </div>
           ) : (
-            tabLabels.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                style={{
-                  border: "none",
-                  borderBottom: activeTab === tab.key ? `2px solid ${isDarkMode ? "#60a5fa" : "#007bff"}` : "2px solid transparent",
-                  background: "none",
-                  padding: "8px 20px",
-                  marginRight: 8,
-                  fontWeight: activeTab === tab.key ? "bold" : "normal",
-                  color: activeTab === tab.key ? (isDarkMode ? "#60a5fa" : "#007bff") : (isDarkMode ? "#a1a1aa" : "#555"),
-                  cursor: "pointer",
-                  fontSize: 16,
-                  transition: "border-bottom 0.1s"
-                }}
-                aria-controls={`tab-panel-${tab.key}`}
-                tabIndex={activeTab === tab.key ? 0 : -1}
-                type="button"
-              >
-                {tab.label}
-              </button>
-            ))
+            <div role="tablist" aria-label="View mode" style={{ display: "flex" }}>
+              {tabLabels.map(tab => (
+                <button
+                  key={tab.key}
+                  role="tab"
+                  aria-selected={activeTab === tab.key}
+                  aria-controls={`tab-panel-${tab.key}`}
+                  id={`tab-btn-${tab.key}`}
+                  onClick={() => setActiveTab(tab.key)}
+                  style={{
+                    border: "none",
+                    borderBottom: activeTab === tab.key ? `2px solid ${isDarkMode ? "#60a5fa" : "#007bff"}` : "2px solid transparent",
+                    background: "none",
+                    padding: "8px 20px",
+                    marginRight: 8,
+                    fontWeight: activeTab === tab.key ? "bold" : "normal",
+                    color: activeTab === tab.key ? (isDarkMode ? "#60a5fa" : "#007bff") : (isDarkMode ? "#a1a1aa" : "#555"),
+                    cursor: "pointer",
+                    fontSize: 16,
+                    transition: "border-bottom 0.1s"
+                  }}
+                  tabIndex={activeTab === tab.key ? 0 : -1}
+                  type="button"
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           )}
         </div>
         <button
-          onClick={onHide}
+          data-bs-dismiss="offcanvas"
+          onClick={handleClose}
+          onClickCapture={handleClose}
+          onMouseDown={(event) => event.stopPropagation()}
+          onTouchStart={(event) => event.stopPropagation()}
           type="button"
           aria-label="Close"
+          className="bottom-offcanvas__close"
           style={{
-            border: "none",
-            background: "none",
-            fontSize: 26,
-            marginLeft: 8,
-            color: isDarkMode ? "#a1a1aa" : "#666",
-            cursor: "pointer",
-            lineHeight: 1,
+            color: isDarkMode ? "#f1f5f9" : "#1e293b",
           }}
         >
           ×
         </button>
       </div>
-      <Offcanvas.Body style={{ paddingTop: 16 }}>
+
+      <Offcanvas.Body
+        className={isInundationMode ? "bottom-offcanvas__body bottom-offcanvas__body--inundation" : "bottom-offcanvas__body"}
+        role={(!isRiskMode && !isInundationMode) ? "tabpanel" : undefined}
+        id={(!isRiskMode && !isInundationMode) ? `tab-panel-${activeTab}` : undefined}
+        aria-labelledby={(!isRiskMode && !isInundationMode) ? `tab-btn-${activeTab}` : undefined}
+      >
         {isRiskMode ? (
-          <RiskDetailsPanel data={data} isDarkMode={isDarkMode} />
+          <RiskDetailsPanel data={data} isDarkMode={isDarkMode} currentSliderDate={currentSliderDate} onTimeSelect={onTimeSelect} />
+        ) : isInundationMode ? (
+          data?.loading
+            ? <PanelSpinner isDarkMode={isDarkMode} message="Loading depth timeseries…" />
+            : data?.error
+              ? (
+                <div style={{
+                  textAlign: "center", padding: "2rem",
+                  color: isDarkMode ? "#f87171" : "#dc2626", fontSize: 13,
+                }}>
+                  Failed to load timeseries: {data.error}
+                </div>
+              )
+              : <InundationTimeseries
+                  timeseries={data?.timeseries}
+                  categories={data?.categories}
+                  isDarkMode={isDarkMode}
+                  currentSliderDate={currentSliderDate}
+                  onTimeSelect={onTimeSelect}
+                />
         ) : loading
-          ? <div style={{ textAlign: "center", padding: "2rem" }}>Loading data...</div>
+          ? <PanelSpinner isDarkMode={isDarkMode} message="Loading wave data…" />
           : fetchError
               ? <div style={{ color: "red", textAlign: "center" }}>{fetchError}</div>
               : <>
                   {activeTab === "tabular" && <Tabular perVariableData={perVariableData} />}
                   {activeTab === "timeseries" && <Timeseries perVariableData={perVariableData} />}
-                  
                 </>
         }
       </Offcanvas.Body>

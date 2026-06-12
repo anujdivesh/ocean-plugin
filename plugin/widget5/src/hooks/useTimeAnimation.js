@@ -7,7 +7,21 @@ const SFINCS_PRELOAD_COUNT = 8;
 const SFINCS_FRAME_INTERVAL_MS = 2000;
 const SFINCS_MAX_CACHED_FRAMES = 12;
 
-const clampIndex = (index, max, min = 0) => Math.max(min, Math.min(index, max));
+const clampIndex = (index, max, min = 0) => {
+  const numericIndex = Number(index);
+  const numericMax = Number(max);
+  const numericMin = Number(min);
+
+  if (!Number.isFinite(numericIndex)) {
+    return Number.isFinite(numericMin) ? numericMin : 0;
+  }
+
+  const safeMin = Number.isFinite(numericMin) ? numericMin : 0;
+  const safeMax = Number.isFinite(numericMax) ? numericMax : safeMin;
+
+  return Math.max(safeMin, Math.min(Math.trunc(numericIndex), safeMax));
+};
+const isValidDate = (value) => value instanceof Date && !Number.isNaN(value.getTime());
 
 /**
  * A+ Time Animation Hook with Adaptive Timing and Frame Buffering
@@ -29,6 +43,7 @@ export const useTimeAnimation = (
   const [animationSpeed, setAnimationSpeed] = useState(3000); // Adaptive speed
   const [isBuffering, setIsBuffering] = useState(false);
   const [minIndex, setMinIndex] = useState(0); // Do not allow sliding before this index
+  const [rasterCacheVersion, setRasterCacheVersion] = useState(0);
   
   // Performance tracking refs
   const frameLoadTimes = useRef([]);
@@ -66,18 +81,21 @@ export const useTimeAnimation = (
     
     // Use available timestamps if they exist
     if (capTime.availableTimestamps && capTime.availableTimestamps.length > 0) {
-      const index = Math.min(sliderIndex, capTime.availableTimestamps.length - 1);
-      return capTime.availableTimestamps[index];
+      const index = clampIndex(sliderIndex, capTime.availableTimestamps.length - 1);
+      const timestamp = capTime.availableTimestamps[index];
+      return isValidDate(timestamp) ? timestamp : new Date();
     }
     
     // Fallback to calculated time
-    return capTime.start 
+    return isValidDate(capTime.start)
       ? new Date(capTime.start.getTime() + sliderIndex * capTime.stepHours * 60 * 60 * 1000)
       : new Date();
   })();
   
   // Format current slider date for WMS requests
-  const currentSliderDateStr = currentSliderDate.toISOString();
+  const currentSliderDateStr = isValidDate(currentSliderDate)
+    ? currentSliderDate.toISOString()
+    : new Date().toISOString();
 
   const preloadRasterFrame = useCallback(async (index) => {
     if (!isRasterAnimation || !selectedLayerConfig || frameCount <= 0 || !rasterCacheSignature) {
@@ -171,6 +189,7 @@ export const useTimeAnimation = (
       evictRasterFrames(startIndex);
     } finally {
       setIsBuffering(false);
+      setRasterCacheVersion(v => v + 1);
     }
   }, [isRasterAnimation, frameCount, preloadRasterFrame, evictRasterFrames, rasterCacheSignature]);
 
@@ -262,7 +281,6 @@ export const useTimeAnimation = (
     if (!capTime.loading && totalSteps > 0) {
       let initialIndex = isRasterAnimation ? 0 : MARINE_CONFIG.DEFAULT_SLIDER_INDEX;
       
-      // For raster animation, match sfincs-webapp and start from the first frame.
       if (isRasterAnimation) {
         initialIndex = 0;
         console.log(`🎯 Raster slider initialization: starting at frame ${initialIndex}`);
@@ -298,7 +316,7 @@ export const useTimeAnimation = (
       }
 
       setSliderIndex(initialIndex);
-      setMinIndex(0); // Allow sliding to the beginning
+      setMinIndex(0);
       setIsPlaying(false);
 
       // Reset performance tracking and buffer
@@ -436,13 +454,19 @@ export const useTimeAnimation = (
     });
   }, [minIndex]);
   
-  const setSliderToIndex = useCallback((index) => {
-    const clampedIndex = clampIndex(index, totalSteps, minIndex);
-    setSliderIndex(clampedIndex);
+  const setSliderToIndex = useCallback((indexOrUpdater) => {
+    setSliderIndex((previousIndex) => {
+      const nextIndex = typeof indexOrUpdater === 'function'
+        ? indexOrUpdater(previousIndex)
+        : indexOrUpdater;
+      const clampedIndex = clampIndex(nextIndex, totalSteps, minIndex);
 
-    if (isRasterAnimation) {
-      preloadRasterFrames(clampedIndex).catch(console.warn);
-    }
+      if (isRasterAnimation) {
+        preloadRasterFrames(clampedIndex).catch(console.warn);
+      }
+
+      return clampedIndex;
+    });
   }, [totalSteps, minIndex, isRasterAnimation, preloadRasterFrames]);
 
   return {
@@ -453,7 +477,8 @@ export const useTimeAnimation = (
     totalSteps,
     currentSliderDate,
     currentSliderDateStr,
-  minIndex,
+    minIndex,
+    rasterCacheVersion,
     // A+ Features
     isBuffering,
     animationSpeed,
