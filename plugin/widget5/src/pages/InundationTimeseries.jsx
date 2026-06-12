@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Plot from 'react-plotly.js';
+import Plotly from 'plotly.js/dist/plotly';
 import { classifyDepth } from '../config/inundationThresholds';
 
 function getSeverityStyle(index, total) {
@@ -150,6 +151,51 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
     plotlyClickHandlerRef.current = handler;
     graphDiv.on('plotly_click', handler);
   }, []);
+
+  const handleExportPNG = useCallback(() => {
+    if (!plotlyDivRef.current) return;
+    Plotly.downloadImage(plotlyDivRef.current, {
+      format: 'png',
+      width: 1200,
+      height: 500,
+      scale: 2,
+      filename: 'inundation-forecast',
+    });
+  }, []);
+
+  const handleExportPDF = useCallback(() => {
+    if (!plotlyDivRef.current) return;
+    Plotly.toImage(plotlyDivRef.current, { format: 'svg', width: 1200, height: 500 }).then((svgDataUrl) => {
+      const win = window.open('', '_blank', 'width=960,height=720');
+      if (!win) return;
+      const statsHtml = stats
+        ? `<p style="margin:4px 0;font-size:13px;color:#334155">
+            Peak depth: <strong>${stats.maxDepth.toFixed(2)} m</strong>
+            &nbsp;·&nbsp; Category: <strong>${stats.maxCat?.label ?? 'N/A'}</strong>
+            &nbsp;·&nbsp; Flood duration: <strong>${stats.floodedHours < 1
+              ? `${Math.round(stats.floodedHours * 60)} min`
+              : `${Math.round(stats.floodedHours)} h`}</strong>
+           </p>`
+        : '';
+      win.document.write(`<!DOCTYPE html><html><head>
+        <title>Point Inundation Forecast</title>
+        <style>
+          body { margin: 20px; font-family: Inter, system-ui, sans-serif; color: #0f172a; }
+          h2 { margin: 0 0 4px; font-size: 16px; }
+          img { max-width: 100%; margin-top: 12px; display: block; }
+          .footer { margin-top: 12px; font-size: 11px; color: #94a3b8; }
+          @media print { body { margin: 0; } }
+        </style>
+      </head><body>
+        <h2>Point Inundation Forecast</h2>
+        ${statsHtml}
+        <img src="${svgDataUrl}" alt="Inundation timeseries chart" />
+        <div class="footer">Generated ${new Date().toLocaleString('en-NZ', { timeZone: 'UTC' })} UTC &nbsp;·&nbsp; Source: SFINCS zarr</div>
+        <script>window.onload = function() { window.print(); };<\/script>
+      </body></html>`);
+      win.document.close();
+    });
+  }, [stats]);
 
   useEffect(() => {
     const el = chartRef.current;
@@ -382,7 +428,7 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
 
       <div className="inundation-timeseries__controls">
         <span>Depth values, category labels, and notes are editable in Inundation Thresholds.</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           {onTimeSelect && (
             <span style={{ opacity: 0.55, fontStyle: "italic" }}>
               Click chart to jump slider
@@ -396,6 +442,34 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
             />
             Show chart labels
           </label>
+          <button
+            type="button"
+            className="inundation-timeseries__export-btn"
+            onClick={handleExportPNG}
+            title="Download chart as PNG"
+            aria-label="Download chart as PNG"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            PNG
+          </button>
+          <button
+            type="button"
+            className="inundation-timeseries__export-btn"
+            onClick={handleExportPDF}
+            title="Print / save as PDF"
+            aria-label="Print chart as PDF"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="6 9 6 2 18 2 18 9"/>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+              <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+            PDF
+          </button>
         </div>
       </div>
 

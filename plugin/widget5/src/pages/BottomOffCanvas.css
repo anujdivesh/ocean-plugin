@@ -129,6 +129,31 @@
   accent-color: #00d4ff;
 }
 
+.inundation-timeseries__export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(241, 245, 249, 0.82);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.inundation-timeseries__export-btn:hover {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
+.inundation-timeseries__export-btn:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .inundation-timeseries__chart {
   flex: 1 1 0;
   min-height: 180px;
