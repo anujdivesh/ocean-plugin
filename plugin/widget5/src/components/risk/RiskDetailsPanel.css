@@ -95,6 +95,102 @@
   font-weight: 700;
 }
 
+.risk-threshold-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: inherit;
+  font-weight: 700;
+}
+
+.risk-threshold-input {
+  width: 5.6rem;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.28rem 0.4rem;
+}
+
+.risk-threshold-input:focus {
+  border-color: rgba(96, 165, 250, 0.82);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18);
+  outline: none;
+}
+
+.risk-threshold-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 1.75rem;
+  margin-top: -0.25rem;
+}
+
+.risk-threshold-warning {
+  color: #fbbf24;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.risk-threshold-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.risk-threshold-reset {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.08);
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.32rem 0.55rem;
+}
+
+.risk-threshold-reset:hover {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(96, 165, 250, 0.14);
+}
+
+.risk-threshold-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  border-radius: 6px;
+  background: #3b82f6;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.32rem 0.6rem;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.risk-threshold-save:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.risk-threshold-save:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.risk-threshold-save--flash {
+  background: #16a34a;
+}
+
+.risk-threshold-save--flash:hover {
+  background: #16a34a;
+}
+
 .risk-summary-meta {
   display: flex;
   flex-wrap: wrap;
@@ -146,6 +242,28 @@
 .risk-panel-dark .risk-chart-card {
   background: rgba(30, 41, 59, 0.72);
   border-color: rgba(148, 163, 184, 0.2);
+}
+
+.risk-panel-dark .risk-threshold-input {
+  background: rgba(15, 23, 42, 0.58);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #f8fafc;
+}
+
+.risk-panel-dark .risk-threshold-reset {
+  background: rgba(15, 23, 42, 0.36);
+}
+
+.risk-panel-dark .risk-threshold-save {
+  background: #3b82f6;
+}
+
+.risk-panel-dark .risk-threshold-save:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.risk-panel-dark .risk-threshold-save--flash {
+  background: #16a34a;
 }
 
 .risk-panel-dark .risk-summary-card:hover {

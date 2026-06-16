@@ -39,7 +39,7 @@ const formatTickLabel = (value) => {
   });
 };
 
-const buildAnnotationPlugin = ({ thresholds, nowIndex, isDarkMode }) => ({
+const buildAnnotationPlugin = ({ thresholds, nowIndexRef, isDarkMode }) => ({
   id: 'riskThresholdAnnotations',
   afterDraw(chart) {
     const { ctx, chartArea, scales } = chart;
@@ -49,6 +49,8 @@ const buildAnnotationPlugin = ({ thresholds, nowIndex, isDarkMode }) => ({
     if (!chartArea || !yScale || !xScale) {
       return;
     }
+
+    const nowIndex = nowIndexRef.current;
 
     const thresholdConfigs = [
       {
@@ -109,10 +111,13 @@ function WaterLevelChart({
   surgeLevel = [],
   thresholds = [],
   now = new Date(),
-  isDarkMode = false
+  isDarkMode = false,
+  onTimeSelect
 }) {
   const canvasRef = useRef(null);
   const chartInstanceRef = useRef(null);
+  const onTimeSelectRef = useRef(onTimeSelect);
+  onTimeSelectRef.current = onTimeSelect;
 
   const chartData = useMemo(() => {
     if (!timestamps.length || !totalWaterLevel.length) {
@@ -133,26 +138,34 @@ function WaterLevelChart({
       value: Number(totalWaterLevel[index]) || 0
     }));
 
-    const nowTime = new Date(now).getTime();
-    let nowIndex = -1;
-    let smallestDiff = Number.POSITIVE_INFINITY;
-
-    timestamps.forEach((timestamp, index) => {
-      const diff = Math.abs(new Date(timestamp).getTime() - nowTime);
-      if (diff < smallestDiff) {
-        smallestDiff = diff;
-        nowIndex = index;
-      }
-    });
-
     return {
       labels,
-      nowIndex,
       twl,
       oceanWaterLevel,
       astronomicalTide
     };
-  }, [timestamps, totalWaterLevel, tideLevel, surgeLevel, now]);
+  }, [timestamps, totalWaterLevel, tideLevel, surgeLevel]);
+
+  const nowIndex = useMemo(() => {
+    if (!chartData) return -1;
+    const nowTime = new Date(now).getTime();
+    let best = -1;
+    let smallestDiff = Number.POSITIVE_INFINITY;
+    chartData.labels.forEach((label, index) => {
+      const diff = Math.abs(new Date(label).getTime() - nowTime);
+      if (diff < smallestDiff) { smallestDiff = diff; best = index; }
+    });
+    return best;
+  }, [chartData, now]);
+
+  const nowIndexRef = useRef(nowIndex);
+
+  useEffect(() => {
+    nowIndexRef.current = nowIndex;
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.update('none');
+    }
+  }, [nowIndex]);
 
   useEffect(() => {
     if (!canvasRef.current || !chartData) {
@@ -175,7 +188,7 @@ function WaterLevelChart({
 
     chartInstanceRef.current = new Chart(canvasRef.current.getContext('2d'), {
       type: 'line',
-      plugins: [buildAnnotationPlugin({ thresholds, nowIndex: chartData.nowIndex, isDarkMode })],
+      plugins: [buildAnnotationPlugin({ thresholds, nowIndexRef, isDarkMode })],
       data: {
         labels: chartData.labels,
         datasets: [
@@ -226,6 +239,16 @@ function WaterLevelChart({
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        onClick: (_event, elements, chart) => {
+          if (!onTimeSelectRef.current) return;
+          const idx = elements?.[0]?.index ?? chart?.tooltip?.dataPoints?.[0]?.dataIndex;
+          if (idx == null) return;
+          const ts = chartData.labels[idx];
+          if (ts) onTimeSelectRef.current(new Date(ts));
+        },
+        onHover: (event) => {
+          if (onTimeSelectRef.current) event.native.target.style.cursor = 'pointer';
+        },
         animation: {
           duration: 700,
           easing: 'easeOutQuart'

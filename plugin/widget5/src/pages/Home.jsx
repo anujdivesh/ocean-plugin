@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import addWMSTileLayer from "./addWMSTileLayer";
@@ -223,10 +223,27 @@ function CookIslandsForecast() {
     isBuffering,
   } = useForecast(cookIslandsConfig);
 
-  // Debug: Track state changes
+  const handleTimeSelect = useCallback((date) => {
+    const timestamps = capTime.availableTimestamps;
+    if (!timestamps?.length || !date) return;
+    const t = date.getTime();
+    let best = 0;
+    let bestDiff = Infinity;
+    timestamps.forEach((ts, i) => {
+      const diff = Math.abs(ts.getTime() - t);
+      if (diff < bestDiff) { bestDiff = diff; best = i; }
+    });
+    setSliderIndex(best);
+  }, [capTime.availableTimestamps, setSliderIndex]);
+
+  // Mutual exclusion: only one panel open at a time
   useEffect(() => {
-    console.log("🎯 BottomCanvas State - show:", showBottomCanvas, "data:", bottomCanvasData);
-  }, [showBottomCanvas, bottomCanvasData]);
+    if (showBottomCanvas) setShowBuoyCanvas(false);
+  }, [showBottomCanvas, setShowBuoyCanvas]);
+
+  useEffect(() => {
+    if (showBuoyCanvas) setShowBottomCanvas(false);
+  }, [showBuoyCanvas, setShowBottomCanvas]);
 
   useRiskOverlay({
     mapInstance,
@@ -272,6 +289,7 @@ function CookIslandsForecast() {
       
       <BottomOffCanvas
         show={showBottomCanvas}
+        onTimeSelect={handleTimeSelect}
         onHide={() => {
           setShowBottomCanvas(false);
           // Remove any active markers when canvas is hidden
@@ -286,6 +304,7 @@ function CookIslandsForecast() {
           }
         }}
         data={bottomCanvasData}
+        currentSliderDate={currentSliderDate}
       />
       <BottomBuoyOffCanvas
         show={showBuoyCanvas}

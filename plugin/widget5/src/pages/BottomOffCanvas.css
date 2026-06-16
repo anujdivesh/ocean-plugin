@@ -1,13 +1,226 @@
 /* Ensure the bottom offcanvas can be dynamically resized, even if a global
    rule sets a fixed height with !important (e.g., 35vh). */
 .offcanvas.offcanvas-bottom.bottom-offcanvas {
-  /* Use Bootstrap's CSS variable to control height dynamically */
   height: var(--bs-offcanvas-height) !important;
-  max-height: 100vh;
+  width: 100vw;
+  max-width: 100vw;
+  max-height: min(820px, calc(100vh - 96px));
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  z-index: 15000 !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
 }
 
 /* Optional: keep body from flex-growing unexpectedly during drag */
 .offcanvas.offcanvas-bottom.bottom-offcanvas .offcanvas-body {
-  /* Let content scroll inside without changing container height */
   overflow-y: auto;
+}
+
+.bottom-offcanvas__header {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 0 1rem 0 0.5rem;
+  position: relative;
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.offcanvas.offcanvas-bottom.bottom-offcanvas .bottom-offcanvas__close {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  display: flex !important;
+  flex: 0 0 auto;
+  font-size: 28px !important;
+  height: 44px !important;
+  justify-content: center;
+  line-height: 1 !important;
+  margin-left: 8px;
+  padding: 0 !important;
+  position: relative;
+  width: 44px !important;
+  z-index: 60 !important;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+}
+
+.offcanvas.offcanvas-bottom.bottom-offcanvas .bottom-offcanvas__close:hover {
+  background: rgba(255, 100, 100, 0.24) !important;
+  color: #ffb4b4 !important;
+  transform: none !important;
+}
+
+.bottom-offcanvas__body {
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+}
+
+.bottom-offcanvas__body--inundation {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 53px);
+  overflow: hidden !important;
+  padding: 14px 18px 16px;
+}
+
+.inundation-timeseries {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.inundation-timeseries__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.inundation-timeseries__advisory {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.inundation-timeseries__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 auto;
+  min-width: 0;
+  color: rgba(203, 213, 225, 0.82);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.inundation-timeseries__controls > span {
+  min-width: 0;
+}
+
+.inundation-timeseries__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  color: rgba(241, 245, 249, 0.9);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.inundation-timeseries__toggle input {
+  accent-color: #00d4ff;
+}
+
+.inundation-timeseries__export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(241, 245, 249, 0.82);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.inundation-timeseries__export-btn:hover {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
+.inundation-timeseries__export-btn:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.inundation-timeseries__chart {
+  flex: 1 1 0;
+  min-height: 180px;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.inundation-timeseries__chart .js-plotly-plot,
+.inundation-timeseries__chart .plot-container,
+.inundation-timeseries__chart .svg-container {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.inundation-timeseries__chart .trace.scatter .lines path.forecast-line-enter {
+  stroke-dasharray: var(--forecast-line-length);
+  animation: forecastLineIn 720ms ease-out both;
+}
+
+@keyframes forecastLineIn {
+  from {
+    opacity: 0;
+    stroke-dashoffset: var(--forecast-line-length);
+  }
+  to {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inundation-timeseries__chart .trace.scatter .lines path.forecast-line-enter {
+    animation: none;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (max-width: 1200px) {
+  .inundation-timeseries__stats {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .offcanvas.offcanvas-bottom.bottom-offcanvas {
+    max-height: calc(100vh - 72px);
+  }
+
+  .bottom-offcanvas__body--inundation {
+    padding: 12px;
+  }
+
+  .inundation-timeseries__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .inundation-timeseries__controls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* Give Plotly its own stacking context inside the offcanvas so it surfaces
+   above any nested stacking contexts created by backdrop-filter parents. */
+.bottom-offcanvas .plot-container.plotly {
+  position: relative;
+  z-index: 10;
 }

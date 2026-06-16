@@ -11,7 +11,7 @@ import {
   deepCloneDefaultProfiles,
 } from '../../config/inundationThresholds';
 
-export const DEFAULT_MIN_VISIBLE_DEPTH = 0.02;
+export const DEFAULT_MIN_VISIBLE_DEPTH = 0;
 export const DEFAULT_RESAMPLE_COLORS = false;
 const MAX_AUDIT_ENTRIES = 12;
 

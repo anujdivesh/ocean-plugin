@@ -37,6 +37,8 @@ export default function ThemeToggle() {
         id="themeToggle"
         checked={isDark}
         onChange={toggleTheme}
+        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       />
       <label className="form-check-label" htmlFor="themeToggle" style={{ color: 'var(--color-text)' }}>
         {isDark ? (

@@ -95,6 +95,7 @@ const ForecastApp = ({
   const lastZoomedLayerRef = useRef(null);
   const [selectedIslandId, setSelectedIslandId] = useState(ISLAND_ZOOM_TARGETS[0]?.id || '');
   const [showThresholdEditor, setShowThresholdEditor] = useState(false);
+  const [timeDisplayZone, setTimeDisplayZone] = useState('Pacific/Rarotonga');
   const selectedLayer = useMemo(() => {
     return ALL_LAYERS.find(l => l.value === selectedWaveForecast) || null;
   }, [ALL_LAYERS, selectedWaveForecast]);
@@ -371,17 +372,28 @@ const ForecastApp = ({
     setSliderIndex(parseInt(value));
   };
 
+  const handlePreviousTimestamp = () => {
+    setSliderIndex(prev => Math.max(prev - 1, minIndex));
+  };
+
+  const handleNextTimestamp = () => {
+    setSliderIndex(prev => Math.min(prev + 1, totalSteps));
+  };
+
   const formatDateTime = (date) => {
     if (!date) return 'Loading...';
-    return date.toLocaleString(undefined, {
+    const timeZoneLabel = timeDisplayZone === 'UTC' ? 'UTC' : 'CKT';
+    const formattedDate = new Intl.DateTimeFormat('en-GB', {
+      timeZone: timeDisplayZone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit',
       hour12: false
-    });
+    }).format(date);
+
+    return `${formattedDate} ${timeZoneLabel}`;
   };
 
   // Clean map interaction using service-based architecture
@@ -556,7 +568,12 @@ const ForecastApp = ({
             capTime={capTime}
             onSliderChange={handleSliderChange}
             onPlayToggle={handlePlayToggle}
+            onPrevious={handlePreviousTimestamp}
+            onNext={handleNextTimestamp}
             formatDateTime={formatDateTime}
+            formatTime={formatDateTime}
+            timeDisplayZone={timeDisplayZone}
+            onTimeDisplayZoneChange={setTimeDisplayZone}
             stepHours={capTime.stepHours || 1}
             playIcon={<FancyIcon icon={Navigation} animationType="bounce" size={16} color="#4caf50" />}
             pauseIcon={<FancyIcon icon={Activity} animationType="pulse" size={16} color="#ff5722" />}

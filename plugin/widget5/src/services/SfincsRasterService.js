@@ -216,6 +216,10 @@ export default class SfincsRasterService {
     return Promise.all(jobs);
   }
 
+  async getTimeseries({ lat, lng }) {
+    return requestJson(buildUrl(this.baseUrl, '/depth-timeseries', { lat, lon: lng }));
+  }
+
   async getPointValue({ lat, lng, timeIndex }) {
     try {
       const payload = await requestJson(buildUrl(this.baseUrl, '/point-value', {
