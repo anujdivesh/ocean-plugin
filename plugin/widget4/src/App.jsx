@@ -37,6 +37,22 @@ function App() {
         transition: 'background-color 0.3s ease'
       }}>
         <Header theme={theme} toggleTheme={toggleTheme} />
+        <img
+          src={process.env.PUBLIC_URL + '/SPCMotif.png'}
+          alt=""
+          aria-hidden="true"
+          className="spc-motif-watermark"
+          style={{
+            position: 'fixed',
+            right: -180,
+            bottom: -180,
+            width: 760,
+            height: 'auto',
+            filter: 'grayscale(1) contrast(0.5) brightness(1.2)',
+            pointerEvents: 'none',
+            zIndex: 0
+          }}
+        />
         <Routes>
           <Route path="/" element={<Home />} />
         

@@ -211,8 +211,13 @@ body {
 /* select styling for Light mode products select */
 body .treeProduct {
 
-  
+
   width: 100%;
+}
+
+/* Hide the TreeSelect panel header (filter/close) to remove extra space */
+.p-treeselect-panel .p-treeselect-header {
+  display: none !important;
 }
 
 
@@ -238,6 +243,11 @@ body.dark-mode .treeProduct svg.p-icon.p-treeselect-trigger-icon.p-clickable{
 }
 body.dark-mode .treeProduct svg[viewBox="0 0 20 20"] path{
   fill: #ffffff !important;
+}
+
+body.dark-mode .p-treeselect-panel {
+  background-color: var(--color-surface)!important;
+  border-color: var(--color-surface)!important;
 }
 
 body.dark-mode .p-treeselect-panel .p-treeselect-header {
@@ -457,6 +467,16 @@ body.dark-mode input[type="number"]::-webkit-outer-spin-button {
 /* Firefox uses ::-moz-number-input, but styling is more limited */
 body.dark-mode input[type="number"] {
   -moz-appearance: textfield; /* Hide default spinners in Firefox */
+}
+
+.spc-motif-watermark {
+  opacity: 0;
+  animation: spcMotifFadeIn 1.6s ease-out 0.3s forwards;
+}
+
+@keyframes spcMotifFadeIn {
+  from { opacity: 0; }
+  to { opacity: 0.05; }
 }
 /*
 LIGHT

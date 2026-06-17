@@ -3,12 +3,28 @@ import { Link } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 export default function Header({ theme, toggleTheme }) {
   return (
-  <nav className="navbar navbar-expand-lg py-2" data-theme={theme} style={{ 
-      backgroundColor: 'var(--color-surface)', 
+  <nav className="navbar navbar-expand-lg py-2" data-theme={theme} style={{
+      backgroundColor: 'var(--color-surface)',
       borderBottom: '1px solid var(--color-border, #e2e8f0)',
-      boxShadow: 'var(--card-shadow)'   
+      boxShadow: 'var(--card-shadow)',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
-      <div className="container-fluid">
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `url(${process.env.PUBLIC_URL + '/SPC_Header3.png'})`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
+          opacity: 0.7,
+          pointerEvents: 'none',
+          zIndex: 0
+        }}
+      />
+      <div className="container-fluid" style={{ position: 'relative', zIndex: 1 }}>
         {/* Logo */}
         <div className="navbar-brand d-flex align-items-center">
           <Link to="/" className="d-flex align-items-center text-decoration-none me-3">

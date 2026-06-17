@@ -121,6 +121,8 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
     const isDraggingRef = useRef(false);
     const appliedInitialLiveModeRef = useRef(false);
     const [shareStatus, setShareStatus] = useState('');
+    // Display unit for length/height series: 'm' (default) or 'ft'
+    const [unit, setUnit] = useState('m');
     // themeKey increments when body class (light/dark) changes so charts fully re-render with new colors
     const [themeKey, setThemeKey] = useState(0);
     const refreshIntervalRef = useRef(null);
@@ -146,6 +148,26 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
     if (cs) return { spotter_id: id, country_short: (cs||'').toUpperCase(), label: id, is_active: true };
         return {};
     }, [buoyOptions, sharedCountryMap]);
+
+    // Clean up station display names: if a known station-type prefix (e.g. "Tide Gauge",
+    // "DART Buoy" or "Wave Buoy") appears at both the start and the end, drop the trailing
+    // one, then strip any trailing comma/hyphen/dash left behind. Matching is space-
+    // insensitive so "Wave Buoy" and "Wavebuoy" are treated the same.
+    const cleanStationLabel = (label = '') => {
+        let s = String(label).trim();
+        const types = ['tide gauge', 'dart buoy', 'wave buoy'];
+        for (const t of types) {
+            const pat = t.replace(/ /g, '\\s*');
+            const startRe = new RegExp(`^${pat}`, 'i');
+            const endRe = new RegExp(`${pat}\\s*$`, 'i');
+            if (startRe.test(s) && endRe.test(s)) {
+                s = s.replace(endRe, '').trim();
+                break;
+            }
+        }
+        s = s.replace(/[,\-–—]\s*$/, '').trim();
+        return s;
+    };
 
     // Station metadata now comes from buoyOptions prop only; no fetch needed
     const fetchStationData = useCallback(() => {
@@ -843,14 +865,27 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
         }
         // Build Chart.js datasets (single Y axis primary + optional second using plugin approach simplified)
         const isScatter = (d.chartType === 'scatter');
+
+        // Unit conversion (meters -> feet). Only length/height series are converted;
+        // non-length series (period in s, direction in °, etc.) are left untouched.
+        const M_TO_FT = 3.28084;
+        const isLengthSeries = (label = '') => /height|hsig|hmax|hm0|swell|amplitude|depth|significant|\(m\)/i.test(label);
+        const convertValue = (v, label) => (unit === 'ft' && isLengthSeries(label) && v != null ? v * M_TO_FT : v);
+        const axisTitle = (label = '') => {
+            if (unit !== 'ft' || !isLengthSeries(label)) return label;
+            // If the label already carries a "(m)" unit, swap it to "(ft)"; otherwise append.
+            return /\(m\)/i.test(label) ? label.replace(/\(m\)/i, '(ft)') : `${label} (ft)`;
+        };
+
         const data = {
             labels: d.labels,
             datasets: d.datasets.map((ds,i)=> {
                 const color = fixedColors[i%fixedColors.length];
                 const isDashed = i > 0; // First dataset is solid, others are dashed
                 return {
-                    label: ds.label,
-                    data: d.labels.map((time, idx) => ({ x: time, y: ds.values[idx] })),
+                    label: axisTitle(ds.label),
+                    _rawLabel: ds.label, // original label (with source unit) kept for unit detection
+                    data: d.labels.map((time, idx) => ({ x: time, y: convertValue(ds.values[idx], ds.label) })),
                     // For scatter we want solid filled circles; for dashed lines use NO background fill
                     borderColor: color,
                     backgroundColor: isScatter ? color : (isDashed ? 'transparent' : color + '15'),
@@ -907,9 +942,15 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                             return d.toISOString().replace('T',' ').replace(/\.\d{3}Z$/,' UTC');
                         },
                         label: item => {
-                            const val = item.parsed.y;
-                            const dsLabel = item.dataset?.label || 'Value';
-                            return `${dsLabel}: ${val == null ? '—' : val}`;
+                            const val = item.parsed.y; // already converted to the active unit
+                            const dispLabel = item.dataset?.label || 'Value'; // already unit-converted
+                            const rawLabel = item.dataset?._rawLabel || dispLabel;
+                            if (val == null) return `${dispLabel}: —`;
+                            const isLen = isLengthSeries(rawLabel);
+                            const shown = isLen ? Number(val).toFixed(2) : val;
+                            // Append a unit suffix only when the label doesn't already carry one in "(...)".
+                            const suffix = isLen && !/\(\w+\)/.test(rawLabel) ? (unit === 'ft' ? ' ft' : ' m') : '';
+                            return `${dispLabel}: ${shown}${suffix}`;
                         }
                     }
                 }
@@ -955,14 +996,14 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                         },
                         grid: { color: gridColor }
                     },
-                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: d.datasets[0]?.label || 'Value', color: textColor }, ticks: { color: textColor }, grid: { color: gridColor } }
+                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: axisTitle(d.datasets[0]?.label || 'Value'), color: textColor }, ticks: { color: textColor }, grid: { color: gridColor } }
                 };
 
                 if (d.datasets[1]) {
-                    scales.y1 = { type: 'linear', display: true, position: 'right', title: { display: true, text: d.datasets[1].label, color: textColor }, ticks: { color: textColor }, grid: { drawOnChartArea: false } };
+                    scales.y1 = { type: 'linear', display: true, position: 'right', title: { display: true, text: axisTitle(d.datasets[1].label), color: textColor }, ticks: { color: textColor }, grid: { drawOnChartArea: false } };
                 }
                 if (d.datasets[2]) {
-                    scales.y2 = { type: 'linear', display: true, position: 'right', title: { display: true, text: d.datasets[2].label, color: textColor }, ticks: { color: textColor }, grid: { drawOnChartArea: false } };
+                    scales.y2 = { type: 'linear', display: true, position: 'right', title: { display: true, text: axisTitle(d.datasets[2].label), color: textColor }, ticks: { color: textColor }, grid: { drawOnChartArea: false } };
                 }
                 return scales;
             })()
@@ -1049,7 +1090,19 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                             <option value="48">48 Hours</option>
                             <option value="72">72 Hours</option>
                         </Form.Select>
-                        <Button variant="outline-primary" size="sm" style={{marginLeft:10}} onClick={handleShare}>Share</Button>
+                        <div className="d-flex align-items-center" style={{marginLeft:12}}>
+                            <Form.Check
+                                type="switch"
+                                id="unit-switch"
+                                checked={unit === 'ft'}
+                                onChange={e => setUnit(e.target.checked ? 'ft' : 'm')}
+                                className="me-2"
+                                style={{transform:'scale(1.2)'}}
+                                title="Toggle chart units between meters and feet"
+                            />
+                            <span>{unit === 'ft' ? 'Feet' : 'Meters'}</span>
+                        </div>
+                        <Button variant="outline-primary" size="sm" style={{marginLeft:12}} onClick={handleShare}>Share</Button>
                         {shareStatus && <span style={{marginLeft:6,fontSize:12}}>{shareStatus}</span>}
                     </div>
                 </div>
@@ -1061,6 +1114,15 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                         const active = st.is_active;
                         const code = st.country_short || '';
                         const n = selectedStations.length;
+                        // Flag stations whose most recent data point is older than 3 days
+                        const stale = (() => {
+                            const labels = chartData[id]?.labels;
+                            const raw = Array.isArray(labels) && labels.length ? labels[labels.length - 1] : null;
+                            if (!raw) return false;
+                            const d = raw instanceof Date ? raw : new Date(raw);
+                            if (isNaN(d)) return false;
+                            return (Date.now() - d.getTime()) > 3 * 24 * 60 * 60 * 1000;
+                        })();
                         
                                                  // More sophisticated column logic based on total count and row position
                          let colClass;
@@ -1098,7 +1160,7 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                                             {renderFlag(code)}
                                             <div>
                                                 <FaWaveSquare className="me-2" />
-                                                <strong>{st.label}</strong>
+                                                <strong>{cleanStationLabel(st.label)}</strong>
                                                 <div className="small" style={{color:'var(--color-text)'}}>
                                                     
                                                     Last update: {(() => {
@@ -1112,7 +1174,11 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                                                 </div>
                                             </div>
                                         </div>
-                                        <Badge bg={active? 'success':'danger'}>{active?'Active':'Inactive'}</Badge>
+                                        {stale ? (
+                                            <Badge bg="warning" text="dark">Inactive</Badge>
+                                        ) : (
+                                            <Badge bg={active? 'success':'danger'}>{active?'Active':'Inactive'}</Badge>
+                                        )}
                                     </Card.Header>
                                     <Card.Body className="d-flex flex-column p-0" style={{background:'var(--color-surface)',flex:1,overflow:'hidden',minHeight:0}}>
                                         <div className="chart-container" onDoubleClick={() => handleExpand(id)} style={{flex:1,width:'100%',height:'100%',overflow:'hidden',minHeight:0}} title="Double-click to expand">{renderChart(id)}</div>
@@ -1137,7 +1203,7 @@ export default function RealtimeComponent({ selectedStations, setDashboardGenera
                     <div className="rtm-offcanvas-header">
                         <div className="rtm-offcanvas-title">
                             <FaWaveSquare className="me-2" />
-                            {getStationDetails(expandedStationId)?.label || expandedStationId}
+                            {cleanStationLabel(getStationDetails(expandedStationId)?.label || expandedStationId)}
                         </div>
                         <button type="button" className="rtm-offcanvas-close" onClick={handleCloseExpand} aria-label="Close expanded chart">×</button>
                     </div>

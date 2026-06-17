@@ -245,19 +245,8 @@ function DateSelector({ item, period, startDateStr, endDateStr, onDateChange }) 
           //   lastDate: dateTimeArray[dateTimeArray.length - 1]
           // });
           
-          // For 3MONTHLY_SEASONAL, use endDateStr if available (from layerSettingCard initialization)
-          // Otherwise fall back to last date in array
-          let initialDate;
-          if (endDateStr && endDateStr !== '') {
-            initialDate = new Date(endDateStr);
-            // console.log('DateSelector - Using endDateStr:', endDateStr, '-> initialDate:', initialDate);
-          } else {
-            initialDate = item.layer_information.layer_type === "WMS_FORECAST"
-              ? dateTimeArray[0]
-              : dateTimeArray[dateTimeArray.length - 1];
-            // console.log('DateSelector - Using fallback date:', initialDate);
-          }
-          setCurrentDate(initialDate);
+          // For 3MONTHLY_SEASONAL, default to the first item in the dropdown list
+          setCurrentDate(dateTimeArray[0]);
         }
       } else if (item.layer_information.datetime_format === 'WEEKLY') {
         // console.log('WEEKLY');

@@ -257,3 +257,13 @@ body.dark .generate-btn:hover:not(:disabled) {
   border-color: var(--color-error) !important;
   color: white !important;
 }
+
+.spc-motif-watermark {
+  opacity: 0;
+  animation: spcMotifFadeIn 1.6s ease-out 0.3s forwards;
+}
+
+@keyframes spcMotifFadeIn {
+  from { opacity: 0; }
+  to { opacity: 0.05; }
+}
