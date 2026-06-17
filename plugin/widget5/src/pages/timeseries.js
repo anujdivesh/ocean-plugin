@@ -1,196 +1,282 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import Plot from 'react-plotly.js';
 
-const fixedColors = [
-  'rgb(255, 99, 132)',   // 0: hs
-  'rgb(54, 162, 235)',   // 1: tpeak
-  'rgb(255, 206, 86)',   // 2: dirp
-  'rgb(75, 192, 192)',
-  'rgb(153, 102, 255)',
+const TRACE_CONFIG = [
+  { key: "hs",    label: "Wave Height", color: 'rgb(56,189,248)',  unit: 'm', yaxis: 'y',  mode: 'lines+markers' },
+  { key: "tpeak", label: "Peak Period", color: 'rgb(251,146,60)',  unit: 's', yaxis: 'y2', mode: 'lines+markers' },
+  { key: "dirp",  label: "Wave Dir",    color: 'rgb(167,139,250)', unit: '°', yaxis: 'y3', mode: 'markers' },
 ];
 
-function extractCoverageTimeseries(json, variable) {
-  if (
-    !json ||
-    !json.domain ||
-    !json.domain.axes ||
-    !json.domain.axes.t ||
-    !json.domain.axes.t.values ||
-    !json.ranges ||
-    !json.ranges[variable] ||
-    !json.ranges[variable].values
-  )
-    return null;
-  const times = json.domain.axes.t.values;
-  const values = json.ranges[variable].values;
-  return { times, values };
+function extractTimeseries(json, variable) {
+  if (!json?.domain?.axes?.t?.values || !json?.ranges?.[variable]?.values) return null;
+  return {
+    times: json.domain.axes.t.values.map(v => new Date(v)),
+    values: json.ranges[variable].values,
+  };
 }
 
-function Timeseries({ perVariableData }) {
+function closestIndex(times, targetDate) {
+  if (!targetDate || !times?.length) return -1;
+  const target = new Date(targetDate).getTime();
+  let best = 0, bestDiff = Infinity;
+  times.forEach((t, i) => {
+    const diff = Math.abs(t.getTime() - target);
+    if (diff < bestDiff) { bestDiff = diff; best = i; }
+  });
+  return best;
+}
+
+function StatBadge({ label, value, unit, color, isDarkMode }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+      padding: '5px 12px', borderRadius: 8, minWidth: 80,
+      background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+      borderLeft: `3px solid ${color}`,
+    }}>
+      <span style={{
+        fontSize: 9, letterSpacing: '0.07em', textTransform: 'uppercase',
+        color, fontWeight: 700, marginBottom: 1,
+      }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 18, fontWeight: 800, color: isDarkMode ? '#f1f5f9' : '#0f172a', lineHeight: 1.1 }}>
+        {value !== null ? value : '—'}
+        <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 3, color: isDarkMode ? '#94a3b8' : '#64748b' }}>
+          {unit}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+function Timeseries({ perVariableData, currentSliderDate, onTimeSelect }) {
   const [plotData, setPlotData] = useState([]);
   const [error, setError] = useState("");
   const [parentHeight, setParentHeight] = useState(undefined);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const rawTimes = useRef([]);
+  const onTimeSelectRef = useRef(onTimeSelect);
+  onTimeSelectRef.current = onTimeSelect;
 
-  // Check for dark mode
   useEffect(() => {
-    const checkTheme = () => {
-      const isDark = document.body.classList.contains('dark-mode');
-      setIsDarkMode(isDark);
-    };
-    
-    checkTheme();
-    
-    // Listen for theme changes
-    const observer = new MutationObserver(checkTheme);
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    
-    return () => observer.disconnect();
+    const check = () => setIsDarkMode(document.body.classList.contains('dark-mode'));
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
   }, []);
 
   useEffect(() => {
     const el = document.querySelector('.offcanvas-body');
-    if (el) {
-      setParentHeight(el.clientHeight - 36);
-    }
-    const observer = el
-      ? new ResizeObserver(() => setParentHeight(el.clientHeight - 36))
-      : null;
-    if (observer && el) observer.observe(el);
-    return () => observer && observer.disconnect();
+    if (!el) return;
+    setParentHeight(el.clientHeight - 36);
+    const obs = new ResizeObserver(() => setParentHeight(el.clientHeight - 36));
+    obs.observe(el);
+    return () => obs.disconnect();
   }, [perVariableData]);
 
   useEffect(() => {
-    let isMounted = true;
-    if (!perVariableData) {
-      setPlotData([]);
-      setError("No timeseries data available.");
-      return;
+    if (!perVariableData) { setPlotData([]); setError("No timeseries data available."); return; }
+
+    const traces = [];
+    rawTimes.current = [];
+
+    for (const cfg of TRACE_CONFIG) {
+      const ts = extractTimeseries(perVariableData[cfg.key], cfg.key);
+      if (!ts) continue;
+      if (!rawTimes.current.length) rawTimes.current = ts.times;
+      traces.push({
+        x: ts.times,
+        y: ts.values,
+        name: cfg.label,
+        type: 'scatter',
+        mode: cfg.mode,
+        marker: { color: cfg.color, size: 4 },
+        line: { color: cfg.color, width: 2 },
+        yaxis: cfg.yaxis,
+        hovertemplate: `<b>%{y:.1f} ${cfg.unit}</b><extra>${cfg.label}</extra>`,
+      });
     }
 
-    // Same variables as Widget 1
-    const layers = [
-      { key: "hs", label: "Significant Wave Height", colorIdx: 0, yaxis: 'y1', type: 'scatter', mode: 'lines+markers' },
-      { key: "tpeak", label: "Peak Wave Period", colorIdx: 1, yaxis: 'y2', type: 'scatter', mode: 'lines+markers' },
-      { key: "dirp", label: "Mean Wave Direction", colorIdx: 2, yaxis: 'y3', type: 'scatter', mode: 'markers' },
-    ];
-    let newLabels = [];
-    const traces = [];
-    for (let idx = 0; idx < layers.length; idx++) {
-      const { key, label, colorIdx, yaxis, type, mode } = layers[idx];
-      const color = fixedColors[colorIdx % fixedColors.length];
-      const tsJson = perVariableData[key];
-      const ts = extractCoverageTimeseries(tsJson, key);
-      if (ts && ts.times && ts.values) {
-        if (newLabels.length === 0) {
-          newLabels = ts.times.map(v =>
-            typeof v === "string" && v.length > 15 ? v.substring(0, 16).replace("T", " ") : v
-          );
-        }
-        traces.push({
-          x: newLabels,
-          y: ts.values,
-          name: label,
-          type,
-          mode,
-          marker: { color },
-          line: { color },
-          yaxis,
-        });
-      }
-    }
-    if (!isMounted) return;
     setPlotData(traces);
-    if (traces.length === 0) setError("No timeseries data returned.");
-    else setError("");
-    return () => {
-      isMounted = false;
-    };
+    setError(traces.length === 0 ? "No timeseries data returned." : "");
   }, [perVariableData]);
+
+  // Index of the closest timestep to the current map slider position
+  const nowIdx = useMemo(
+    () => closestIndex(rawTimes.current, currentSliderDate),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentSliderDate, plotData]
+  );
+  const nowTime = rawTimes.current[nowIdx] ?? null;
+
+  // Live values at the current slider position
+  const nowValues = useMemo(() => {
+    if (nowIdx < 0 || !plotData.length) return {};
+    return Object.fromEntries(
+      TRACE_CONFIG.map(cfg => {
+        const trace = plotData.find(t => t.name === cfg.label);
+        return [cfg.key, trace ? (trace.y[nowIdx] ?? null) : null];
+      })
+    );
+  }, [nowIdx, plotData]);
+
+  // Vertical "now" line + timestamp annotation
+  const { nowShape, nowAnnotation } = useMemo(() => {
+    if (!nowTime || !plotData.length) return {};
+    const lineColor = isDarkMode ? 'rgba(255,255,255,0.30)' : 'rgba(15,23,42,0.22)';
+    const accentColor = isDarkMode ? '#60a5fa' : '#3b82f6';
+    const label = nowTime.toLocaleString('en', {
+      month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
+    });
+    return {
+      nowShape: {
+        type: 'line', xref: 'x', yref: 'paper',
+        x0: nowTime, x1: nowTime, y0: 0, y1: 1,
+        line: { color: lineColor, width: 1.5, dash: 'dashdot' },
+      },
+      nowAnnotation: {
+        x: nowTime, y: 1, xref: 'x', yref: 'paper',
+        text: `<b>${label} UTC</b>`,
+        showarrow: true, arrowhead: 0,
+        arrowcolor: accentColor,
+        ax: 0, ay: -24,
+        font: { size: 9, color: accentColor, family: 'Inter, system-ui, sans-serif' },
+        bgcolor: isDarkMode ? 'rgba(18,20,26,0.9)' : 'rgba(255,255,255,0.9)',
+        borderpad: 3, bordercolor: accentColor, borderwidth: 1,
+      },
+    };
+  }, [nowTime, plotData, isDarkMode]);
+
+  // Plotly div + click handler refs — imperative attachment survives layout updates
+  const plotlyDivRef = useRef(null);
+  const plotlyClickHandlerRef = useRef(null);
+
+  const attachClickHandler = useCallback((graphDiv) => {
+    if (!graphDiv) return;
+    // Remove any previous handler first to avoid duplicates
+    if (plotlyDivRef.current && plotlyClickHandlerRef.current) {
+      try { plotlyDivRef.current.removeListener('plotly_click', plotlyClickHandlerRef.current); } catch {}
+    }
+    plotlyDivRef.current = graphDiv;
+    const handler = (data) => {
+      const ptIdx = data.points?.[0]?.pointIndex;
+      const t = rawTimes.current[ptIdx];
+      if (t == null || !onTimeSelectRef.current) return;
+      // Use the original Date object — avoids Plotly's "YYYY-MM-DD HH:mm:ss" local-time parse
+      onTimeSelectRef.current(t);
+    };
+    plotlyClickHandlerRef.current = handler;
+    graphDiv.on('plotly_click', handler);
+  }, []);
 
   if (!perVariableData) return <div>No data available.</div>;
   if (error) return <div style={{ color: "red" }}>{error}</div>;
   if (plotData.length === 0) return <div>No timeseries data.</div>;
 
+  const grid = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const tick = { color: isDarkMode ? '#475569' : '#94a3b8', size: 10, family: 'Inter, system-ui, sans-serif' };
+  const axisTitle = { color: isDarkMode ? '#64748b' : '#94a3b8', size: 10.5 };
+
+  const BADGE_HEIGHT = nowTime ? 58 : 0;
+  const chartHeight = parentHeight ? Math.max(180, parentHeight - BADGE_HEIGHT) : 340;
+
   const layout = {
     autosize: true,
-    height: parentHeight || 400,
-    margin: { t: 40, l: 60, r: 60, b: 60 },
-    paper_bgcolor: isDarkMode ? '#2e2f33' : '#ffffff',
-    plot_bgcolor: isDarkMode ? '#2e2f33' : '#ffffff',
-    font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-    legend: { 
-      orientation: 'h', 
-      y: -0.2,
-      font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      bgcolor: isDarkMode ? '#3f4854' : '#ffffff',
-      bordercolor: isDarkMode ? '#44454a' : '#e2e8f0'
+    height: chartHeight,
+    margin: { t: 18, l: 52, r: 90, b: 50 },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { family: 'Inter, system-ui, sans-serif', color: isDarkMode ? '#94a3b8' : '#64748b' },
+    hovermode: 'x unified',
+    hoverlabel: {
+      bgcolor: isDarkMode ? '#1e293b' : '#ffffff',
+      bordercolor: isDarkMode ? '#334155' : '#e2e8f0',
+      font: { color: isDarkMode ? '#f1f5f9' : '#0f172a', size: 12, family: 'Inter, system-ui, sans-serif' },
+      align: 'left',
     },
-    xaxis: { 
-      title: { text: 'Time', font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' } }, 
-      tickangle: -45,
-      showgrid: true,
-      gridcolor: isDarkMode ? '#44454a' : '#e2e8f0',
-      tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
+    legend: {
+      orientation: 'h', y: -0.22,
+      font: { color: isDarkMode ? '#cbd5e1' : '#334155', size: 11 },
+      bgcolor: 'rgba(0,0,0,0)',
     },
-    yaxis: { 
-      title: { 
-        text: 'Height (m)', 
-        font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        standoff: 30
-      }, 
-      side: 'left',
+    xaxis: {
+      type: 'date',
+      tickformat: '%b %d\n%H:%M',
+      tickangle: 0,
       showgrid: true,
-      gridcolor: isDarkMode ? '#44454a' : '#e2e8f0',
-      tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
+      gridcolor: grid,
+      tickfont: tick,
+      linecolor: 'transparent',
+      zerolinecolor: 'transparent',
+      // Vertical crosshair spike line
+      showspikes: true,
+      spikemode: 'across',
+      spikedash: 'solid',
+      spikethickness: 1,
+      spikecolor: isDarkMode ? 'rgba(255,255,255,0.18)' : 'rgba(15,23,42,0.14)',
+    },
+    yaxis: {
+      title: { text: 'Height (m)', font: axisTitle, standoff: 8 },
+      side: 'left', showgrid: true, gridcolor: grid,
+      tickfont: tick, linecolor: 'transparent', zerolinecolor: grid,
     },
     yaxis2: {
-      title: { 
-        text: 'Period (s)', 
-        font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        standoff: 30,
-        x: 1.15
-      },
-      overlaying: 'y',
-      side: 'right',
-      showgrid: false,
-      tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
+      title: { text: 'Period (s)', font: axisTitle, standoff: 8 },
+      overlaying: 'y', side: 'right', showgrid: false, tickfont: tick,
     },
     yaxis3: {
-      title: { 
-        text: 'Direction (°)', 
-        font: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-        standoff: 10,
-        x: 1.25
-      },
-      overlaying: 'y',
-      side: 'right',
-      position: 1,
-      showgrid: false,
-      tickfont: { color: isDarkMode ? '#f1f5f9' : '#1e293b' },
-      zerolinecolor: isDarkMode ? '#44454a' : '#e2e8f0'
+      title: { text: 'Dir (°)', font: axisTitle, standoff: 6 },
+      overlaying: 'y', side: 'right', position: 1, showgrid: false, tickfont: tick,
     },
     showlegend: true,
+    clickmode: 'event',
+    shapes: nowShape ? [nowShape] : [],
+    annotations: nowAnnotation ? [nowAnnotation] : [],
   };
 
-  // Map yaxis for each trace
-  plotData.forEach((trace, idx) => {
-    if (idx === 0) trace.yaxis = 'y1';
-    if (idx === 1) trace.yaxis = 'y2';
-    if (idx === 2) trace.yaxis = 'y3';
-  });
-
   return (
-    <div style={{ width: "100%", height: parentHeight ? `${parentHeight}px` : "100%" }}>
+    <div style={{ width: '100%', height: parentHeight ? `${parentHeight}px` : '100%', display: 'flex', flexDirection: 'column' }}>
+
+      {/* Live stat badges at the current map slider time */}
+      {nowTime && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px 4px', flexWrap: 'wrap' }}>
+          {TRACE_CONFIG.filter(cfg => cfg.key !== 'dirp').map(cfg => (
+            <StatBadge
+              key={cfg.key}
+              label={cfg.label}
+              value={nowValues[cfg.key] != null ? parseFloat(nowValues[cfg.key]).toFixed(1) : null}
+              unit={cfg.unit}
+              color={cfg.color}
+              isDarkMode={isDarkMode}
+            />
+          ))}
+          {onTimeSelect && (
+            <span style={{
+              marginLeft: 'auto', fontSize: 10, fontStyle: 'italic',
+              color: isDarkMode ? '#64748b' : '#94a3b8',
+            }}>
+              Click chart to jump slider
+            </span>
+          )}
+        </div>
+      )}
+
       <Plot
         data={plotData}
         layout={layout}
-        useResizeHandler={true}
-        style={{ width: '100%', height: '100%' }}
-        config={{ responsive: true }}
+        useResizeHandler
+        style={{ width: '100%', flex: 1, cursor: onTimeSelect ? 'pointer' : 'crosshair' }}
+        config={{
+          responsive: true,
+          displayModeBar: false,
+          // Disable double-click autorange so rapid clicks all fire plotly_click
+          doubleClick: false,
+        }}
+        onInitialized={(_figure, graphDiv) => attachClickHandler(graphDiv)}
+        onUpdate={(_figure, graphDiv) => attachClickHandler(graphDiv)}
       />
     </div>
   );

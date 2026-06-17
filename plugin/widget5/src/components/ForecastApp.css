@@ -48,6 +48,8 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   position: relative;
+  /* Own stacking context — legend/controls use z-index relative to this, not the page */
+  isolation: isolate;
 }
 
 /* ==============================================
@@ -95,6 +97,15 @@
 .map-section {
   container-type: size;
   container-name: map-container;
+}
+
+/* backdrop-filter over a full-screen element is expensive on mobile GPUs.
+   Touch devices rarely need the frosted-glass effect behind the map. */
+@media (hover: none) and (pointer: coarse) {
+  .map-section {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 /* Container-based responsive legend (when supported) */
@@ -1700,7 +1711,8 @@
   border-radius: 12px 12px 0 0 !important;
   color: rgba(255, 255, 255, 0.95) !important;  /* Improved from 0.8 for better contrast */
   font-weight: 500 !important;
-  transition: all 0.3s ease !important;
+  /* Avoid 'all' — outline-width and color are non-composited and trigger paint on every frame */
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.3s ease !important;
   padding: 12px 24px !important;
   margin: 0 4px !important;
 }
@@ -1730,7 +1742,8 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  transition: all 0.3s ease !important;
+  /* Avoid 'all' — outline-width triggers a non-composited paint pass on every frame */
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.3s ease !important;
 }
 
 .offcanvas.offcanvas-bottom button[aria-label="Close"]:hover {

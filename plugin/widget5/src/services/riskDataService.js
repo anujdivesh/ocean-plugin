@@ -96,8 +96,6 @@ const selectRepresentativePoints = (points) => {
 };
 
 const fetchRiskJson = async (url) => {
-  console.log('🌊 Fetching risk data from THREDDS:', url);
-  
   try {
     const response = await fetch(url, {
       headers: {
@@ -106,20 +104,13 @@ const fetchRiskJson = async (url) => {
     });
 
     if (!response.ok) {
-      console.error('❌ THREDDS risk data fetch failed:', response.status, response.statusText);
+      console.error('Risk data fetch failed:', response.status, response.statusText);
       throw new Error(`Failed to fetch risk data from THREDDS: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    console.log('✅ THREDDS risk data loaded successfully:', {
-      url,
-      pointCount: data?.points?.length || 0,
-      metadata: data?.metadata
-    });
-    
-    return data;
+    return await response.json();
   } catch (error) {
-    console.error('❌ Error fetching risk data from THREDDS:', error);
+    console.error('Error fetching risk data:', error);
     throw error;
   }
 };
@@ -135,21 +126,15 @@ const loadRiskPointsCatalog = async () => {
 };
 
 export const fetchRiskPoints = async ({ zoom = 8, bbox = null } = {}) => {
-  console.log('🎯 fetchRiskPoints called:', { zoom, bbox });
-  
   if (!riskPointsPromise) {
     riskPointsPromise = loadRiskPointsCatalog().catch((error) => {
-      console.error('❌ Failed to load risk points catalog:', error);
+      console.error('Failed to load risk points catalog:', error);
       riskPointsPromise = null;
       throw error;
     });
   }
 
   const catalog = await riskPointsPromise;
-  console.log('📊 Risk catalog loaded:', {
-    totalPoints: catalog.points.length,
-    metadata: catalog.metadata
-  });
   const bboxBounds = parseBbox(bbox);
   const filteredPoints = catalog.points.filter((point) => {
     if (!Number.isFinite(point.lat) || !Number.isFinite(point.lon)) {

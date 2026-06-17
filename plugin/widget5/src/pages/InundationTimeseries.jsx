@@ -131,17 +131,15 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
   const [showThresholdLabels, setShowThresholdLabels] = useState(false);
   const chartRef = useRef(null);
 
-  // Stable ref so the plotly_click handler always reads the latest onTimeSelect
+  // Stable refs so the plotly_click handler always reads the latest values
   // without needing to be re-attached after every layout update.
   const onTimeSelectRef = useRef(onTimeSelect);
   onTimeSelectRef.current = onTimeSelect;
+  const timeseriesRef = useRef(timeseries);
+  timeseriesRef.current = timeseries;
   const plotlyDivRef = useRef(null);
-  const plotlyClickHandlerRef = useRef(null);
 
   const handlePlotInitialized = useCallback((figure, graphDiv) => {
-    if (plotlyDivRef.current && plotlyClickHandlerRef.current) {
-      plotlyDivRef.current.removeListener('plotly_click', plotlyClickHandlerRef.current);
-    }
     plotlyDivRef.current = graphDiv;
 
     requestAnimationFrame(() => {
@@ -159,14 +157,43 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
         }
       });
     });
+  }, []);
 
-    const handler = (data) => {
-      const x = data.points?.[0]?.x;
-      if (!x || !onTimeSelectRef.current) return;
-      onTimeSelectRef.current(new Date(x));
+  // Attach once on mount. Empty deps — all values read via refs at click time,
+  // so the handler never goes stale and never needs re-attachment.
+  useEffect(() => {
+    const el = chartRef.current;
+    if (!el) return;
+
+    const handler = (e) => {
+      if (!onTimeSelectRef.current) return;
+      const ts = timeseriesRef.current;
+      if (!ts?.length) return;
+      const graphDiv = plotlyDivRef.current;
+      if (!graphDiv) return;
+      const dragRect = graphDiv.querySelector('rect.nsewdrag');
+      if (!dragRect) return;
+      const rect = dragRect.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right ||
+          e.clientY < rect.top  || e.clientY > rect.bottom) return;
+      // Map fraction directly from timeseries endpoints — avoids reading
+      // xaxis.range which Plotly resets to [2000-01-01, 2001-01-01] whenever
+      // the chart re-initialises (loading state unmount/remount cycle).
+      const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const t0 = new Date(ts[0].time).getTime();
+      const tN = new Date(ts[ts.length - 1].time).getTime();
+      const xMs = t0 + fraction * (tN - t0);
+      if (!Number.isFinite(xMs)) return;
+      let best = ts[0], bestDiff = Infinity;
+      for (const d of ts) {
+        const diff = Math.abs(new Date(d.time).getTime() - xMs);
+        if (diff < bestDiff) { bestDiff = diff; best = d; }
+      }
+      if (best?.time) onTimeSelectRef.current(new Date(best.time));
     };
-    plotlyClickHandlerRef.current = handler;
-    graphDiv.on('plotly_click', handler);
+
+    el.addEventListener('click', handler);
+    return () => el.removeEventListener('click', handler);
   }, []);
 
   const handleExportPNG = useCallback(() => {
@@ -285,18 +312,30 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
 
   const traces = useMemo(() => {
     if (!times.length) return [];
-    return [{
-      type: 'scatter',
-      x: times,
-      y: depths,
-      mode: 'lines',
-      fill: 'tozeroy',
-      fillcolor: hexToRgba(peakStyle.color, isDarkMode ? 0.20 : 0.13),
-      line: { color: peakStyle.color, width: 2.5, shape: 'spline', smoothing: 0.85 },
-      hovertemplate:
-        '<span style="font-size:12px"><b>%{x|%b %d %H:%M UTC}</b></span><br>' +
-        'Depth: <b>%{y:.3f} m</b><extra></extra>',
-    }];
+    const hovertemplate =
+      '<span style="font-size:12px"><b>%{x|%b %d %H:%M UTC}</b></span><br>' +
+      'Depth: <b>%{y:.3f} m</b><extra></extra>';
+    return [
+      {
+        type: 'scatter',
+        x: times,
+        y: depths,
+        mode: 'lines',
+        fill: 'tozeroy',
+        fillcolor: hexToRgba(peakStyle.color, isDarkMode ? 0.20 : 0.13),
+        line: { color: 'rgba(0,0,0,0)', width: 0, shape: 'spline', smoothing: 0.85 },
+        hoverinfo: 'skip',
+      },
+      {
+        type: 'scatter',
+        x: times,
+        y: depths,
+        mode: 'lines',
+        fill: 'none',
+        line: { color: peakStyle.color, width: 2.8, shape: 'spline', smoothing: 0.85 },
+        hovertemplate,
+      },
+    ];
   }, [times, depths, peakStyle, isDarkMode]);
 
   // ── Threshold reference lines ─────────────────────────────────────────────
@@ -350,20 +389,20 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
       },
     };
     const label = nowDepth > 0
-      ? `${nowDepth.toFixed(2)} m — ${nowCat?.label ?? ''}`
+      ? `${nowDepth.toFixed(2)} m`
       : 'Dry';
     const annotation = {
       x: t, y: 1, xref: 'x', yref: 'paper',
       text: `<b>${label}</b>`,
       showarrow: true, arrowhead: 0,
       arrowcolor: nowStyle.color,
-      ax: 0, ay: -28,
+      ax: 0, ay: 0,
       font: { size: 9, color: nowStyle.color, family: 'Inter, system-ui, sans-serif' },
       bgcolor: isDarkMode ? 'rgba(18,20,26,0.9)' : 'rgba(255,255,255,0.9)',
       borderpad: 3, bordercolor: nowStyle.color, borderwidth: 1,
     };
     return { nowShape: shape, nowAnnotation: annotation };
-  }, [currentSliderDate, times, nowDepth, nowCat, nowStyle, isDarkMode]);
+  }, [currentSliderDate, times, nowDepth, nowStyle, isDarkMode]);
 
   // ── Advisory sentence ─────────────────────────────────────────────────────
   const advisory = useMemo(() => {
@@ -419,7 +458,7 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
             <StatCard
               label="Selected timestep depth"
               value={nowDepth > 0 ? `${nowDepth.toFixed(2)} m` : 'Dry'}
-              subtext={nowCat?.label ?? null}
+              // subtext={nowCat?.label ?? null}
               color={nowStyle.color}
               isDarkMode={isDarkMode}
               live
@@ -497,7 +536,7 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
           layout={{
             autosize: true,
             height: plotHeight,
-            margin: { l: 48, r: 70, t: 10, b: 42 },
+            margin: { l: 44, r: showThresholdLabels ? 64 : 18, t: 8, b: 36 },
             paper_bgcolor: 'rgba(0,0,0,0)',
             plot_bgcolor: 'rgba(0,0,0,0)',
             xaxis: {
@@ -526,6 +565,7 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
             },
             showlegend: false,
             clickmode: 'event',
+            dragmode: false,
             shapes: allShapes,
             annotations: allAnnotations,
             hoverlabel: {
@@ -536,11 +576,10 @@ function InundationTimeseries({ timeseries, categories, isDarkMode, currentSlide
             },
             hovermode: 'x unified',
           }}
-          config={{ displayModeBar: false, responsive: true }}
+          config={{ displayModeBar: false, responsive: true, doubleClick: false, scrollZoom: false }}
           style={{ width: '100%', height: '100%', cursor: onTimeSelect ? 'pointer' : 'default' }}
           useResizeHandler
           onInitialized={handlePlotInitialized}
-          onUpdate={handlePlotInitialized}
         />
       </div>
     </div>

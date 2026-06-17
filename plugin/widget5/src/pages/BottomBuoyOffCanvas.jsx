@@ -105,8 +105,6 @@ async function fetchForecastData(baseUrl, layer, timeRange, timeoutMs = 5000) {
   
   const url = `${baseUrl}?REQUEST=GetTimeseries&LAYERS=${layer}&QUERY_LAYERS=${layer}&BBOX=-169.9315,-19.05455,-169.9314,-19.05445&SRS=CRS:84&FEATURE_COUNT=5&HEIGHT=1&WIDTH=1&X=0&Y=0&STYLES=default/default&VERSION=1.1.1&TIME=${timeParam}&INFO_FORMAT=text/json`;
   
-  console.log(`Fetching forecast data from: ${url}`);
-  
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   
@@ -137,7 +135,6 @@ async function fetchCombinedForecastData() {
     // Parse time dimensions
     const latestTimeDim = parseTimeDimensionFromCapabilities(latestCapabilities, "hs_p1");
     const previousTimeDim = parseTimeDimensionFromCapabilities(previousCapabilities, "hs_p1");
-    console.log("latestTimeDim:: " + latestTimeDim);
 
 
     if (!latestTimeDim || !previousTimeDim) {
@@ -181,7 +178,6 @@ async function fetchCombinedForecastData() {
           { start: previousStart, end: previousEnd }
         )
       ]);
-      console.log(previousData)
       // // Debug: print the full JSON for tp_p1 and dirp_p1
       // if (v === "tp_p1" || v === "dirp") {
       //   //console.log(`Full latestData for ${v}:`, latestData);
@@ -332,7 +328,6 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
   const startY = useRef(0);
   const startHeight = useRef(400);
   const onMouseDown = (e) => {
-    console.log("🎯 Drag started - clientY:", e.clientY, "current height:", height);
     dragging.current = true;
     startY.current = e.clientY;
     startHeight.current = height;
@@ -344,11 +339,9 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
     if (!dragging.current) return;
     let newHeight = startHeight.current - (e.clientY - startY.current);
     newHeight = Math.min(Math.max(newHeight, MIN_HEIGHT), MAX_HEIGHT);
-    console.log("🎯 Dragging - newHeight:", newHeight, "clientY:", e.clientY);
     setHeight(newHeight);
   };
   const onMouseUp = () => {
-    console.log("🎯 Drag ended - final height:", height);
     dragging.current = false;
     document.body.style.cursor = "";
     document.removeEventListener("mousemove", onMouseMove);
@@ -547,7 +540,6 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
   let plotlyModelData = [];
   let plotlyModelLayout = null;
   let modelMissingVars = [];
-  console.log("1");
   if (activeTab === "model" && modelData && modelData.domain && modelData.domain.axes && modelData.domain.axes.t) {
     const variables = MODEL_VARIABLES;
  
@@ -556,9 +548,6 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
     const labels = modelData.domain.axes.t.values.map(t =>
       t.length > 15 ? t.substring(0, 16).replace("T", " ") : t
     );
-    console.log("2");
-    // Debug: log the modelData.ranges and the arrays for each variable
-    console.log('modelData.ranges:', modelData.ranges);
     plotlyModelData = [
       {
         x: labels,
@@ -924,11 +913,6 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId }) {
                       const modelLabels = modelTimes.map(t => 
                         t.length > 15 ? t.substring(0, 16).replace("T", " ") : t
                       );
-                      console.log("hs_p1 ::" + modelData.ranges?.hs_p1?.values);
-                      console.log("dirp_p1 ::" + modelData.ranges?.dirp_p1?.values);
-                      console.log("tp_p1 ::" + modelData.ranges?.tp_p1?.values);
-                      
-
                       modelTraces = [
                         {
                           x: modelLabels,

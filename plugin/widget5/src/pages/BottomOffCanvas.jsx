@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import Offcanvas from "react-bootstrap/Offcanvas";
+import { Maximize2, Minimize2 } from "lucide-react";
 import "./BottomOffCanvas.css";
 import Tabular from "./tabular.js";
 import Timeseries from "./timeseries.js";
@@ -117,7 +118,23 @@ async function fetchLayerTimeseries(layer, data) {
 }
 
 const DEFAULT_MIN_HEIGHT = 100;
-const DEFAULT_MAX_HEIGHT = 800;
+function getViewportHeight(fallback = 720) {
+  if (typeof window === "undefined") return fallback;
+  return window.visualViewport?.height || window.innerHeight || fallback;
+}
+
+function getMaxPanelHeight() {
+  return Math.max(DEFAULT_MIN_HEIGHT, Math.round(getViewportHeight() - 72));
+}
+
+function getPreferredPanelHeight({ isRiskMode, isInundationMode, expanded = false }) {
+  const viewportHeight = getViewportHeight();
+  const maxPanelHeight = getMaxPanelHeight();
+  if (expanded) return Math.min(Math.round(viewportHeight * 0.92), maxPanelHeight);
+  if (isRiskMode) return Math.min(Math.round(viewportHeight * 0.72), 720, maxPanelHeight);
+  if (isInundationMode) return Math.min(Math.round(viewportHeight * 0.72), 680, maxPanelHeight);
+  return Math.min(500, maxPanelHeight);
+}
 
 const tabLabels = [
   { key: "tabular", label: "Tabular" },
@@ -148,22 +165,14 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
   const offcanvasRef = useRef(null);
   const isRiskMode = data?.mode === "risk";
   const isInundationMode = data?.mode === "inundation";
-  const [height, setHeight] = useState(() => {
-    if (typeof window === "undefined") return 500;
-    const viewportMax = Math.max(DEFAULT_MIN_HEIGHT, window.innerHeight - 120);
-    const defaultHeight = isRiskMode ? 620 : 500;
-    return Math.min(defaultHeight, viewportMax);
-  });
-  const [maxHeight, setMaxHeight] = useState(() => {
-    if (typeof window === "undefined") return DEFAULT_MAX_HEIGHT;
-    return Math.max(DEFAULT_MIN_HEIGHT, window.innerHeight - 120);
-  });
+  const [height, setHeight] = useState(() => getPreferredPanelHeight({ isRiskMode, isInundationMode }));
+  const [maxHeight, setMaxHeight] = useState(() => getMaxPanelHeight());
+  const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState("tabular");
   const [perVariableData, setPerVariableData] = useState({});
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const minHeight = DEFAULT_MIN_HEIGHT;
 
   // Track previous show value so height only resets on open, not on mode change
@@ -193,15 +202,15 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
   }, []);
 
   useEffect(() => {
-    const computeMax = () => {
-      if (typeof window === "undefined") return DEFAULT_MAX_HEIGHT;
-      return Math.max(minHeight, window.innerHeight - 120);
-    };
-    const handleResize = () => setMaxHeight(computeMax());
-    setMaxHeight(computeMax());
+    const handleResize = () => setMaxHeight(getMaxPanelHeight());
+    handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [minHeight]);
+    window.visualViewport?.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     if (height > maxHeight) {
@@ -209,7 +218,10 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
     } else if (height < minHeight) {
       setHeight(minHeight);
     }
-  }, [height, maxHeight, minHeight]);
+    if (isExpanded && height < maxHeight - 24) {
+      setIsExpanded(false);
+    }
+  }, [height, isExpanded, maxHeight, minHeight]);
 
   // Only reset to the preferred default when the panel first opens — not when
   // the user clicks a different map point while it is already visible.
@@ -217,9 +229,9 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
     const justOpened = show && !wasShowingRef.current;
     wasShowingRef.current = show;
     if (!justOpened) return;
-    const preferredHeight = isRiskMode ? 620 : 500;
-    setHeight((h) => Math.min(Math.max(preferredHeight, h), maxHeight));
-  }, [show, isRiskMode, maxHeight]);
+    setIsExpanded(false);
+    setHeight(getPreferredPanelHeight({ isRiskMode, isInundationMode }));
+  }, [show, isRiskMode, isInundationMode]);
 
   useEffect(() => {
     if (!show) return undefined;
@@ -243,7 +255,6 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
     dragging.current = true;
     startY.current = e.clientY;
     startHeight.current = height;
-    setIsDragging(true);
     document.body.style.cursor = "ns-resize";
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
@@ -253,14 +264,22 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
     let newHeight = startHeight.current - (e.clientY - startY.current);
     newHeight = Math.min(Math.max(newHeight, minHeight), maxHeight);
     setHeight(newHeight);
+    setIsExpanded(false);
   };
   const onMouseUp = () => {
     dragging.current = false;
-    setIsDragging(false);
     document.body.style.cursor = "";
     document.removeEventListener("mousemove", onMouseMove);
     document.removeEventListener("mouseup", onMouseUp);
   };
+
+
+  const toggleExpanded = useCallback((event) => {
+    event?.stopPropagation?.();
+    const nextExpanded = !isExpanded;
+    setIsExpanded(nextExpanded);
+    setHeight(getPreferredPanelHeight({ isRiskMode, isInundationMode, expanded: nextExpanded }));
+  }, [isExpanded, isRiskMode, isInundationMode]);
 
   // Centralized network fetching
   useEffect(() => {
@@ -310,7 +329,6 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
       onHide={onHide}
       placement="bottom"
       className="bottom-offcanvas"
-      transition={false}
       style={{
         height,
         maxHeight,
@@ -319,8 +337,9 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
         background: isDarkMode ? "rgba(63, 72, 84, 0.98)" : "rgba(255,255,255,0.98)",
         color: isDarkMode ? "#f1f5f9" : "#1e293b",
         overflow: "hidden",
-        // Disable animation while dragging so the panel tracks the cursor instantly
-        transition: isDragging ? "none" : "height 0.18s ease-out",
+        // No height transition — height is already at its final value on drag-end,
+        // so animating it is a no-op that only triggers non-composited layout work
+        transition: "none",
         borderTop: `1px solid ${isDarkMode ? "#44454a" : "#e2e8f0"}`,
       }}
       backdrop={false}
@@ -351,9 +370,11 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
           if (e.key === "ArrowUp") {
             e.preventDefault();
             setHeight((h) => Math.min(h + step, maxHeight));
+            setIsExpanded(false);
           } else if (e.key === "ArrowDown") {
             e.preventDefault();
             setHeight((h) => Math.max(h - step, minHeight));
+            setIsExpanded(false);
           }
         }}
         onTouchStart={(e) => {
@@ -362,7 +383,6 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
           dragging.current = true;
           startY.current = e.touches[0].clientY;
           startHeight.current = height;
-          setIsDragging(true);
           document.body.style.cursor = "ns-resize";
           const onTouchMove = (ev) => {
             ev.preventDefault();
@@ -370,10 +390,10 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
             let newHeight = startHeight.current - (ev.touches[0].clientY - startY.current);
             newHeight = Math.min(Math.max(newHeight, minHeight), maxHeight);
             setHeight(newHeight);
+            setIsExpanded(false);
           };
           const onTouchEnd = () => {
             dragging.current = false;
-            setIsDragging(false);
             document.body.style.cursor = "";
             document.removeEventListener("touchmove", onTouchMove);
             document.removeEventListener("touchend", onTouchEnd);
@@ -481,6 +501,18 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
           )}
         </div>
         <button
+          type="button"
+          aria-label={isExpanded ? "Restore panel height" : "Expand panel"}
+          aria-pressed={isExpanded}
+          className="bottom-offcanvas__expand"
+          onClick={toggleExpanded}
+          onMouseDown={(event) => event.stopPropagation()}
+          onTouchStart={(event) => event.stopPropagation()}
+          title={isExpanded ? "Restore panel height" : "Expand panel"}
+        >
+          {isExpanded ? <Minimize2 size={18} strokeWidth={2.2} aria-hidden="true" /> : <Maximize2 size={18} strokeWidth={2.2} aria-hidden="true" />}
+        </button>
+        <button
           data-bs-dismiss="offcanvas"
           onClick={handleClose}
           onClickCapture={handleClose}
@@ -530,7 +562,13 @@ function BottomOffCanvas({ show, onHide, data, currentSliderDate, onTimeSelect }
               ? <div style={{ color: "red", textAlign: "center" }}>{fetchError}</div>
               : <>
                   {activeTab === "tabular" && <Tabular perVariableData={perVariableData} />}
-                  {activeTab === "timeseries" && <Timeseries perVariableData={perVariableData} />}
+                  {activeTab === "timeseries" && (
+                    <Timeseries
+                      perVariableData={perVariableData}
+                      currentSliderDate={currentSliderDate}
+                      onTimeSelect={onTimeSelect}
+                    />
+                  )}
                 </>
         }
       </Offcanvas.Body>

@@ -2,20 +2,30 @@
    rule sets a fixed height with !important (e.g., 35vh). */
 .offcanvas.offcanvas-bottom.bottom-offcanvas {
   height: var(--bs-offcanvas-height) !important;
-  width: 100vw;
-  max-width: 100vw;
-  max-height: min(820px, calc(100vh - 96px));
+  width: 100%;
+  max-width: 100%;
+  max-height: min(92dvh, 820px);
   left: 0;
   right: 0;
   box-sizing: border-box;
-  z-index: 15000 !important;
+  z-index: 15000;
+  display: flex;
+  flex-direction: column;
   overflow: hidden !important;
   pointer-events: auto !important;
+  /* Suppress Bootstrap's slide-in via its own custom property, then hard-stop
+     any remaining transition. This avoids passing animation={false} as a JSX
+     prop, which react-bootstrap leaks to the underlying DOM div and triggers
+     a React warning about non-boolean attributes. */
+  --bs-offcanvas-transition: none;
+  transition: none !important;
 }
 
-/* Optional: keep body from flex-growing unexpectedly during drag */
 .offcanvas.offcanvas-bottom.bottom-offcanvas .offcanvas-body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .bottom-offcanvas__header {
@@ -23,12 +33,13 @@
   align-items: center;
   flex: 0 0 auto;
   min-width: 0;
-  padding: 0 1rem 0 0.5rem;
+  padding: 0 18px;
   position: relative;
   z-index: 50;
   pointer-events: auto;
 }
 
+.offcanvas.offcanvas-bottom.bottom-offcanvas .bottom-offcanvas__expand,
 .offcanvas.offcanvas-bottom.bottom-offcanvas .bottom-offcanvas__close {
   align-items: center;
   background: rgba(255, 255, 255, 0.14) !important;
@@ -37,17 +48,28 @@
   cursor: pointer !important;
   display: flex !important;
   flex: 0 0 auto;
+  color: inherit;
   font-size: 28px !important;
-  height: 44px !important;
+  height: 40px !important;
   justify-content: center;
   line-height: 1 !important;
   margin-left: 8px;
   padding: 0 !important;
   position: relative;
-  width: 44px !important;
+  width: 40px !important;
   z-index: 60 !important;
   pointer-events: auto !important;
   touch-action: manipulation;
+}
+
+.offcanvas.offcanvas-bottom.bottom-offcanvas .bottom-offcanvas__expand {
+  font-size: 0 !important;
+}
+
+.offcanvas.offcanvas-bottom.bottom-offcanvas .bottom-offcanvas__expand:hover {
+  background: rgba(96, 165, 250, 0.18) !important;
+  border-color: rgba(96, 165, 250, 0.38) !important;
+  transform: none !important;
 }
 
 .offcanvas.offcanvas-bottom.bottom-offcanvas .bottom-offcanvas__close:hover {
@@ -65,9 +87,9 @@
 .bottom-offcanvas__body--inundation {
   display: flex;
   flex-direction: column;
-  height: calc(100% - 53px);
-  overflow: hidden !important;
-  padding: 14px 18px 16px;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 12px 24px 14px;
 }
 
 .inundation-timeseries {
@@ -79,7 +101,7 @@
   min-height: 0;
   width: 100%;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   padding: 0;
   box-sizing: border-box;
 }
@@ -111,6 +133,7 @@
 
 .inundation-timeseries__controls > span {
   min-width: 0;
+  padding-left: 1px;
 }
 
 .inundation-timeseries__toggle {
@@ -156,10 +179,10 @@
 
 .inundation-timeseries__chart {
   flex: 1 1 0;
-  min-height: 180px;
+  min-height: 220px;
   min-width: 0;
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .inundation-timeseries__chart .js-plotly-plot,
@@ -201,11 +224,20 @@
 
 @media (max-width: 640px) {
   .offcanvas.offcanvas-bottom.bottom-offcanvas {
-    max-height: calc(100vh - 72px);
+    max-height: 92dvh;
   }
 
+  .bottom-offcanvas__header {
+    padding: 0 10px;
+  }
+
+  .bottom-offcanvas__body,
   .bottom-offcanvas__body--inundation {
-    padding: 12px;
+    padding: 10px;
+  }
+
+  .inundation-timeseries__chart {
+    min-height: 240px;
   }
 
   .inundation-timeseries__stats {
@@ -223,4 +255,11 @@
 .bottom-offcanvas .plot-container.plotly {
   position: relative;
   z-index: 10;
+}
+
+/* Bootstrap momentarily adds offcanvas-toggling during open/close. Suppress all
+   transitions on the element during that window — height is non-composited and
+   Lighthouse flags any height transition as a CLS/INP bottleneck. */
+.bottom-offcanvas.offcanvas-toggling {
+  transition: none !important;
 }

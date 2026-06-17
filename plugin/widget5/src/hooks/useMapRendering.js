@@ -141,7 +141,9 @@ export const useMapRendering = ({
 
     if (!selectedLayerConfig || !isRasterSourceLayer(selectedLayerConfig)) {
       if (rasterOverlayRef.current) {
-        map.removeLayer(rasterOverlayRef.current);
+        if (map._container && map.hasLayer(rasterOverlayRef.current)) {
+          map.removeLayer(rasterOverlayRef.current);
+        }
         rasterOverlayRef.current = null;
       }
       rasterDisplayedFrameRef.current = null;
@@ -151,7 +153,9 @@ export const useMapRendering = ({
 
     if (!activeLayers.waveForecast) {
       if (rasterOverlayRef.current) {
-        map.removeLayer(rasterOverlayRef.current);
+        if (map._container && map.hasLayer(rasterOverlayRef.current)) {
+          map.removeLayer(rasterOverlayRef.current);
+        }
         rasterOverlayRef.current = null;
       }
       rasterDisplayedFrameRef.current = null;
@@ -217,7 +221,7 @@ export const useMapRendering = ({
     if (isRasterSourceLayer(selectedLayer)) {
       wmsLayerGroup.current.clearLayers();
       wmsLayerRefs.current.forEach(layer => {
-        if (layer && mapInstance.current.hasLayer(layer)) {
+        if (layer && mapInstance.current?._container && mapInstance.current.hasLayer(layer)) {
           mapInstance.current.removeLayer(layer);
         }
       });
