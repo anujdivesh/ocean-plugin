@@ -209,13 +209,16 @@
   border: 1px solid rgba(148, 163, 184, 0.22);
   background: rgba(248, 250, 252, 0.78);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   animation: chartCardEnter 280ms ease-out;
   transition: background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
 }
 
 .risk-chart-shell {
   position: relative;
-  height: 100%;
+  flex: 1;
+  height: auto;
   min-height: 220px;
 }
 

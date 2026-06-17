@@ -57,6 +57,20 @@ function RiskDetailsPanel({ data, isDarkMode = false, currentSliderDate, onTimeS
   const [saveFlash, setSaveFlash] = useState(false);
   const saveFlashTimerRef = useRef(null);
 
+  const selectedIndex = useMemo(() => {
+    const times = details?.time_10min;
+    if (!Array.isArray(times) || !times.length || !currentSliderDate) return null;
+    const targetMs = new Date(currentSliderDate).getTime();
+    if (!Number.isFinite(targetMs)) return null;
+    let best = -1;
+    let smallest = Infinity;
+    times.forEach((ts, i) => {
+      const diff = Math.abs(new Date(ts).getTime() - targetMs);
+      if (diff < smallest) { smallest = diff; best = i; }
+    });
+    return best >= 0 ? best : null;
+  }, [details?.time_10min, currentSliderDate]);
+
   // Load saved thresholds for this point (if any), falling back to API values
   useEffect(() => {
     const pointId = point?.id;
@@ -307,7 +321,8 @@ function RiskDetailsPanel({ data, isDarkMode = false, currentSliderDate, onTimeS
           tideLevel={details?.tide_10min || []}
           surgeLevel={details?.sla_10min || []}
           thresholds={thresholdsValid ? editableThresholds : thresholds}
-          now={currentSliderDate || new Date()}
+          now={new Date()}
+          selectedIndex={selectedIndex}
           isDarkMode={isDarkMode}
           onTimeSelect={onTimeSelect}
         />
