@@ -247,6 +247,8 @@ function DateSelector({ item, period, startDateStr, endDateStr, onDateChange }) 
           
           // For 3MONTHLY_SEASONAL, default to the first item in the dropdown list
           setCurrentDate(dateTimeArray[0]);
+          // Propagate the default first date to the parent so Generate Plot uses it
+          handleonchange3monthSeasonal(dateTimeArray[0], item);
         }
       } else if (item.layer_information.datetime_format === 'WEEKLY') {
         // console.log('WEEKLY');

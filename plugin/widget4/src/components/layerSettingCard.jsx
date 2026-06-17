@@ -69,8 +69,12 @@ const LayerSettingsCard = ({ layerId, onSettingsChange, onApply }) => {
               // For non-forecast MONTHLY layers, use end date (most recent data)
               initialDate = data.timeIntervalEnd || data.timeIntervalStart || '';
             }
-          } else if (is3MonthlySeasonal || is3Monthly) {
-            // For 3MONTHLY and 3MONTHLY_SEASONAL, always use end date
+          } else if (is3MonthlySeasonal) {
+            // For 3MONTHLY_SEASONAL, default to the FIRST date (matches the dropdown's
+            // default first-item selection, so Generate Plot uses the first date too)
+            initialDate = data.timeIntervalStart || data.timeIntervalEnd || '';
+          } else if (is3Monthly) {
+            // For 3MONTHLY, use end date (most recent data)
             initialDate = data.timeIntervalEnd || data.timeIntervalStart || '';
           } else {
             // For other formats, use start date
