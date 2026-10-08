@@ -38,6 +38,8 @@ type Props = {
   legendItems?: { label: string; color: string }[];
   visible: boolean;
   onVisibleChange?: (visible: boolean) => void;
+  /** Radio group name: one layer on at a time (see LayerCard). */
+  radioGroup?: string;
   /**
    * Show each timestep as the 15th of its month (for monthly products sampled
    * on irregular days, e.g. "the day closest to the 15th").
@@ -68,6 +70,7 @@ export default function ZarrLayerControl({
   legendItems,
   visible,
   onVisibleChange,
+  radioGroup,
   initialTime,
   autoplay = false,
   onTimeChange,
@@ -209,6 +212,7 @@ export default function ZarrLayerControl({
       title={title}
       visible={visible}
       onVisibleChange={onVisibleChange}
+      radioGroup={radioGroup}
       step={step}
       times={times}
       time={time}

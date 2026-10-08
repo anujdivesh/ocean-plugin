@@ -25,11 +25,15 @@ type DroughtLayer = {
 type DroughtConfig = {
   updated?: string;
   note?: string;
+  /** Fill and legend entry for countries a layer doesn't list. */
+  noInfo?: { label: string; color: string };
   layers: Record<string, DroughtLayer>;
 };
 
 const EEZ_SOURCE = "pacific-eez";
 const NO_FILL = "rgba(0, 0, 0, 0)";
+/** Used when drought.json has no `noInfo`: unlisted countries left unshaded. */
+const DEFAULT_NO_INFO = { label: "No data", color: NO_FILL };
 
 /** Drought-related impact entries by country (scripts/build_impacts.py). */
 type Impact = {
@@ -132,8 +136,11 @@ type Props = {
   radioGroup?: string;
 };
 
-/** Fill colour per feature: its country's category colour, else none. */
-function fillColor(layer: DroughtLayer): ExpressionSpecification | string {
+/** Fill colour per feature: its country's category colour, else `fallback`. */
+function fillColor(
+  layer: DroughtLayer,
+  fallback: string,
+): ExpressionSpecification | string {
   const colors = new Map(layer.categories.map((c) => [c.id, c.color]));
   const pairs = Object.entries(layer.countries).flatMap(([code, cat]) =>
     colors.has(cat) ? [code, colors.get(cat)!] : [],
@@ -144,9 +151,9 @@ function fillColor(layer: DroughtLayer): ExpressionSpecification | string {
         "match",
         ["get", "code"],
         ...pairs,
-        NO_FILL,
+        fallback,
       ] as unknown as ExpressionSpecification)
-    : NO_FILL;
+    : fallback;
 }
 
 export default function EezLayerControl({
@@ -160,6 +167,7 @@ export default function EezLayerControl({
   const [config, setConfig] = useState<DroughtConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const layer = config?.layers[droughtKey];
+  const noInfo = config?.noInfo ?? DEFAULT_NO_INFO;
   const layerId = `drought-${droughtKey}`;
 
   useEffect(() => {
@@ -183,7 +191,7 @@ export default function EezLayerControl({
         attribution: "EEZs &copy; Pacific Data Hub",
       });
     }
-    const color = fillColor(layer);
+    const color = fillColor(layer, noInfo.color);
     map.addLayer(
       {
         id: layerId,
@@ -205,7 +213,7 @@ export default function EezLayerControl({
     const onClick = async (e: MapLayerMouseEvent) => {
       const props = e.features?.[0]?.properties;
       if (!props) return;
-      const status = labels.get(layer.countries[props.code]) ?? "No data";
+      const status = labels.get(layer.countries[props.code]) ?? noInfo.label;
       const impacts = await loadImpacts();
       const el = popupContent(
         props.name,
@@ -233,7 +241,7 @@ export default function EezLayerControl({
     };
     // Visibility is synced below; only rebuild for a new map or config.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, layer, layerId]);
+  }, [map, layer, layerId, noInfo.color, noInfo.label]);
 
   useEffect(() => {
     if (map?.getLayer(layerId)) {
@@ -265,11 +273,19 @@ export default function EezLayerControl({
       times={[]}
       time={null}
       onTimeChange={() => {}}
-      legendItems={layer?.categories.map((c) => ({
-        label: c.label,
-        color: c.color,
-        box: true,
-      }))}
+      legendItems={
+        layer && [
+          ...layer.categories.map((c) => ({
+            label: c.label,
+            color: c.color,
+            box: true,
+          })),
+          // Countries the layer doesn't list (only if they're shaded).
+          ...(noInfo.color === NO_FILL
+            ? []
+            : [{ label: noInfo.label, color: noInfo.color, box: true }]),
+        ]
+      }
       status={status?.text ? status : null}
     />
   );

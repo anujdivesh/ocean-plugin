@@ -13,7 +13,7 @@ import {
   LAYER_GROUPS,
   STORY_LAYERS,
   layerDefaultTime,
-  isExclusiveGroup,
+  LAYER_RADIO_GROUP,
   showLayer,
 } from "@/story/layers";
 import { wmsLayerId } from "@/lib/wmsLayer";
@@ -184,10 +184,19 @@ export default function StoryMap() {
     }
   }, [map, story, step, addedCount]);
 
-  const toggleLayer = (id: string, on: boolean) =>
+  // A layer switched on/off by hand in the workbench means the reader is
+  // exploring: close the welcome card and end any story. Layers stay as they
+  // are; the story bar takes the welcome card's place.
+  const toggleLayer = (id: string, on: boolean) => {
+    setPromptOpen(false);
+    if (pos) {
+      setPos(null);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
     setVisibleLayers((v) =>
       on ? showLayer(v, id) : v.filter((x) => x !== id),
     );
+  };
 
   // ENSO gauge follows the month of the first visible layer that asks for it (SST).
   const ensoLayer = STORY_LAYERS.find(
@@ -374,6 +383,7 @@ export default function StoryMap() {
                       : layerDefaultTime(layer)
                     : undefined,
                   autoplay: animating && !!chapter?.layers.includes(layer.id),
+                  radioGroup: LAYER_RADIO_GROUP,
                 };
                 if (layer.kind === "eez") {
                   return (
@@ -384,11 +394,7 @@ export default function StoryMap() {
                       droughtKey={layer.droughtKey}
                       visible={common.visible}
                       onVisibleChange={common.onVisibleChange}
-                      radioGroup={
-                        isExclusiveGroup(layer.group)
-                          ? `layers-${layer.group}`
-                          : undefined
-                      }
+                      radioGroup={common.radioGroup}
                     />
                   );
                 }

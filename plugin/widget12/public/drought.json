@@ -1,32 +1,30 @@
 {
-  "_help": "Drought status by country, shading each country's EEZ in the Impact layers. 'countries' maps a country code to a category id (none, watch or drought); countries left out are not shaded. Codes: AS American Samoa, CK Cook Islands, FJ Fiji, FM FSM, GU Guam, KI Kiribati, MH Marshall Islands, MP Northern Mariana Islands, NC New Caledonia, NR Nauru, NU Niue, PF French Polynesia, PG PNG, PN Pitcairn, PW Palau, SB Solomon Islands, TK Tokelau, TO Tonga, TV Tuvalu, VU Vanuatu, WF Wallis and Futuna, WS Samoa. Optional 'note' is shown on the layer cards.",
+  "_help": "Drought status by country, shading each country's EEZ in the Impact layers. 'countries' maps a country code to one of that layer's category ids (e.g. none, watch, partial, drought); countries left out are shaded with 'noInfo' (e.g. light grey, 'No information'); Australia and New Zealand are not in the EEZ shapes, so they are never shaded. Codes: AS American Samoa, CK Cook Islands, FJ Fiji, FM FSM, GU Guam, KI Kiribati, MH Marshall Islands, MP Northern Mariana Islands, NC New Caledonia, NR Nauru, NU Niue, PF French Polynesia, PG PNG, PN Pitcairn, PW Palau, SB Solomon Islands, TK Tokelau, TO Tonga, TV Tuvalu, VU Vanuatu, WF Wallis and Futuna, WS Samoa. Optional 'note' is shown on the layer cards.",
   "updated": "October 2026",
+  "noInfo": { "label": "No information", "color": "#d1d5db" },
   "layers": {
     "meteorological": {
       "title": "Meteorological Drought",
       "categories": [
         { "id": "none", "label": "No drought", "color": "#d9ead3" },
         { "id": "watch", "label": "Drought watch", "color": "#fde68a" },
+        {
+          "id": "partial",
+          "label": "Drought (parts of the country)",
+          "color": "#f472b6"
+        },
         { "id": "drought", "label": "Drought", "color": "#dc2626" }
       ],
       "countries": {
-        "PW": "drought",
-        "FM": "drought",
-        "MH": "drought",
-        "PG": "watch",
-        "SB": "none",
-        "VU": "drought",
-        "NC": "watch",
-        "FJ": "drought",
-        "TO": "drought",
-        "NU": "drought",
-        "WS": "drought",
-        "WF": "drought",
+        "TO": "partial",
+        "VU": "partial",
+        "PG": "partial",
+        "SB": "watch",
         "CK": "watch",
-        "NR": "none",
-        "KI": "none",
-        "TV": "none",
-        "TK": "none"
+        "FJ": "watch",
+        "FM": "watch",
+        "NU": "watch",
+        "PW": "drought"
       }
     },
     "agricultural": {
@@ -34,19 +32,15 @@
       "categories": [
         { "id": "none", "label": "No drought", "color": "#d9ead3" },
         { "id": "watch", "label": "Drought watch", "color": "#fde68a" },
+        {
+          "id": "partial",
+          "label": "Drought (parts of the country)",
+          "color": "#f472b6"
+        },
         { "id": "drought", "label": "Drought", "color": "#dc2626" }
       ],
       "countries": {
-        "PW": "drought",
-        "FM": "drought",
-        "MH": "watch",
-        "VU": "watch",
-        "FJ": "watch",
-        "TO": "drought",
-        "NU": "drought",
-        "WS": "watch",
-        "PG": "none",
-        "SB": "none"
+        "TO": "partial"
       }
     }
   }

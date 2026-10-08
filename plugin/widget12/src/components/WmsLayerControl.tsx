@@ -20,6 +20,8 @@ type Props = {
   layerId: number;
   visible: boolean;
   onVisibleChange?: (visible: boolean) => void;
+  /** Radio group name: one layer on at a time (see LayerCard). */
+  radioGroup?: string;
   /** Play through time automatically (from initialTime, looping back to it). */
   autoplay?: boolean;
   /** Starting time: a date ("2015-12") or offset from the latest ("-10y"). Defaults to latest. */
@@ -34,6 +36,7 @@ export default function WmsLayerControl({
   layerId,
   visible,
   onVisibleChange,
+  radioGroup,
   initialTime,
   autoplay = false,
   onAdded,
@@ -114,6 +117,7 @@ export default function WmsLayerControl({
       title={cfg?.layer_title ?? "Loading layer…"}
       visible={visible}
       onVisibleChange={onVisibleChange}
+      radioGroup={radioGroup}
       step={cfg ? timeStep(cfg) : "daily"}
       times={times}
       time={time}

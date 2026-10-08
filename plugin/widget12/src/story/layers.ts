@@ -5,12 +5,12 @@ import type { ZarrExtra } from "@/components/ZarrLayerControl";
 import type { TimeStep } from "@/lib/time";
 import { withBasePath } from "@/lib/basePath";
 
-// Workbench sections, in order. Each layer names its `group`. In an
-// `exclusive` group only one layer is on at a time (radio buttons).
+// Workbench sections, in order. Each layer names its `group`. Only one layer
+// is on at a time, across all groups (radio buttons; see showLayer).
 export const LAYER_GROUPS = [
   { id: "current", title: "Current Conditions" },
   { id: "outlook", title: "Outlook" },
-  { id: "impact", title: "Impact", exclusive: true },
+  { id: "impact", title: "Impact" },
 ] as const;
 
 export type LayerGroupId = (typeof LAYER_GROUPS)[number]["id"];
@@ -134,28 +134,18 @@ function speciesZone(
 const CORAL_BLEACHING_OUTLOOK_LEGEND =
   "https://ocean-plotter.spc.int/plotter/GetLegendGraphic?layer_map=19&mode=coral_bleaching&min_color=0&max_color=33&step=2&color=jet&unit=m";
 
-/** Timestep a layer opens on: see StoryLayer.defaultTime. */
-/** Whether a workbench group allows only one layer on at a time. */
-export const isExclusiveGroup = (groupId: string) =>
-  LAYER_GROUPS.some((g) => g.id === groupId && "exclusive" in g && g.exclusive);
+/** Radio-button group shared by every layer card (one layer on at a time). */
+export const LAYER_RADIO_GROUP = "story-layers";
 
 /**
- * `visible` with layer `id` switched on; in an exclusive group, the group's
- * other layers are switched off.
+ * Layers on after switching `id` on: only `id`, as one layer is shown at a
+ * time. (Takes the current list so it can be used as a state updater/reducer.)
  */
 export function showLayer(visible: string[], id: string): string[] {
-  const group = STORY_LAYERS.find((l) => l.id === id)?.group;
-  const others =
-    group && isExclusiveGroup(group)
-      ? new Set(
-          STORY_LAYERS.filter((l) => l.group === group && l.id !== id).map(
-            (l) => l.id,
-          ),
-        )
-      : new Set<string>();
-  return [...visible.filter((v) => v !== id && !others.has(v)), id];
+  return [id];
 }
 
+/** Timestep a layer opens on: see StoryLayer.defaultTime. */
 export function layerDefaultTime(layer: StoryLayer): "first" | "latest" {
   return layer.defaultTime ?? (layer.group === "outlook" ? "first" : "latest");
 }
