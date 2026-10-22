@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Map as MaplibreMap } from "maplibre-gl";
-import { REFERENCE_LAYERS } from "@/lib/referenceLayers";
+import { REFERENCE_LAYERS, referenceGroup } from "@/lib/referenceLayers";
 import styles from "./ReferenceLayerToggles.module.css";
 
 /** Horizontal on/off bar for the reference overlays, top right of the map. */
@@ -21,12 +21,13 @@ export default function ReferenceLayerToggles({
   // reload, which made a `disabled` attribute mismatch on hydration.)
   useEffect(() => {
     if (!map) return;
-    for (const l of REFERENCE_LAYERS) {
-      if (map.getLayer(l.id)) {
+    for (const layer of map.getStyle().layers) {
+      const group = referenceGroup(layer);
+      if (group !== undefined) {
         map.setLayoutProperty(
-          l.id,
+          layer.id,
           "visibility",
-          on[l.id] ? "visible" : "none",
+          on[group] ? "visible" : "none",
         );
       }
     }

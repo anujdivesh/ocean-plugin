@@ -87,9 +87,9 @@ const MARINE_HEATWAVE_LEGEND =
 const CORAL_BLEACHING_LEGEND =
   "https://ocean-plotter.spc.int/plotter/GetLegendGraphic?layer_map=4&mode=coral_bleaching&min_color=32.5&max_color=37.0&step=0.5&color=jet&unit=ppt";
 
-// Chlorophyll legend: jet, 0.01 to 11 mg m-3.
+// Chlorophyll legend: log scale.
 const CHLOROPHYLL_LEGEND =
-  "https://ocean-plotter.spc.int/plotter/GetLegendGraphic?layer_map=8&mode=standard&min_color=0.01&max_color=11&step=1&color=jet&unit=mg-m%C2%B3";
+  "https://ocean-plotter.spc.int/plotter/GetLegendGraphic?layer_map=8&mode=chl_log";
 
 // Fisheries SST legend: jet, 0 to 33 °C.
 const FISHERIES_SST_LEGEND =
