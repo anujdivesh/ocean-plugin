@@ -88,7 +88,8 @@ export default function DepthProfileChart({
           },
           y: {
             type: 'linear',
-            reverse: true,
+            // CROCO depths are negative (positive: up), so a normal axis
+            // already puts the surface (-5) at the top and -1000 at the bottom.
             title: { display: true, text: 'Depth (m)', color: tickColor, font: { size: 10 } },
             ticks: { color: tickColor, font: { size: 10 } },
             grid: { color: gridColor },

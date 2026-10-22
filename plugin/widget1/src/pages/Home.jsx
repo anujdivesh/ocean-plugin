@@ -250,7 +250,10 @@ function Home() {
     riskEnabled: activeLayers?.riskPoints !== false,
     setBottomCanvasData,
     setShowBottomCanvas,
-    waveParticleMode,
+    // Wave particles (and the matching raster dimming) only apply to the wave
+    // tab. Passing 'off' on the Current tab keeps current rasters at full
+    // opacity, while the user's wave choice is restored on switching back.
+    waveParticleMode: forecastCategory === 'current' ? 'off' : waveParticleMode,
     particleQuality,
     swellSourcesEnabled,
     selectedVessel,
@@ -261,6 +264,16 @@ function Home() {
     routePoints,
     routeForecastResult,
   });
+
+  // Currents point panel — close it and drop its pin when leaving the Current
+  // tab. Left open, its charts would receive the wave layer's sliderIndex as
+  // a CROCO timeIndex (wrong timestep, or past the end of the dataset).
+  useEffect(() => {
+    if (forecastCategory === 'current' || bottomCanvasData?.mode !== 'currents') return;
+    setShowBottomCanvas(false);
+    setBottomCanvasData(null);
+    removePinMarker();
+  }, [forecastCategory, bottomCanvasData, removePinMarker]);
 
   // Layer errors are dev/ops signal, not something to alarm the end user with —
   // log to console instead of the "Layer error" banner this used to render.

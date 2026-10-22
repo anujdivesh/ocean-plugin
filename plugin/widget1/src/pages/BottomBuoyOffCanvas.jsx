@@ -43,7 +43,10 @@ const MAX_HEIGHT_FALLBACK = 800; // used if window size unavailable
 const TIDE_COLOR = '#f59e0b';
 const INSITU_API_BASE = 'https://ocean-obs-api.spc.int/insitu';
 
-const MODEL_VARIABLES = ["hs_p1", "tp_p1", "dirp_p1"];
+// Total-sea parameters, comparable with the buoy's significantWaveHeight /
+// peakPeriod / meanDirection. The *_p1 layers are spectral partition 1 only and
+// drop to 0 whenever that partition is empty.
+const MODEL_VARIABLES = ["hs", "tpeak", "dirm"];
 const LATEST_CAPABILITY_URL = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/NIU/ForecastNiue_latest.nc?service=WMS&version=1.3.0&request=GetCapabilities";
 const PREVIOUS_CAPABILITY_URL = "https://gemthreddshpc.spc.int/thredds/wms/POP/model/country/spc/forecast/hourly/NIU/ForecastNiue_latest_01.nc?service=WMS&version=1.3.0&request=GetCapabilities";
 
@@ -141,8 +144,8 @@ async function fetchCombinedForecastData() {
     ]);
 
     // Parse time dimensions
-    const latestTimeDim = parseTimeDimensionFromCapabilities(latestCapabilities, "hs_p1");
-    const previousTimeDim = parseTimeDimensionFromCapabilities(previousCapabilities, "hs_p1");
+    const latestTimeDim = parseTimeDimensionFromCapabilities(latestCapabilities, MODEL_VARIABLES[0]);
+    const previousTimeDim = parseTimeDimensionFromCapabilities(previousCapabilities, MODEL_VARIABLES[0]);
     console.log("latestTimeDim:: " + latestTimeDim);
 
     //console.log('Parsed time dimensions:');
@@ -165,11 +168,13 @@ async function fetchCombinedForecastData() {
     }
 
     // Calculate time ranges for each forecast
-    const sevenAndHalfDaysAgo = new Date(latestTimeRange.end.getTime() - (7.5 * 24 * 60 * 60 * 1000));
-    const latestStart = sevenAndHalfDaysAgo;
+    // Latest run over its whole range; previous run only up to the hour before
+    // the latest starts. (Starting the latest at end - 7.5 days left a ~24 h
+    // hole between the two runs, drawn as a straight line across it.)
+    const latestStart = latestTimeRange.start;
     const latestEnd = latestTimeRange.end;
     const previousStart = previousTimeRange.start;
-    const previousEnd = latestTimeRange.start;
+    const previousEnd = new Date(latestTimeRange.start.getTime() - 60 * 60 * 1000);
 
     //console.log('Time ranges:', {
     //   latest: { start: latestStart, end: latestEnd },
@@ -706,7 +711,7 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId, buoyType, buoyLabel }) {
       datasets: [
         {
           label: 'Significant Wave Height (m)',
-          data: modelData.ranges?.hs_p1?.values || [],
+          data: modelData.ranges?.hs?.values || [],
           borderColor: MODEL_COLORS[0],
           backgroundColor: MODEL_COLORS[0],
           yAxisID: 'y',
@@ -715,8 +720,8 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId, buoyType, buoyLabel }) {
           borderDash: [5, 5]
         },
         {
-          label: 'Wind Wave Period (s)',
-          data: modelData.ranges?.tp_p1?.values || [],
+          label: 'Peak Wave Period (s)',
+          data: modelData.ranges?.tpeak?.values || [],
           borderColor: MODEL_COLORS[1],
           backgroundColor: MODEL_COLORS[1],
           yAxisID: 'y1',
@@ -725,8 +730,8 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId, buoyType, buoyLabel }) {
           borderDash: [5, 5]
         },
         {
-          label: 'Wind Wave Direction (°)',
-          data: modelData.ranges?.dirp_p1?.values || [],
+          label: 'Mean Wave Direction (°)',
+          data: modelData.ranges?.dirm?.values || [],
           borderColor: MODEL_COLORS[2],
           backgroundColor: MODEL_COLORS[2],
           yAxisID: 'y2',
@@ -789,7 +794,7 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId, buoyType, buoyLabel }) {
       modelDatasets = [
         {
           label: 'Significant Wave Height (Model)',
-          data: (modelData.ranges?.hs_p1?.values || []).map((v, i) => ({ x: timeValues[i], y: v })),
+          data: (modelData.ranges?.hs?.values || []).map((v, i) => ({ x: timeValues[i], y: v })),
           borderColor: MODEL_COLORS[0],
           backgroundColor: MODEL_COLORS[0],
           yAxisID: 'y',
@@ -798,8 +803,8 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId, buoyType, buoyLabel }) {
           borderDash: [2, 2] // Dotted line for model
         },
         {
-          label: 'Wind Wave Period (Model)',
-          data: (modelData.ranges?.tp_p1?.values || []).map((v, i) => ({ x: timeValues[i], y: v })),
+          label: 'Peak Period (Model)',
+          data: (modelData.ranges?.tpeak?.values || []).map((v, i) => ({ x: timeValues[i], y: v })),
           borderColor: MODEL_COLORS[1],
           backgroundColor: MODEL_COLORS[1],
           yAxisID: 'y1',
@@ -808,8 +813,8 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId, buoyType, buoyLabel }) {
           borderDash: [2, 2]
         },
         {
-          label: 'Wind Wave Direction (Model)',
-          data: (modelData.ranges?.dirp_p1?.values || []).map((v, i) => ({ x: timeValues[i], y: v })),
+          label: 'Mean Direction (Model)',
+          data: (modelData.ranges?.dirm?.values || []).map((v, i) => ({ x: timeValues[i], y: v })),
           borderColor: MODEL_COLORS[2],
           backgroundColor: MODEL_COLORS[2],
           yAxisID: 'y2',
@@ -1083,7 +1088,7 @@ function BottomBuoyOffCanvas({ show, onHide, buoyId, buoyType, buoyLabel }) {
               (() => {
                 // Check if all traces are empty
                 // eslint-disable-next-line no-unused-vars
-                const hasModel = modelData?.ranges?.hs_p1?.values?.length > 0;
+                const hasModel = modelData?.ranges?.hs?.values?.length > 0;
                 const hasBuoy = data?.waves?.length > 0;
                 if (!hasModel && !hasBuoy) {
                   return (
