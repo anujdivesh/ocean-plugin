@@ -59,7 +59,7 @@ export default function MapView({ onLoad }: Props) {
     Promise.all([import("maplibre-gl"), fetchReferenceStyles()]).then(
       ([maplibregl, overlays]) => {
         if (cancelled || !containerRef.current) return;
-        const { Map, NavigationControl, ScaleControl } = maplibregl;
+        const { Map, NavigationControl } = maplibregl;
 
         // Read pmtiles:// sources via HTTP range requests, retrying transient
         // S3 failures so a single 503 doesn't leave a tile or layer blank.
@@ -76,7 +76,6 @@ export default function MapView({ onLoad }: Props) {
           zoom: 2,
         });
         map.addControl(new NavigationControl(), "top-right");
-        map.addControl(new ScaleControl(), "bottom-right");
         map.on("load", () => onLoad?.(map!));
       },
     );

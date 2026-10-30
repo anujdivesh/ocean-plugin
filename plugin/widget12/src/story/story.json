@@ -7,6 +7,21 @@
   },
   "stories": [
     {
+      "id": "climatology",
+      "title": "ENSO – Climatology",
+      "description": "COSPPaC tide gauge sea level, SST, air temperature, air pressure and trade winds during El Niño, La Niña and Neutral years.",
+      "chapters": [
+        {
+          "id": "cosppac-tide-gauges",
+          "title": "COSPPaC Tide Gauges",
+          "body": [
+            "Each plot shows the average value for every month of the year, with one line for El Niño years (red), one for Neutral years (grey) and one for La Niña years (blue). Where the lines are far apart, ENSO has a strong effect on that station. An asterisk (*) above a month means the El Niño and La Niña difference that month is statistically significant."
+          ],
+          "layers": ["tide-gauges"]
+        }
+      ]
+    },
+    {
       "id": "current",
       "title": "ENSO – Current Conditions",
       "description": "How El Niño is shaping the Pacific right now: sea temperature, sea level, coral heat stress, marine heatwaves and chlorophyll.",

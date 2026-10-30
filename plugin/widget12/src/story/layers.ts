@@ -8,9 +8,10 @@ import { withBasePath } from "@/lib/basePath";
 // Workbench sections, in order. Each layer names its `group`. Only one layer
 // is on at a time, across all groups (radio buttons; see showLayer).
 export const LAYER_GROUPS = [
-  { id: "current", title: "Current Conditions" },
-  { id: "outlook", title: "Outlook" },
-  { id: "impact", title: "Impact" },
+  { id: "climatology", title: "ENSO – Climatology" },
+  { id: "current", title: "ENSO – Current Conditions" },
+  { id: "outlook", title: "ENSO – Outlook" },
+  { id: "impact", title: "ENSO – Impact" },
 ] as const;
 
 export type LayerGroupId = (typeof LAYER_GROUPS)[number]["id"];
@@ -40,6 +41,15 @@ export type StoryLayer = {
       /** Shown until drought.json loads (then its layer title is used). */
       title: string;
       droughtKey: string;
+    }
+  | {
+      id: string;
+      /**
+       * Tide gauge stations from public/tide_gauge.json as points; clicking
+       * one shows its ENSO-phase plots in the tide gauge panel.
+       */
+      kind: "tideGauge";
+      title: string;
     }
   | {
       id: string;
@@ -151,6 +161,13 @@ export function layerDefaultTime(layer: StoryLayer): "first" | "latest" {
 }
 
 export const STORY_LAYERS: StoryLayer[] = [
+  // Climatology: COSPPaC tide gauges (public/tide_gauge.json).
+  {
+    id: "tide-gauges",
+    group: "climatology",
+    kind: "tideGauge",
+    title: "Tide Gauges",
+  },
   {
     id: "sst-anomaly-monthly",
     group: "current",

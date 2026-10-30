@@ -28,12 +28,15 @@ import EnsoGauge, {
 import MapView from "./MapView";
 import NinoOutlook, { loadOutlook, outlookPeriod } from "./NinoOutlook";
 import EezLayerControl from "./EezLayerControl";
+import TideGaugeLayerControl from "./TideGaugeLayerControl";
+import TideGaugePanel from "./TideGaugePanel";
 import Workbench from "./Workbench";
 import WmsLayerControl from "./WmsLayerControl";
 import ZarrLayerControl from "./ZarrLayerControl";
 import LayerGroup from "./LayerGroup";
 import { themeFor } from "@/story/themes";
 import { useDraggable } from "@/lib/useDraggable";
+import { withBasePath } from "@/lib/basePath";
 import styles from "./StoryMap.module.css";
 
 /**
@@ -46,6 +49,9 @@ const layersAt = (chapters: Chapter[], i: number) => {
   }
   return [];
 };
+
+/** Workbench groups open on start and after leaving a story: the first one. */
+const DEFAULT_OPEN_GROUPS = [LAYER_GROUPS[0].id];
 
 /** Story and chapter index for a chapter id (from the URL hash). */
 const findChapter = (id: string) => {
@@ -95,9 +101,9 @@ export default function StoryMap() {
     setAnimating(!!chapter?.autoplay);
   }
 
-  // Workbench groups: only Current Conditions starts open; a story opens its
-  // own group (story ids match group ids). Readers can still toggle any group.
-  const [openGroups, setOpenGroups] = useState<string[]>(["current"]);
+  // Workbench groups: only the first (Climatology) starts open; a story opens
+  // its own group (story ids match group ids). Readers can still toggle any group.
+  const [openGroups, setOpenGroups] = useState<string[]>(DEFAULT_OPEN_GROUPS);
   const toggleGroup = (id: string) =>
     setOpenGroups((g) =>
       g.includes(id) ? g.filter((x) => x !== id) : [...g, id],
@@ -114,6 +120,8 @@ export default function StoryMap() {
     window.history.replaceState(null, "", `#${list[next].id}`);
   }, []);
   const go = (i: number) => pos && goTo(pos.story, i);
+  /** Story after the current one, played when this one ends. */
+  const nextStory = pos ? (STORIES[pos.story + 1] ?? null) : null;
 
   const [workbenchOpen, setWorkbenchOpen] = useState(true);
 
@@ -131,9 +139,9 @@ export default function StoryMap() {
     setPos(null);
     setPromptOpen(true);
     // Leaving a story switches its layers off and resets the groups: only
-    // Current Conditions open.
+    // the first open.
     setVisibleLayers([]);
-    setOpenGroups(["current"]);
+    setOpenGroups(DEFAULT_OPEN_GROUPS);
     window.history.replaceState(null, "", window.location.pathname);
   };
 
@@ -154,12 +162,17 @@ export default function StoryMap() {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
-      if (e.key === "ArrowRight") goTo(pos.story, pos.step + 1);
+      if (e.key === "ArrowRight") {
+        // Past the last chapter, on into the next story (if any).
+        const atEnd = pos.step === STORIES[pos.story].chapters.length - 1;
+        if (atEnd && pos.story + 1 < STORIES.length) goTo(pos.story + 1, 0);
+        else goTo(pos.story, pos.step + 1);
+      }
       if (e.key === "ArrowLeft") goTo(pos.story, pos.step - 1);
       if (e.key === "Escape") {
         setPos(null);
         setVisibleLayers([]);
-        setOpenGroups(["current"]);
+        setOpenGroups(DEFAULT_OPEN_GROUPS);
         window.history.replaceState(null, "", window.location.pathname);
       }
     };
@@ -210,6 +223,17 @@ export default function StoryMap() {
       (l) => l.kind === "zarr" && l.ninoOutlook && visibleLayers.includes(l.id),
     );
   const sidePanel = !!ensoLayer || outlookCard;
+  // Tide gauge plots, beside the workbench while the stations are on.
+  const [tideStation, setTideStation] = useState<string | null>(null);
+  const tidePanel = STORY_LAYERS.some(
+    (l) => l.kind === "tideGauge" && visibleLayers.includes(l.id),
+  );
+  const besideSide = [
+    sidePanel && styles.besideSidePanel,
+    tidePanel && styles.besideLeftPanel,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   // Hidden layers also load (their metadata) on startup; only shown ones count.
   const mapLoading = loadingLayers.some((id) => visibleLayers.includes(id));
@@ -315,7 +339,11 @@ export default function StoryMap() {
           ))}
         </div>
         <div className={styles.navEnd}>
-          {chapter.layers.length > 0 && (
+          {/* Only layers with timesteps (zarr, WMS) can animate. */}
+          {chapter.layers.some((id) => {
+            const kind = STORY_LAYERS.find((l) => l.id === id)?.kind;
+            return kind === "zarr" || kind === "wms";
+          }) && (
             <button
               className={`${styles.animate} ${animating ? styles.animateOn : ""}`}
               onClick={() => setAnimating((a) => !a)}
@@ -325,9 +353,19 @@ export default function StoryMap() {
             </button>
           )}
           {step === last ? (
-            <button className={styles.primary} onClick={exit}>
-              Finish
-            </button>
+            // End of a story: carry on into the next one; Finish after the last.
+            nextStory ? (
+              <button
+                className={styles.primary}
+                onClick={() => goTo(pos!.story + 1, 0)}
+              >
+                {nextStory.title} →
+              </button>
+            ) : (
+              <button className={styles.primary} onClick={exit}>
+                Finish
+              </button>
+            )
           ) : (
             <button className={styles.primary} onClick={() => go(step + 1)}>
               Next →
@@ -341,9 +379,16 @@ export default function StoryMap() {
   return (
     <main className={styles.main}>
       <MapView onLoad={setMap} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        className={styles.mapLogo}
+        src={withBasePath("/cosppac-logo-original.png")}
+        alt="COSPPaC"
+      />
       <ReferenceLayerToggles map={map} />
       {ensoLayer && <EnsoGauge time={layerTimes[ensoLayer.id] ?? null} />}
       {outlookCard && <NinoOutlook />}
+      {tidePanel && <TideGaugePanel station={tideStation} />}
       {mapLoading && (
         <div
           className={styles.mapLoading}
@@ -398,6 +443,20 @@ export default function StoryMap() {
                     />
                   );
                 }
+                if (layer.kind === "tideGauge") {
+                  return (
+                    <TideGaugeLayerControl
+                      key={layer.id}
+                      map={map}
+                      title={layer.title}
+                      visible={common.visible}
+                      onVisibleChange={common.onVisibleChange}
+                      radioGroup={common.radioGroup}
+                      selected={tideStation}
+                      onSelect={setTideStation}
+                    />
+                  );
+                }
                 return layer.kind === "zarr" ? (
                   <ZarrLayerControl
                     key={layer.id}
@@ -432,9 +491,7 @@ export default function StoryMap() {
       </Workbench>
 
       {centered && (
-        <div
-          className={`${styles.center} ${sidePanel ? styles.besideSidePanel : ""}`}
-        >
+        <div className={`${styles.center} ${besideSide}`}>
           {storyCard}
         </div>
       )}
@@ -538,16 +595,14 @@ export default function StoryMap() {
                 className={styles.explore}
                 onClick={() => setPromptOpen(false)}
               >
-                Or explore the map layers yourself
+                Explore layers manually
               </button>
             </div>
           </section>
         </div>
       )}
 
-      <div
-        className={`${styles.dock} ${sidePanel ? styles.besideSidePanel : ""}`}
-      >
+      <div className={`${styles.dock} ${besideSide}`}>
         {chapter && step !== null ? (
           !centered && storyCard
         ) : promptOpen ? null : (
