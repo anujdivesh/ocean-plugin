@@ -52,7 +52,20 @@ export const TIDE_VARIABLES: {
 }[] = [
   {
     key: "wind_speed",
-    label: "Trade winds",
+    label: "Winds",
+    more: "stronger",
+    less: "weaker",
+  },
+  // Wind components: positive = blowing from the east / from the south.
+  {
+    key: "easterly_wind",
+    label: "Trade wind easterly component",
+    more: "stronger",
+    less: "weaker",
+  },
+  {
+    key: "southerly_wind",
+    label: "Trade wind southerly component",
     more: "stronger",
     less: "weaker",
   },

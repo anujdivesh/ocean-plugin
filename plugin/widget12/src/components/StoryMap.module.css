@@ -124,6 +124,17 @@
   }
 }
 
+/* Phones: the tide gauge plots are a bottom sheet, not beside the workbench. */
+@media (max-width: 720px) {
+  .dock.besideLeftPanel {
+    left: 16px;
+  }
+
+  .center.besideLeftPanel {
+    padding-left: 16px;
+  }
+}
+
 /* Centred story card (intro, status) */
 
 .center {

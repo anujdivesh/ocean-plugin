@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   TIDE_VARIABLES,
   defaultStation,
@@ -23,6 +23,15 @@ const PHASES: { phase: EnsoPhase; color: string }[] = [
 /** Stations with fewer months of sea level data get a "not sufficient data" note (Niue). */
 const SHORT_RECORD_MONTHS = 120;
 
+/** Matches the bottom-sheet layout in TideGaugePanel.module.css. */
+const PHONE_QUERY = "(max-width: 720px)";
+
+const subscribePhone = (onChange: () => void) => {
+  const mq = window.matchMedia(PHONE_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+};
+
 /**
  * Plots for one tide gauge station: per variable, the Jan-Dec mean cycle in
  * each ENSO phase. One plot (the first variable) is open; the rest expand on
@@ -36,7 +45,7 @@ export default function TideGaugePanel({
 }) {
   const [data, setData] = useState<TideGaugeData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState(true);
+  const [openChoice, setOpenChoice] = useState<boolean | null>(null);
   const [openVars, setOpenVars] = useState<string[]>([TIDE_VARIABLES[0].key]);
 
   useEffect(() => {
@@ -44,6 +53,21 @@ export default function TideGaugePanel({
       .then(setData)
       .catch((e: Error) => setError(e.message));
   }, []);
+
+  // On phones the panel is a bottom sheet over the map: start collapsed, and
+  // open when the reader taps a station.
+  const isPhone = useSyncExternalStore(
+    subscribePhone,
+    () => window.matchMedia(PHONE_QUERY).matches,
+    () => false,
+  );
+  const [prevStation, setPrevStation] = useState(station);
+  if (station !== prevStation) {
+    setPrevStation(station);
+    if (station !== null) setOpenChoice(true);
+  }
+  // Until the reader toggles it or picks a station: open, except on phones.
+  const open = openChoice ?? !isPhone;
 
   const id = station ?? (data && defaultStation(data));
   const s = id ? data?.tide_gauge[id] : null;
@@ -57,7 +81,7 @@ export default function TideGaugePanel({
       <div className={styles.header}>
         <button
           className={styles.headerToggle}
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => setOpenChoice(!open)}
           aria-expanded={open}
         >
           <span className={styles.logo} role="img" aria-label="COSPPaC" />
@@ -70,7 +94,7 @@ export default function TideGaugePanel({
         </button>
         <button
           className={`${styles.chevron} ${open ? styles.chevronOpen : ""}`}
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => setOpenChoice(!open)}
           aria-label={open ? "Collapse plots" : "Expand plots"}
           aria-expanded={open}
         >
@@ -281,6 +305,17 @@ function CycleChart({
           </text>
         </g>
       ))}
+      {/* Zero line, e.g. where a wind component changes direction. */}
+      {lo < 0 && hi > 0 && (
+        <line
+          x1={PAD.left}
+          x2={W - PAD.right}
+          y1={y(0)}
+          y2={y(0)}
+          className={styles.axis}
+          strokeDasharray="3 3"
+        />
+      )}
       {/* Axis lines. */}
       <path
         d={`M${PAD.left},${PAD.top}V${PAD.top + plotH}H${W - PAD.right}`}

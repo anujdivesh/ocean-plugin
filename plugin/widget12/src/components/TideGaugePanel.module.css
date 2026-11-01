@@ -16,9 +16,20 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
+/* Phones: a bottom sheet across the map, above the workbench. Starts
+   collapsed to its header (TideGaugePanel.tsx). */
 @media (max-width: 720px) {
   .card {
-    display: none;
+    top: auto;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 20;
+    width: auto;
+    max-width: none;
+    max-height: 60vh;
+    padding: 12px 14px 10px;
+    overscroll-behavior: contain;
   }
 }
 
@@ -283,4 +294,38 @@
   margin-top: 10px;
   font-size: 12px;
   color: #6b7280;
+}
+
+/* Phones: larger touch targets and chart text (the chart scales down with
+   the sheet's width), tighter notes. */
+@media (max-width: 720px) {
+  .header {
+    width: calc(100% + 28px);
+    margin: -12px -14px 0;
+    padding: 10px 14px 8px;
+  }
+
+  .station {
+    font-size: 16px;
+  }
+
+  .chevron {
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+    font-size: 20px;
+  }
+
+  .variableToggle {
+    min-height: 40px;
+  }
+
+  .yearNote {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+
+  .tick {
+    font-size: 13px;
+  }
 }
