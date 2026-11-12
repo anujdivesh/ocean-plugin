@@ -43,11 +43,6 @@ export const ENSO_CATEGORY: Record<
   elNino: { label: "El Niño", color: "#8b2f35", ink: "#8b2f35" },
 };
 
-const MONTH_FMT = new Intl.DateTimeFormat("en", {
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
 
 // Dial geometry (SVG units): semicircle centred at (CX, CY).
 const CX = 100;
@@ -111,6 +106,20 @@ function readMonth(data: EnsoData, month: string) {
     (typeof entry === "object" && entry.category) ||
     (value === undefined ? null : classify(value, data.thresholds));
   return { value, category };
+}
+
+/**
+ * Like readMonth, but when `month` is newer than the index's latest month
+ * (the index files lag the SST data), falls back to that latest month.
+ * `month` in the result is the month actually shown.
+ */
+function readMonthOrLatest(data: EnsoData, month: string) {
+  const own = readMonth(data, month);
+  if (own.category) return { ...own, month };
+  const latest = Object.keys(data.months).sort().at(-1);
+  if (latest && latest < month)
+    return { ...readMonth(data, latest), month: latest };
+  return { ...own, month };
 }
 
 /** 850 hPa trade wind anomalies (m/s) by "YYYY-MM", from /api/trade-winds. */
@@ -198,8 +207,10 @@ export default function EnsoGauge({ time }: { time: string | null }) {
   const current = monthIndex(month);
 
   // One shared window for all charts so their bars line up: pages of
-  // ENSO_CHART_MONTHS ending at the latest month in any index file.
+  // ENSO_CHART_MONTHS ending at the latest month in any index file, or at the
+  // selected month when the map is ahead of the index files.
   const latest = Math.max(
+    current,
     ...indices.flatMap((d) => (d ? Object.keys(d.months).map(monthIndex) : [])),
   );
   const page = Math.floor((latest - current) / ENSO_CHART_MONTHS);
@@ -209,7 +220,8 @@ export default function EnsoGauge({ time }: { time: string | null }) {
   // Combined state: El Niño / La Niña only when every index agrees (both the
   // atmosphere and ocean thresholds are met); otherwise Neutral. Unknown if
   // any index has no value this month.
-  const states = indices.map((d) => (d ? readMonth(d, month).category : null));
+  const reads = indices.map((d) => (d ? readMonthOrLatest(d, month) : null));
+  const states = reads.map((r) => r?.category ?? null);
   const combined: Category | null = states.some((c) => !c)
     ? null
     : states.every((c) => c === "elNino")
@@ -232,9 +244,6 @@ export default function EnsoGauge({ time }: { time: string | null }) {
           <span className={styles.logo} role="img" aria-label="COSPPaC" />
           <span className={styles.headerText}>
             <span className={styles.title}>ENSO status</span>
-            <span className={styles.month}>
-              {MONTH_FMT.format(new Date(time))}
-            </span>
           </span>
           {!open && combined && (
             <span
@@ -328,9 +337,10 @@ export default function EnsoGauge({ time }: { time: string | null }) {
           {/* One row per index: dial + state on the left, monthly bars on the right. */}
           {ENSO_INDICES.map((ix, i) => {
             const data = indices[i];
-            const { value, category } = data
-              ? readMonth(data, month)
-              : { value: undefined, category: null };
+            const read = reads[i];
+            const value = read?.value;
+            const category = read?.category ?? null;
+            const shown = read ? monthIndex(read.month) : current;
             return (
               <section key={ix.id} className={styles.indexRow}>
                 <p className={styles.indexLabel}>{ix.label}</p>
@@ -361,7 +371,7 @@ export default function EnsoGauge({ time }: { time: string | null }) {
                         data={data}
                         start={windowStart}
                         end={windowEnd}
-                        current={current}
+                        current={shown}
                       />
                       <div className={styles.chartRange}>
                         <span>{formatMonth(windowStart)}</span>
