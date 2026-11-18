@@ -12,37 +12,50 @@ import { DATA_BEFORE_ID } from "@/lib/referenceLayers";
 import LayerCard from "./LayerCard";
 import styles from "./EezLayerControl.module.css";
 
-// EEZs shaded by a per-country status from public/drought.json, over the
-// shapes in public/pacific-eez.json (built by scripts/build-eez.mjs).
+// EEZs shaded by a per-country status from a config file (public/drought.json
+// or public/enso-impacts.json), over the shapes in public/pacific-eez.json
+// (built by scripts/build-eez.mjs).
 
 type Category = { id: string; label: string; color: string };
-type DroughtLayer = {
+type EezLayer = {
   title: string;
   categories: Category[];
   /** Country code -> category id. */
   countries: Record<string, string>;
+  /** Report themes listed in the popup (enso-impacts.json `themes`). */
+  impactThemes?: string[];
 };
-type DroughtConfig = {
+type EezConfig = {
   updated?: string;
   note?: string;
   /** Fill and legend entry for countries a layer doesn't list. */
   noInfo?: { label: string; color: string };
-  layers: Record<string, DroughtLayer>;
+  layers: Record<string, EezLayer>;
 };
 
 const EEZ_SOURCE = "pacific-eez";
 const NO_FILL = "rgba(0, 0, 0, 0)";
-/** Used when drought.json has no `noInfo`: unlisted countries left unshaded. */
+const DEFAULT_CONFIG = "/drought.json";
+/** Used when the config has no `noInfo`: unlisted countries left unshaded. */
 const DEFAULT_NO_INFO = { label: "No data", color: NO_FILL };
 
-/** Drought-related impact entries by country (scripts/build_impacts.py). */
+/** One report listed in a popup. */
 type Impact = {
   title: string;
   month: string; // "YYYY-MM"
   source: string | null;
   link: string | null;
+  location?: string | null;
+  /** Social media / monitoring chat: not checked against an official source. */
+  unverified?: boolean;
 };
-type Impacts = { source: string; countries: Record<string, Impact[]> };
+/** COSPPac impact log: drought-related entries (scripts/build_impacts.py). */
+type DroughtImpacts = { source: string; countries: Record<string, Impact[]> };
+/** Pacific Hazards & Impacts register: ENSO-related reports by theme. */
+type RegisterImpacts = {
+  source: string;
+  impacts: Record<string, (Impact & { themes: string[] })[]>;
+};
 
 /** Impacts listed in a popup; the rest are counted. */
 const POPUP_IMPACTS = 3;
@@ -52,20 +65,53 @@ const MONTH_YEAR = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
 });
 
-let impactsCache: Promise<Impacts | null> | null = null;
-/** Load (once) public/drought-impacts.json; null if it's missing. */
-const loadImpacts = () =>
-  (impactsCache ??= fetch(withBasePath("/drought-impacts.json"))
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null));
+const jsonCache = new Map<string, Promise<unknown>>();
+/** Load (once per path) a public JSON file; null if it's missing. */
+function loadOptional<T>(path: string): Promise<T | null> {
+  if (!jsonCache.has(path))
+    jsonCache.set(
+      path,
+      fetch(withBasePath(path))
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+    );
+  return jsonCache.get(path) as Promise<T | null>;
+}
 
-/** Popup body: country, this layer's status, then its recent impacts. */
+/**
+ * A country's reports for a layer, newest first: register reports in the
+ * layer's themes, plus the COSPPac log for drought. Also the sources used.
+ */
+async function impactsFor(code: string, themes: string[]) {
+  if (!themes.length) return { impacts: [], sources: [] };
+  const [register, drought] = await Promise.all([
+    loadOptional<RegisterImpacts>("/enso-impacts.json"),
+    themes.includes("drought")
+      ? loadOptional<DroughtImpacts>("/drought-impacts.json")
+      : null,
+  ]);
+  const fromRegister = (register?.impacts[code] ?? []).filter((i) =>
+    i.themes.some((t) => themes.includes(t)),
+  );
+  const fromLog = drought?.countries[code] ?? [];
+  return {
+    impacts: [...fromRegister, ...fromLog].sort((a, b) =>
+      b.month.localeCompare(a.month),
+    ),
+    sources: [
+      fromRegister.length && register?.source,
+      fromLog.length && drought?.source,
+    ].filter((s): s is string => !!s),
+  };
+}
+
+/** Popup body: country, this layer's status, then its recent reports. */
 function popupContent(
   name: string,
   layerTitle: string,
   status: string,
   impacts: Impact[],
-  source: string | undefined,
+  sources: string[],
 ) {
   const el = document.createElement("div");
   el.className = styles.popup;
@@ -78,16 +124,19 @@ function popupContent(
 
   const label = document.createElement("p");
   label.className = styles.impactsLabel;
-  label.textContent = "Recent impacts";
+  label.textContent = `Recent reports (${impacts.length})`;
   const list = document.createElement("ul");
   list.className = styles.impacts;
   for (const impact of impacts.slice(0, POPUP_IMPACTS)) {
     const item = document.createElement("li");
     const when = document.createElement("span");
     when.className = styles.impactMonth;
-    when.textContent = MONTH_YEAR.format(
-      new Date(`${impact.month}-01T00:00:00Z`),
-    );
+    when.textContent = [
+      MONTH_YEAR.format(new Date(`${impact.month}-01T00:00:00Z`)),
+      impact.location,
+    ]
+      .filter(Boolean)
+      .join(" · ");
     const title = document.createElement(impact.link ? "a" : "span");
     title.textContent = impact.title;
     if (impact.link && title instanceof HTMLAnchorElement) {
@@ -96,20 +145,23 @@ function popupContent(
       title.rel = "noopener noreferrer";
     }
     item.append(when, title);
-    if (impact.source) {
-      const by = document.createElement("span");
-      by.className = styles.impactSource;
-      by.textContent = ` · ${impact.source}`;
-      item.append(by);
+    const by = [impact.source, impact.unverified && "unverified"]
+      .filter(Boolean)
+      .join(", ");
+    if (by) {
+      const span = document.createElement("span");
+      span.className = styles.impactSource;
+      span.textContent = ` · ${by}`;
+      item.append(span);
     }
     list.append(item);
   }
   el.append(label, list);
   const more = impacts.length - POPUP_IMPACTS;
-  if (more > 0 || source) {
+  if (more > 0 || sources.length) {
     const foot = document.createElement("p");
     foot.className = styles.impactsFoot;
-    foot.textContent = [more > 0 && `+${more} more`, source]
+    foot.textContent = [more > 0 && `+${more} more`, ...sources]
       .filter(Boolean)
       .join(" · ");
     el.append(foot);
@@ -117,19 +169,27 @@ function popupContent(
   return el;
 }
 
-let configCache: Promise<DroughtConfig> | null = null;
-const loadConfig = () =>
-  (configCache ??= fetch(withBasePath("/drought.json")).then((r) => {
-    if (!r.ok) throw new Error(`drought.json: ${r.status}`);
-    return r.json();
-  }));
+const configCache = new Map<string, Promise<EezConfig>>();
+const loadConfig = (path: string) => {
+  if (!configCache.has(path))
+    configCache.set(
+      path,
+      fetch(withBasePath(path)).then((r) => {
+        if (!r.ok) throw new Error(`${path.slice(1)}: ${r.status}`);
+        return r.json();
+      }),
+    );
+  return configCache.get(path)!;
+};
 
 type Props = {
   map: MaplibreMap | null;
-  /** Workbench title until drought.json loads. */
+  /** Workbench title until the config loads. */
   title: string;
-  /** Key of this layer in drought.json's `layers`. */
-  droughtKey: string;
+  /** Public JSON holding the layer (default /drought.json). */
+  config?: string;
+  /** Key of this layer in the config's `layers`. */
+  layerKey: string;
   visible: boolean;
   onVisibleChange?: (visible: boolean) => void;
   /** Radio group name when only one layer of its group can be on. */
@@ -138,7 +198,7 @@ type Props = {
 
 /** Fill colour per feature: its country's category colour, else `fallback`. */
 function fillColor(
-  layer: DroughtLayer,
+  layer: EezLayer,
   fallback: string,
 ): ExpressionSpecification | string {
   const colors = new Map(layer.categories.map((c) => [c.id, c.color]));
@@ -159,29 +219,32 @@ function fillColor(
 export default function EezLayerControl({
   map,
   title,
-  droughtKey,
+  config: configPath = DEFAULT_CONFIG,
+  layerKey,
   visible,
   onVisibleChange,
   radioGroup,
 }: Props) {
-  const [config, setConfig] = useState<DroughtConfig | null>(null);
+  const [config, setConfig] = useState<EezConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const layer = config?.layers[droughtKey];
+  const layer = config?.layers[layerKey];
   const noInfo = config?.noInfo ?? DEFAULT_NO_INFO;
-  const layerId = `drought-${droughtKey}`;
+  // Drought layers keep their original ids ("drought-<key>").
+  const layerId =
+    configPath === DEFAULT_CONFIG ? `drought-${layerKey}` : `eez-${layerKey}`;
 
   useEffect(() => {
-    loadConfig()
+    loadConfig(configPath)
       .then((c) => {
         setConfig(c);
-        if (!c.layers[droughtKey])
-          setError(`No "${droughtKey}" layer in drought.json`);
+        if (!c.layers[layerKey])
+          setError(`No "${layerKey}" layer in ${configPath.slice(1)}`);
       })
       .catch((e: Error) => setError(e.message));
-  }, [droughtKey]);
+  }, [configPath, layerKey]);
 
   // Add the fill once the config is in; remove it on unmount. The EEZ source
-  // is shared by every drought layer and left on the map.
+  // is shared by every EEZ layer and left on the map.
   useEffect(() => {
     if (!map || !layer || map.getLayer(layerId)) return;
     if (!map.getSource(EEZ_SOURCE)) {
@@ -208,19 +271,22 @@ export default function EezLayerControl({
       DATA_BEFORE_ID, // keep reference overlays (EEZ lines, names) on top
     );
 
-    // Click an EEZ for its country, status and recent impacts.
+    // Click an EEZ for its country, status and recent reports.
     const labels = new Map(layer.categories.map((c) => [c.id, c.label]));
     const onClick = async (e: MapLayerMouseEvent) => {
       const props = e.features?.[0]?.properties;
       if (!props) return;
       const status = labels.get(layer.countries[props.code]) ?? noInfo.label;
-      const impacts = await loadImpacts();
+      const { impacts, sources } = await impactsFor(
+        props.code,
+        layer.impactThemes ?? [],
+      );
       const el = popupContent(
         props.name,
         layer.title,
         status,
-        impacts?.countries[props.code] ?? [],
-        impacts?.source,
+        impacts,
+        sources,
       );
       new Popup({ closeButton: false, maxWidth: "300px" })
         .setLngLat(e.lngLat)

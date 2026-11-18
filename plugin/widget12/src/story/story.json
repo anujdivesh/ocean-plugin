@@ -187,7 +187,7 @@
     {
       "id": "impact",
       "title": "ENSO – Impact",
-      "description": "Where drought is affecting Pacific Island countries: meteorological and agricultural drought.",
+      "description": "How El Niño is affecting Pacific Island countries: drought, water shortages, food and agriculture, wildfires, fish kills, tuna fisheries, coral bleaching, health and flooding.",
       "layers": ["drought-meteorological"]
     }
   ]

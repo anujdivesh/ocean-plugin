@@ -1,10 +1,11 @@
 {
-  "_help": "Drought status by country, shading each country's EEZ in the Impact layers. 'countries' maps a country code to one of that layer's category ids (e.g. watch, partial, drought); countries left out are shaded with 'noInfo' (e.g. light grey, 'No information'); Australia and New Zealand are not in the EEZ shapes, so they are never shaded. Codes: AS American Samoa, CK Cook Islands, FJ Fiji, FM FSM, GU Guam, KI Kiribati, MH Marshall Islands, MP Northern Mariana Islands, NC New Caledonia, NR Nauru, NU Niue, PF French Polynesia, PG PNG, PN Pitcairn, PW Palau, SB Solomon Islands, TK Tokelau, TO Tonga, TV Tuvalu, VU Vanuatu, WF Wallis and Futuna, WS Samoa. Optional 'note' is shown on the layer cards.",
+  "_help": "Drought status by country, shading each country's EEZ in the Impact layers. 'countries' maps a country code to one of that layer's category ids (e.g. watch, partial, drought); countries left out are shaded with 'noInfo' (e.g. light grey, 'No information'); Australia and New Zealand are not in the EEZ shapes, so they are never shaded. Codes: AS American Samoa, CK Cook Islands, FJ Fiji, FM FSM, GU Guam, KI Kiribati, MH Marshall Islands, MP Northern Mariana Islands, NC New Caledonia, NR Nauru, NU Niue, PF French Polynesia, PG PNG, PN Pitcairn, PW Palau, SB Solomon Islands, TK Tokelau, TO Tonga, TV Tuvalu, VU Vanuatu, WF Wallis and Futuna, WS Samoa. Optional 'note' is shown on the layer cards. A layer's 'impactThemes' lists which report themes from enso-impacts.json (plus, for 'drought', drought-impacts.json) its EEZ popups show.",
   "updated": "October 2026",
   "noInfo": { "label": "No information", "color": "#d1d5db" },
   "layers": {
     "meteorological": {
       "title": "Meteorological Drought",
+      "impactThemes": ["drought"],
       "categories": [
         { "id": "watch", "label": "Drought watch", "color": "#fde68a" },
         {
@@ -15,12 +16,12 @@
         { "id": "drought", "label": "Drought", "color": "#dc2626" }
       ],
       "countries": {
-        "TO": "partial",
+        "TO": "drought",
         "VU": "partial",
         "PG": "partial",
         "SB": "watch",
         "CK": "watch",
-        "FJ": "watch",
+        "FJ": "drought",
         "FM": "watch",
         "NU": "watch",
         "WS": "watch",
@@ -29,6 +30,7 @@
     },
     "agricultural": {
       "title": "Agricultural Drought",
+      "impactThemes": ["drought"],
       "categories": [
         { "id": "watch", "label": "Drought watch", "color": "#fde68a" },
         {

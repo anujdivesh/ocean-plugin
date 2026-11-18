@@ -436,7 +436,8 @@ export default function StoryMap() {
                       key={layer.id}
                       map={map}
                       title={layer.title}
-                      droughtKey={layer.droughtKey}
+                      config={layer.config}
+                      layerKey={layer.layerKey}
                       visible={common.visible}
                       onVisibleChange={common.onVisibleChange}
                       radioGroup={common.radioGroup}

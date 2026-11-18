@@ -34,13 +34,19 @@ export type StoryLayer = {
   | {
       id: string;
       /**
-       * Countries' EEZs shaded by a status from public/drought.json (its
-       * `layers[droughtKey]`), over the shapes in public/pacific-eez.json.
+       * Countries' EEZs shaded by a status from `config` (its
+       * `layers[layerKey]`), over the shapes in public/pacific-eez.json.
        */
       kind: "eez";
-      /** Shown until drought.json loads (then its layer title is used). */
+      /** Shown until the config loads (then its layer title is used). */
       title: string;
-      droughtKey: string;
+      /**
+       * Public JSON with the layer: "/drought.json" (drought status, edited by
+       * hand) or "/enso-impacts.json" (impact themes from the Pacific Hazards
+       * & Impacts register). Defaults to "/drought.json".
+       */
+      config?: string;
+      layerKey: string;
     }
   | {
       id: string;
@@ -489,13 +495,36 @@ export const STORY_LAYERS: StoryLayer[] = [
     group: "impact",
     kind: "eez",
     title: "Meteorological Drought",
-    droughtKey: "meteorological",
+    layerKey: "meteorological",
   },
   {
     id: "drought-agricultural",
     group: "impact",
     kind: "eez",
     title: "Agricultural Drought",
-    droughtKey: "agricultural",
+    layerKey: "agricultural",
   },
+  // Impact themes: EEZs shaded by what the Pacific Hazards & Impacts register
+  // reports (public/enso-impacts.json).
+  ...(
+    [
+      ["water", "Water Shortages"],
+      ["food", "Food & Agriculture"],
+      ["fire", "Wildfires & Haze"],
+      ["fishkill", "Fish Kills & Algal Blooms"],
+      ["fisheries", "Tuna & Fisheries"],
+      ["marine", "Coral Bleaching & Marine Heat"],
+      ["health", "Health & Disease"],
+      ["flood", "Heavy Rain & Coastal Flooding"],
+    ] as const
+  ).map(
+    ([layerKey, title]): StoryLayer => ({
+      id: `impact-${layerKey}`,
+      group: "impact",
+      kind: "eez",
+      title,
+      config: "/enso-impacts.json",
+      layerKey,
+    }),
+  ),
 ];

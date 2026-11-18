@@ -1,0 +1,3683 @@
+{
+  "_help": "ENSO impact layers and reports from the Pacific Hazards & Impacts register (ENSO-related reports only; descriptions not published; social-media/monitoring-chat reports marked unverified, without source or link). Each layer shades a country by its strongest report in that theme: impact > response > watch. 'impacts' maps a country code to its reports; 'themes' says which layers list a report ('drought' reports are listed in the drought layers' popups).",
+  "source": "Pacific Hazards & Impacts register",
+  "updated": "17 November 2026",
+  "note": "Not all reports verified",
+  "noInfo": {
+    "label": "No reports",
+    "color": "#d1d5db"
+  },
+  "layers": {
+    "water": {
+      "title": "Water Shortages",
+      "categories": [
+        {
+          "id": "impact",
+          "label": "Impacts reported",
+          "color": "#1d4ed8"
+        },
+        {
+          "id": "response",
+          "label": "Response or preparedness",
+          "color": "#60a5fa"
+        },
+        {
+          "id": "watch",
+          "label": "Risk or warning",
+          "color": "#dbeafe"
+        }
+      ],
+      "countries": {
+        "CK": "response",
+        "FJ": "impact",
+        "FM": "impact",
+        "KI": "watch",
+        "MH": "impact",
+        "NC": "watch",
+        "NR": "watch",
+        "NU": "impact",
+        "PF": "watch",
+        "PG": "impact",
+        "PW": "impact",
+        "SB": "impact",
+        "TK": "response",
+        "TO": "impact",
+        "TV": "impact",
+        "VU": "impact",
+        "WF": "watch",
+        "WS": "impact"
+      },
+      "impactThemes": [
+        "water"
+      ]
+    },
+    "food": {
+      "title": "Food & Agriculture",
+      "categories": [
+        {
+          "id": "impact",
+          "label": "Impacts reported",
+          "color": "#a16207"
+        },
+        {
+          "id": "response",
+          "label": "Response or preparedness",
+          "color": "#eab308"
+        },
+        {
+          "id": "watch",
+          "label": "Risk or warning",
+          "color": "#fef3c7"
+        }
+      ],
+      "countries": {
+        "FJ": "impact",
+        "NC": "impact",
+        "NU": "impact",
+        "PG": "impact",
+        "TO": "impact",
+        "VU": "impact",
+        "WF": "impact",
+        "WS": "impact"
+      },
+      "impactThemes": [
+        "food"
+      ]
+    },
+    "fire": {
+      "title": "Wildfires & Haze",
+      "categories": [
+        {
+          "id": "impact",
+          "label": "Impacts reported",
+          "color": "#c2410c"
+        },
+        {
+          "id": "response",
+          "label": "Response or preparedness",
+          "color": "#fb923c"
+        },
+        {
+          "id": "watch",
+          "label": "Risk or warning",
+          "color": "#ffedd5"
+        }
+      ],
+      "countries": {
+        "NC": "watch",
+        "NU": "impact",
+        "PG": "impact",
+        "VU": "watch",
+        "WS": "impact"
+      },
+      "impactThemes": [
+        "fire"
+      ]
+    },
+    "fishkill": {
+      "title": "Fish Kills & Algal Blooms",
+      "categories": [
+        {
+          "id": "impact",
+          "label": "Impacts reported",
+          "color": "#7e22ce"
+        },
+        {
+          "id": "response",
+          "label": "Response or preparedness",
+          "color": "#c084fc"
+        },
+        {
+          "id": "watch",
+          "label": "Risk or warning",
+          "color": "#f3e8ff"
+        }
+      ],
+      "countries": {
+        "FM": "impact",
+        "PG": "impact",
+        "SB": "impact"
+      },
+      "impactThemes": [
+        "fishkill"
+      ]
+    },
+    "fisheries": {
+      "title": "Tuna & Fisheries",
+      "categories": [
+        {
+          "id": "impact",
+          "label": "Impacts reported",
+          "color": "#0f766e"
+        },
+        {
+          "id": "response",
+          "label": "Response or preparedness",
+          "color": "#2dd4bf"
+        },
+        {
+          "id": "watch",
+          "label": "Risk or warning",
+          "color": "#ccfbf1"
+        }
+      ],
+      "countries": {
+        "FM": "impact",
+        "KI": "impact",
+        "PF": "watch",
+        "PG": "impact",
+        "SB": "impact"
+      },
+      "impactThemes": [
+        "fisheries"
+      ]
+    },
+    "marine": {
+      "title": "Coral Bleaching & Marine Heat",
+      "categories": [
+        {
+          "id": "impact",
+          "label": "Impacts reported",
+          "color": "#be185d"
+        },
+        {
+          "id": "response",
+          "label": "Response or preparedness",
+          "color": "#f472b6"
+        },
+        {
+          "id": "watch",
+          "label": "Risk or warning",
+          "color": "#fce7f3"
+        }
+      ],
+      "countries": {
+        "PF": "watch",
+        "SB": "impact",
+        "TV": "watch"
+      },
+      "impactThemes": [
+        "marine"
+      ]
+    },
+    "health": {
+      "title": "Health & Disease",
+      "categories": [
+        {
+          "id": "impact",
+          "label": "Impacts reported",
+          "color": "#b91c1c"
+        },
+        {
+          "id": "response",
+          "label": "Response or preparedness",
+          "color": "#f87171"
+        },
+        {
+          "id": "watch",
+          "label": "Risk or warning",
+          "color": "#fee2e2"
+        }
+      ],
+      "countries": {
+        "FM": "watch",
+        "MH": "impact",
+        "SB": "impact",
+        "VU": "impact",
+        "WS": "impact"
+      },
+      "impactThemes": [
+        "health"
+      ]
+    },
+    "flood": {
+      "title": "Heavy Rain & Coastal Flooding",
+      "categories": [
+        {
+          "id": "impact",
+          "label": "Impacts reported",
+          "color": "#0e7490"
+        },
+        {
+          "id": "response",
+          "label": "Response or preparedness",
+          "color": "#22d3ee"
+        },
+        {
+          "id": "watch",
+          "label": "Risk or warning",
+          "color": "#cffafe"
+        }
+      ],
+      "countries": {
+        "KI": "impact",
+        "MH": "impact",
+        "TK": "response",
+        "TV": "watch"
+      },
+      "impactThemes": [
+        "flood"
+      ]
+    }
+  },
+  "impacts": {
+    "CK": [
+      {
+        "id": "COK-DR-20260914-001",
+        "title": "Drought and prolonged dry conditions",
+        "month": "2026-09",
+        "location": "Southern Cook Islands",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "cookislandsnews.com",
+        "link": "https://www.cookislandsnews.com/internal/national/local/weather/agriculture/el-nino-threatens-cook-islands-wet-season-with-extended-dry-conditions/"
+      },
+      {
+        "id": "COK-UNK-00000000-001",
+        "title": "Community water-storage rehabilitation",
+        "month": "2026-08",
+        "location": "Rakahanga",
+        "stage": "response",
+        "themes": [
+          "water"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "COK-DR-20260706-001",
+        "title": "Severe drought risk under El Niño",
+        "month": "2026-07",
+        "location": "Southern Cook Islands",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "cookislandsnews.com",
+        "link": "https://www.cookislandsnews.com/internal/national/local/outer-islands/weather/el-nino-is-underway-rain-doesnt-cancel-threat-clarifies-met-service/"
+      }
+    ],
+    "FJ": [
+      {
+        "id": "FJI-DR-00000000-003",
+        "title": "Drought-related borehole depletion",
+        "month": "2026-11",
+        "location": "Yasawa-i-Rara, Yasawa Group, Western Division",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "The Fiji Times",
+        "link": "https://www.fijitimes.com.fj/boreholes-dry-up-as-drought-bites/"
+      },
+      {
+        "id": "FJI-DR-00000000-004",
+        "title": "Drought-related household and school water shortage",
+        "month": "2026-11",
+        "location": "Uciwai and Uciwai/Nalovo No. 3, Nadi, Western Division",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji Sun",
+        "link": "https://fijisun.com.fj/news/nation/dry-wells-empty-tanks-leave-uciwai-families-struggling"
+      },
+      {
+        "id": "FJI-DR-00000000-008",
+        "title": "El Niño impacts on hydroelectric generation",
+        "month": "2026-11",
+        "location": "Fiji hydroelectric schemes",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": null,
+        "link": "https://fijisun.com.fj/news/nation/el-nio-threatens-hydroelectric-power-supply?fbclid=IwY2xjawVY3gVleHRuA2FlbQIxMQBwZG9mBWJyaWQRMWptVVZIQ3NEaFpIZEJtWlRzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEfdFRWIm3Y1BAAI5-PmwTxGfwtKygNcIbICXcCgL9YzoffGnRTtu7kYrg2ouU_aem_iV_g1U0-AK9DnupUA4vKEA"
+      },
+      {
+        "id": "FJI-DR-20261101-001",
+        "title": "Critical public water-source depletion",
+        "month": "2026-11",
+        "location": "Fiji, with significant impacts in Northern and Western divisions",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": null,
+        "link": "https://pmn.co.nz/read/pacific-region/fiji-s-water-sources-running-dry-as-super-el-nino-tightens-its-grip"
+      },
+      {
+        "id": "FJI-DR-20260000-001",
+        "title": "Emergency water supply to drought-affected maritime communities",
+        "month": "2026-11",
+        "location": "Macuata maritime communities and Naqelelevu Island, Taveuni",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-009",
+        "title": "Critically reduced dam water levels",
+        "month": "2026-11",
+        "location": "Kade, Tavua, Naqaidamu and Nacamaki, Koro Island, Lomaiviti Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-010",
+        "title": "Critical reservoir and community water shortage",
+        "month": "2026-11",
+        "location": "Arovudi and Rukuruku, Ovalau, Lomaiviti Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-011",
+        "title": "School water shortage",
+        "month": "2026-11",
+        "location": "Rukuruku Primary School, Ovalau",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-012",
+        "title": "School water shortages",
+        "month": "2026-11",
+        "location": "Kade Primary School and Nacamaki Primary School, Koro Island",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-013",
+        "title": "Southern Lau community water shortages",
+        "month": "2026-11",
+        "location": "Nukuni, Matokana, Doi, Lovoni, Vatoa, Fulaga and Namuka-i-Lau",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-005",
+        "title": "Drought-related water shortage requiring emergency carting",
+        "month": "2026-11",
+        "location": "Dravuni and Buliya, Ono, Kadavu Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-014",
+        "title": "Reduced or unavailable household water supply",
+        "month": "2026-11",
+        "location": "Ba/Tavua/Drumasi, Balata 2, Rakiraki/Naseyani, Malale 2 & 3, Rakavidi, Tuvu Settlement, Verata/Nakalawaca and Nauluvatu",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-015",
+        "title": "Insufficient school water-storage capacity",
+        "month": "2026-11",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-016",
+        "title": "Emergency water-carting funding exhaustion",
+        "month": "2026-11",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-017",
+        "title": "Emergency water-carting disruption to scheduled maritime services",
+        "month": "2026-11",
+        "location": "Maritime routes across all four divisions",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-20260800-DRT-001",
+        "title": "Drought-related food and household water insecurity",
+        "month": "2026-11",
+        "location": "Dreketi and Nasarowangga Settlement, Vanua Levu, Northern Division",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "FijiVillage",
+        "link": "https://www.fijivillage.com/news/families-forced-to-rely-on-canned-food-as-drought-affects-vegetable-supply-in-dreketi-market-c408a8/?fbclid=IwVERDUAVmyntleHRuA2FlbQIxMQBwZG9mBWZkaWQWUSRrum9-yJLxxL3oR3I3n1MI0xHPtXNydGMGYXBwX2lkCjY2Mjg1NjgzNzkAAR--00Y428H4Mj4dRJ8P2FRIIgb7_tEjty1o8yIE12lr8x36y_NjxB_1OId9Rg_aem_u3Y7GV_pX_ybN5vumHQ-eQ"
+      },
+      {
+        "id": "FJI-20261001-DRT-001",
+        "title": "Record-low October rainfall and drought impacts",
+        "month": "2026-11",
+        "location": "Nadi Airport, Yasawa-i-Rara, Viwa, Rotuma and Fiji nationally",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji Sun / Fiji Meteorological Service",
+        "link": "https://fijisun.com.fj/news/weather/four-fiji-weather-stations-record-driest-october-in-history"
+      },
+      {
+        "id": "FJI-20261113-DRT-002",
+        "title": "Drought impacts on farming, market livelihoods and household water supply",
+        "month": "2026-11",
+        "location": "Seaqaqa, Salove and Nakalou Village, Macuata Province, Northern Division",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "Fiji Sun",
+        "link": "https://fijisun.com.fj/news/nation/dry-spell-forces-seaqaqa-vendors-to-change-what-they-sell"
+      },
+      {
+        "id": "FJI-20261112-DRT-003",
+        "title": "National drought and water-management response",
+        "month": "2026-11",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji Sun",
+        "link": "https://fijisun.com.fj/news/nation/el-nio-government-rules-out-water-emergency"
+      },
+      {
+        "id": "FJI-20261114-DRT-001",
+        "title": "Drought-related controlled water rationing",
+        "month": "2026-11",
+        "location": "Nadi and Lautoka Water Supply Systems, Western Division",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Water Authority of Fiji",
+        "link": null
+      },
+      {
+        "id": "FJI-20261112-DRT-004",
+        "title": "Agricultural drought impacts and national farmer-support response",
+        "month": "2026-11",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "The Fiji Times",
+        "link": "https://www.fijitimes.com.fj/government-launches-six-initiatives-to-help-farmers-battle-drought/"
+      },
+      {
+        "id": "FJI-20261117-DRT-001",
+        "title": "Drought-related household water shortages and water-storage response",
+        "month": "2026-11",
+        "location": "Vanuakula Settlement, Lautoka, Western Division",
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "FJI-DR-20261001-001",
+        "title": "Water shortages affecting schools",
+        "month": "2026-10",
+        "location": "Udu and Cikobia District Schools, Northern Division",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "National Emergency Operations Centre SitRep #03",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-20261001-002",
+        "title": "Agricultural drought and livestock losses",
+        "month": "2026-10",
+        "location": "Western Division",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "National Emergency Operations Centre SitRep #03",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-006",
+        "title": "El Niño dry spell affecting sugarcane recovery and productivity",
+        "month": "2026-10",
+        "location": "Fiji sugarcane-growing areas",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "Fiji Sun",
+        "link": "https://fijisun.com.fj/news/nation/el-nino-dry-spell-threatens-next-seasons-cane-productivity"
+      },
+      {
+        "id": "FJI-DR-20261008-001",
+        "title": "Water shortage",
+        "month": "2026-10",
+        "location": "Serua",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "NEOC SitRep #04",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-20261013-001",
+        "title": "Hydropower drought contingency measures",
+        "month": "2026-10",
+        "location": "Monasavu Dam and national electricity system",
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC / Energy Fiji Limited",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-20261026-001",
+        "title": "Emergency water-carting funding shortfall",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-UNK-20261028-001",
+        "title": "Water-delivery access and transfer constraints",
+        "month": "2026-10",
+        "location": "Teci and Vuaki, Yasawa Group, Western Division",
+        "stage": "impact",
+        "themes": [
+          "water"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-20261000-001",
+        "title": "Emergency drinking-water delivery to school",
+        "month": "2026-10",
+        "location": "Ratu Naivalu Memorial Primary School, Yasawa Group, Western Division",
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-20261000-002",
+        "title": "Emergency drinking-water delivery to school",
+        "month": "2026-10",
+        "location": "Namara District School, Yasawa Group, Western Division",
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-20261000-003",
+        "title": "Emergency drinking-water delivery to school",
+        "month": "2026-10",
+        "location": "Yasawa Secondary School, Yasawa Group, Western Division",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-20261000-004",
+        "title": "Emergency drinking-water delivery to health facility",
+        "month": "2026-10",
+        "location": "Yaqeta Nursing Station, Yasawa Group, Western Division",
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-20261000-005",
+        "title": "Emergency drinking-water delivery to school",
+        "month": "2026-10",
+        "location": "Yaqeta Primary School, Yasawa Group, Western Division",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-007",
+        "title": "Emergency water carting operations",
+        "month": "2026-10",
+        "location": "Priority maritime communities, Macuata Province and Cikobia Island, Northern Division",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-00000000-002",
+        "title": "Drought-response shipping-service disruption",
+        "month": "2026-10",
+        "location": "Maritime routes across Fiji",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-UNK-00000000-003",
+        "title": "Community water-supply concern and response",
+        "month": "2026-10",
+        "location": "Tabia, Labasa, Northern Division",
+        "stage": "response",
+        "themes": [
+          "water"
+        ],
+        "source": "Fiji NDRMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-20261001-003",
+        "title": "Water shortages affecting households, livestock and farming",
+        "month": "2026-10",
+        "location": "Batinikama and Korowiri, Labasa, Northern Division",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "food",
+          "drought"
+        ],
+        "source": "Fiji Sun",
+        "link": "https://fijisun.com.fj/news/nation/el-nio-impacts-could-extend-into-mid-2027-warns-tunabuna"
+      },
+      {
+        "id": "FJI-DR-00000000-001",
+        "title": "Agricultural drought reducing vegetable production",
+        "month": "2026-09",
+        "location": "Korotari, Labasa, Northern Division",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "Fiji Sun",
+        "link": "https://fijisun.com.fj/news/nation/labasas-salad-bowl-farmers-feel-el-nios-heat"
+      },
+      {
+        "id": "FJI-DR-20260921-001",
+        "title": "Agricultural drought impacts",
+        "month": "2026-09",
+        "location": "Rakiraki",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "Fiji Sun article shared through monitoring network",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-20260925-001",
+        "title": "National drought outlook",
+        "month": "2026-09",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "National Emergency Operations Centre SitRep #02",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-20260925-002",
+        "title": "Emergency water carting operations",
+        "month": "2026-09",
+        "location": "Vatulele, Malolo, Mamanuca, Yasawa, Yanuca, Batiki and Northern Maritime Islands",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "National Emergency Operations Centre SitRep #02",
+        "link": null
+      },
+      {
+        "id": "FJI-DR-20260807-001",
+        "title": "El Nino / water shortages",
+        "month": "2026-08",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "FJI-DR-20260812-001",
+        "title": "El Nino / agriculture preparedness",
+        "month": "2026-08",
+        "location": "Fiji sugarcane areas",
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "FJI-DR-20260831-001",
+        "title": "Food security and agriculture impacts from El Niño",
+        "month": "2026-08",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "National Emergency Operations Centre",
+        "link": null
+      }
+    ],
+    "FM": [
+      {
+        "id": "FSM-OW-00000000-001",
+        "title": "Reported El Niño-related decline in tuna catches",
+        "month": "2026-10",
+        "location": "Federated States of Micronesia waters; specific fishing locations not reported",
+        "stage": "impact",
+        "themes": [
+          "fisheries"
+        ],
+        "source": "FijiGlobalNews",
+        "link": "https://fijiglobalnews.com/el-ninos-impact-on-pacific-tuna-fisheries-and-marine-ecosystems-revealed/"
+      },
+      {
+        "id": "FSM-FK-20260613-001",
+        "title": "Fish mortality and water discoloration",
+        "month": "2026-06",
+        "location": "Lamotrek and outer islands, Yap State",
+        "stage": "response",
+        "themes": [
+          "fishkill"
+        ],
+        "source": "Yap State Government",
+        "link": "https://islandsbusiness.com/news-break/yap-state-addresses-marine-environmental-concerns-following-fish-deaths/"
+      },
+      {
+        "id": "FSM-UNK-20260617-001",
+        "title": "Water contamination advisory",
+        "month": "2026-06",
+        "location": "Yap State outer islands",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "health"
+        ],
+        "source": "islandsbusiness.com",
+        "link": "https://islandsbusiness.com/news-break/yap-state-addresses-marine-environmental-concerns-following-fish-deaths/"
+      },
+      {
+        "id": "FSM-FK-20260623-001",
+        "title": "Water discoloration / fish deaths",
+        "month": "2026-06",
+        "location": "Yap",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "fishkill"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "FSM-HAB-20260626-001",
+        "title": "Harmful algal bloom / fish mortality event",
+        "month": "2026-06",
+        "location": "Lamotrek, Satawal, Fechailap, Elato, Ifalik, Eauripik and Fais, Yap State",
+        "stage": "impact",
+        "themes": [
+          "fishkill"
+        ],
+        "source": "Yap State Disaster Coordination Office",
+        "link": "https://www.fsmgov.org/fsm-public-advisory-marine-environmental-event-in-yap-state/"
+      }
+    ],
+    "KI": [
+      {
+        "id": "KIR-OW-00000000-001",
+        "title": "Increased tuna-fishing activity under El Niño conditions",
+        "month": "2026-10",
+        "location": "Kiribati waters; specific fishing locations not reported",
+        "stage": "impact",
+        "themes": [
+          "fisheries"
+        ],
+        "source": "FijiGlobalNews",
+        "link": "https://fijiglobalnews.com/el-ninos-impact-on-pacific-tuna-fisheries-and-marine-ecosystems-revealed/"
+      },
+      {
+        "id": "KIR-FL-20260815-001",
+        "title": "Heavy rainfall / flooding",
+        "month": "2026-08",
+        "location": "Tarawa",
+        "stage": "impact",
+        "themes": [
+          "flood"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "KIR-FL-20260815-002",
+        "title": "Flooding and heavy rainfall",
+        "month": "2026-08",
+        "location": "South Tarawa",
+        "stage": "impact",
+        "themes": [
+          "flood"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "KIR-FL-20260731-001",
+        "title": "Above-normal rainfall and flooding risk",
+        "month": "2026-07",
+        "location": "Gilbert Islands, northern Phoenix Islands and northern Line Islands",
+        "stage": "watch",
+        "themes": [
+          "flood"
+        ],
+        "source": "Pacific Islands Early Action Rainfall Watch",
+        "link": "https://library.sprep.org/sites/default/files/2026-08/Pacific-Islands-Early-Action-Rainfall-Watch_August_2026.pdf"
+      },
+      {
+        "id": "KIR-DR-20260731-001",
+        "title": "Drought",
+        "month": "2026-07",
+        "location": "Southern Line Islands",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Pacific Islands Early Action Rainfall Watch",
+        "link": "https://library.sprep.org/sites/default/files/2026-08/Pacific-Islands-Early-Action-Rainfall-Watch_August_2026.pdf"
+      },
+      {
+        "id": "KIR-DR-20260629-001",
+        "title": "El Nino outlook",
+        "month": "2026-06",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "drought"
+        ],
+        "source": "WhatsApp monitoring chat",
+        "link": null
+      },
+      {
+        "id": "KIR-CI-20260428-001",
+        "title": "Elevated coastal inundation and sea-level impacts",
+        "month": "2026-04",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "flood"
+        ],
+        "source": "Pacific Islands Climate Outlook Forum (PICOF-18)",
+        "link": "https://www.pacificmet.net/news/el-nino-likely-mid-2026-pacific-islands-climate-outlook-forum-18-warns"
+      }
+    ],
+    "MH": [
+      {
+        "id": "MHL-KT-20261008-001",
+        "title": "Coastal inundation and king tides",
+        "month": "2026-10",
+        "location": "Majuro Atoll and low-lying outer islands",
+        "stage": "impact",
+        "themes": [
+          "flood"
+        ],
+        "source": "RMI Government (State of Disaster proclamation)",
+        "link": "https://rmigov.com/wp-content/uploads/2026/10/Executive-Order-Proclamation-Declaring-a-State-of-Disaster-for-El-Nino-and-Dengue-Outbreak.pdf"
+      },
+      {
+        "id": "MHL-DR-20261008-001",
+        "title": "El Niño and Dengue Outbreak / State of Disaster",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "RMI Government (State of Disaster proclamation)",
+        "link": "https://rmigov.com/wp-content/uploads/2026/10/Executive-Order-Proclamation-Declaring-a-State-of-Disaster-for-El-Nino-and-Dengue-Outbreak.pdf"
+      },
+      {
+        "id": "MHL-DEN-20261008-001",
+        "title": "Dengue outbreak impacts",
+        "month": "2026-10",
+        "location": "Majuro and Ebeye",
+        "stage": "impact",
+        "themes": [
+          "health"
+        ],
+        "source": "RMI Government (State of Disaster proclamation)",
+        "link": "https://rmigov.com/wp-content/uploads/2026/10/Executive-Order-Proclamation-Declaring-a-State-of-Disaster-for-El-Nino-and-Dengue-Outbreak.pdf"
+      },
+      {
+        "id": "MHL-DR-20261009-001",
+        "title": "Water shortage and accessibility",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Pacific 2026/27 El Niño Readiness Stocktake",
+        "link": null
+      },
+      {
+        "id": "MHL-DR-20261009-002",
+        "title": "National drought and water security concerns",
+        "month": "2026-10",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Office of the Chief Secretary / National Disaster…",
+        "link": null
+      }
+    ],
+    "NC": [
+      {
+        "id": "NCL-DR-20260830-001",
+        "title": "Agricultural crop stress",
+        "month": "2026-08",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "la1ere.franceinfo.fr",
+        "link": "https://la1ere.franceinfo.fr/wallisfutuna/wallis/el-nino-la-secheresse-des-sols-se-fait-sentir-dans-les-plantations-1733747.html"
+      },
+      {
+        "id": "NCL-WF-20260608-001",
+        "title": "Elevated wildfire risk",
+        "month": "2026-06",
+        "location": "Central New Caledonia",
+        "stage": "watch",
+        "themes": [
+          "fire"
+        ],
+        "source": "radiococotier.nc",
+        "link": "https://radiococotier.nc/2026/06/08/el-nino-de-retour-un-risque-accru-de-secheresse-en-caledonie/"
+      },
+      {
+        "id": "NCL-DR-20260608-001",
+        "title": "Rainfall deficit and drought conditions",
+        "month": "2026-06",
+        "location": "Central New Caledonia",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "radiococotier.nc",
+        "link": "https://radiococotier.nc/2026/06/08/el-nino-de-retour-un-risque-accru-de-secheresse-en-caledonie/"
+      },
+      {
+        "id": "NCL-WF-20260608-002",
+        "title": "Elevated wildfire risk",
+        "month": "2026-06",
+        "location": "Northern New Caledonia",
+        "stage": "watch",
+        "themes": [
+          "fire"
+        ],
+        "source": "radiococotier.nc",
+        "link": "https://radiococotier.nc/2026/06/08/el-nino-de-retour-un-risque-accru-de-secheresse-en-caledonie/"
+      },
+      {
+        "id": "NCL-DR-20260608-002",
+        "title": "Rainfall deficit and drought conditions",
+        "month": "2026-06",
+        "location": "Northern New Caledonia",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "radiococotier.nc",
+        "link": "https://radiococotier.nc/2026/06/08/el-nino-de-retour-un-risque-accru-de-secheresse-en-caledonie/"
+      },
+      {
+        "id": "NCL-WF-20260608-003",
+        "title": "Elevated wildfire risk",
+        "month": "2026-06",
+        "location": "Southern New Caledonia",
+        "stage": "watch",
+        "themes": [
+          "fire"
+        ],
+        "source": "radiococotier.nc",
+        "link": "https://radiococotier.nc/2026/06/08/el-nino-de-retour-un-risque-accru-de-secheresse-en-caledonie/"
+      },
+      {
+        "id": "NCL-DR-20260608-003",
+        "title": "Rainfall deficit and drought conditions",
+        "month": "2026-06",
+        "location": "Southern New Caledonia",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "radiococotier.nc",
+        "link": "https://radiococotier.nc/2026/06/08/el-nino-de-retour-un-risque-accru-de-secheresse-en-caledonie/"
+      },
+      {
+        "id": "NCL-DR-20260619-001",
+        "title": "Water-resource stress",
+        "month": "2026-06",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "meteo.nc",
+        "link": "https://meteo.nc/fr/actualites/el-nino-quels-impacts-pour-la-nouvelle-caledonie"
+      }
+    ],
+    "NR": [
+      {
+        "id": "NRU-DR-20260930-001",
+        "title": "Drought and water security concerns",
+        "month": "2026-09",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Nauru Government and regional El Niño monitoring reports",
+        "link": null
+      },
+      {
+        "id": "NRU-DR-20260930-002",
+        "title": "Increased demand on water supply systems",
+        "month": "2026-09",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Pacific 2026/27 El Niño Readiness Stocktake",
+        "link": null
+      }
+    ],
+    "NU": [
+      {
+        "id": "NIU-WF-20260900-001",
+        "title": "Prolonged wildfire event",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "fire"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "NIU-WF-20261013-001",
+        "title": "Drought threat and wildfire impacts",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "fire",
+          "drought"
+        ],
+        "source": "pina.com.fj",
+        "link": "https://pina.com.fj/2026/10/13/imminent-threat-of-drought-in-niue-yellow-alert-declared/"
+      },
+      {
+        "id": "NIU-WF-20261013-002",
+        "title": "Wildfire impacts on agriculture",
+        "month": "2026-10",
+        "location": "Liku and Hakupu",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "fire"
+        ],
+        "source": "pina.com.fj",
+        "link": "https://pina.com.fj/2026/10/13/imminent-threat-of-drought-in-niue-yellow-alert-declared/"
+      },
+      {
+        "id": "NIU-WF-20261013-003",
+        "title": "Water infrastructure impacts from wildfire and drought",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "fire",
+          "drought"
+        ],
+        "source": "pina.com.fj",
+        "link": "https://pina.com.fj/2026/10/13/imminent-threat-of-drought-in-niue-yellow-alert-declared/"
+      },
+      {
+        "id": "NIU-DR-20260928-001",
+        "title": "Water demand and food security impacts",
+        "month": "2026-09",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "food",
+          "drought"
+        ],
+        "source": "Pacific 2026/27 El Niño Readiness Stocktake",
+        "link": null
+      }
+    ],
+    "PF": [
+      {
+        "id": "PYF-OW-20261008-001",
+        "title": "Coastal and marine heatwave impacts",
+        "month": "2026-10",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "marine"
+        ],
+        "source": "earthpulsenow.com",
+        "link": "https://earthpulsenow.com/el-nino/french-polynesia"
+      },
+      {
+        "id": "PYF-OW-20260730-001",
+        "title": "Fisheries impacts from marine warming",
+        "month": "2026-07",
+        "location": "Line Islands region and eastern French Polynesia waters",
+        "stage": "watch",
+        "themes": [
+          "fisheries"
+        ],
+        "source": "tahiti-infos.com",
+        "link": "https://www.tahiti-infos.com/Quelles-menaces-guettent-avec-le-fort-El-Nino-qui-s-installe_a238940.html"
+      },
+      {
+        "id": "PYF-CB-20260730-001",
+        "title": "Marine ecosystem stress and coral bleaching risk",
+        "month": "2026-07",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "marine"
+        ],
+        "source": "tahiti-infos.com",
+        "link": "https://www.tahiti-infos.com/Quelles-menaces-guettent-avec-le-fort-El-Nino-qui-s-installe_a238940.html"
+      },
+      {
+        "id": "PYF-DR-20260428-001",
+        "title": "Drought and rainfall-deficit conditions",
+        "month": "2026-04",
+        "location": "Southern French Polynesia",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "pacificmet.net",
+        "link": "https://www.pacificmet.net/news/el-nino-likely-mid-2026-pacific-islands-climate-outlook-forum-18-warns"
+      }
+    ],
+    "PG": [
+      {
+        "id": "PNG-WF-20260000-001",
+        "title": "Record bushfire activity under El Niño drought",
+        "month": "2026-11",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "fire",
+          "drought"
+        ],
+        "source": "Post-Courier / FAO PNG Fire Watch",
+        "link": "https://www.postcourier.com.pg/png-faces-record-breaking-fire-crisis-as-el-nino-sparks-120000-alerts/"
+      },
+      {
+        "id": "PNG-DR-00000000-012",
+        "title": "Severe drought-related drinking-water shortage and temporary relocation",
+        "month": "2026-11",
+        "location": "Tais, Mari, Buzi, Sigabaduru, Olmoatta and Parama, Kiwai LLG, South Fly District, Western Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Post-Courier",
+        "link": "https://www.postcourier.com.pg/south-fly-communities-face-severe-drinking-water-shortage-amid-el-nino/"
+      },
+      {
+        "id": "PNG-DR-20260400-001",
+        "title": "Severe drought, heat exposure and food-water insecurity",
+        "month": "2026-11",
+        "location": "Kitava Island, Kiriwina Rural LLG, Milne Bay Province",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "Post-Courier",
+        "link": "https://www.postcourier.com.pg/local-leaders-on-kivata-island-issue-urgent-call-for-humanitarian-aid/"
+      },
+      {
+        "id": "PNG-WF-20261102-001",
+        "title": "National firefighting-capability response",
+        "month": "2026-11",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "fire"
+        ],
+        "source": "Post-Courier",
+        "link": "https://www.postcourier.com.pg/png-to-overhaul-firefighting-capabilities-helicopter-aerial-buckets-proposed/"
+      },
+      {
+        "id": "PNG-WF-00000000-004",
+        "title": "Lou Island bushfire impacts and emergency response",
+        "month": "2026-11",
+        "location": "Lou Island, Manus Province",
+        "stage": "impact",
+        "themes": [
+          "fire"
+        ],
+        "source": "RNZ Pacific",
+        "link": "https://www.rnz.co.nz/news/pacific/2020352/wildfires-have-destroyed-one-third-of-small-png-island-responders-say"
+      },
+      {
+        "id": "PNG-DR-20260400-002",
+        "title": "Drought-related unsafe water access and protection risks",
+        "month": "2026-11",
+        "location": "Kitava Island, Kiriwina-Goodenough District, Milne Bay Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": null,
+        "link": "https://www.postcourier.com.pg/women-and-girls-risk-lives-for-water-in-kitava-island-milne-bay/?fbclid=IwY2xjawVY3eNleHRuA2FlbQIxMABwZG9mBWJyaWQRMVI3MXdzTXhtTk1NZUdCR2dzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEfq5GPrLPF9NR9RN2YGhvGz104aKwlym5AM-3WmiCuSd3paRUWVWiWeDyxBnY_aem_zBbKOJOG2MO9JYlHz6sVtw"
+      },
+      {
+        "id": "PNG-DR-20261001-001",
+        "title": "El Niño early impacts",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "OCHA / UN Country Team PNG",
+        "link": "https://reliefweb.int/report/papua-new-guinea/papua-new-guinea-el-nino-snapshot-current-impacts-and-early-action-1-october-2026"
+      },
+      {
+        "id": "PNG-DR-20261001-002",
+        "title": "El Niño taskforce activation",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "OCHA / UN Country Team PNG",
+        "link": "https://reliefweb.int/report/papua-new-guinea/papua-new-guinea-el-nino-snapshot-current-impacts-and-early-action-1-october-2026"
+      },
+      {
+        "id": "PNG-DR-20261001-003",
+        "title": "Food price impacts from drought",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "OCHA / UN Country Team PNG",
+        "link": "https://reliefweb.int/report/papua-new-guinea/papua-new-guinea-el-nino-snapshot-current-impacts-and-early-action-1-october-2026"
+      },
+      {
+        "id": "PNG-DR-00000000-003",
+        "title": "Drought / school WASH and community food-water shortages",
+        "month": "2026-10",
+        "location": "Zumara Primary School and surrounding Umi LLG communities, Markham District, Morobe Province",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "NBC PNG",
+        "link": "https://www.nbc.com.pg/post/40747/drought-destroys-zumara-school-toilets"
+      },
+      {
+        "id": "PNG-DR-20261007-001",
+        "title": "El Niño humanitarian emergency",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "NBC PNG",
+        "link": "https://www.nbc.com.pg/post/40883/el-nino-humanitarian-emergency"
+      },
+      {
+        "id": "PNG-DR-20261007-002",
+        "title": "El Niño humanitarian emergency",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "NBC PNG",
+        "link": "https://www.nbc.com.pg/post/40883/el-nino-humanitarian-emergency"
+      },
+      {
+        "id": "PNG-DR-20261012-001",
+        "title": "Drought / water supply and hydropower",
+        "month": "2026-10",
+        "location": "Sirinumu Dam, Central Province",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Water PNG Ltd CEO statement reported by NBC PNG",
+        "link": "https://www.nbc.com.pg/post/41094/prioritise-water-for-consumption"
+      },
+      {
+        "id": "PNG-DR-20261013-001",
+        "title": "El Niño drought relief funding",
+        "month": "2026-10",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "The National",
+        "link": "https://www.thenational.com.pg/k304mil-for-el-nino-relief/"
+      },
+      {
+        "id": "PNG-DR-00000000-004",
+        "title": "Drought / community water-source failure",
+        "month": "2026-10",
+        "location": "Arokoi River, Kutubu, Southern Highlands Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "NBC PNG",
+        "link": "https://www.nbc.com.pg/post/41154/drought-dries-up-arokoi-river-in-kutubu"
+      },
+      {
+        "id": "PNG-DR-20261015-001",
+        "title": "El Niño relief-fund access delays",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Papua New Guinea Today",
+        "link": "https://news.pngfacts.com/2026/10/png-mps-face-hurdles-accessing-k304.html"
+      },
+      {
+        "id": "PNG-DR-20261016-001",
+        "title": "Drought relief supply distribution",
+        "month": "2026-10",
+        "location": "North Fly District, Western Province",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "NBC PNG",
+        "link": "https://www.nbc.com.pg/post/41326/ndc-supports-north-fly-drought-response"
+      },
+      {
+        "id": "PNG-DR-20261017-001",
+        "title": "Drought relief airlift operations",
+        "month": "2026-10",
+        "location": "North Fly District, Western Province (Tabubil)",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Australian High Commission Papua New Guinea / Government…",
+        "link": null
+      },
+      {
+        "id": "PNG-WF-20261018-001",
+        "title": "Bushfire destroying homes",
+        "month": "2026-10",
+        "location": "Chuave District, Chimbu Province",
+        "stage": "impact",
+        "themes": [
+          "fire"
+        ],
+        "source": "NBC PNG",
+        "link": "https://www.nbc.com.pg/post/41391/eight-families-homeless-after-bushfire-in-chuave"
+      },
+      {
+        "id": "PNG-OW-00000000-001",
+        "title": "Reported El Niño-related decline in tuna catches",
+        "month": "2026-10",
+        "location": "Papua New Guinea waters; specific fishing locations not reported",
+        "stage": "impact",
+        "themes": [
+          "fisheries"
+        ],
+        "source": "FijiGlobalNews",
+        "link": "https://fijiglobalnews.com/el-ninos-impact-on-pacific-tuna-fisheries-and-marine-ecosystems-revealed/"
+      },
+      {
+        "id": "PNG-SMH-20261017-001",
+        "title": "Wildfire smoke and haze impacts",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "fire"
+        ],
+        "source": "RNZ Pacific",
+        "link": "https://www.rnz.co.nz/news/pacific/1950440/haze-over-papua-from-forest-fires-causes-mass-disruptions-health-issues"
+      },
+      {
+        "id": "PNG-DR-20261020-001",
+        "title": "Drought monitoring update",
+        "month": "2026-10",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "PNG National Weather Service",
+        "link": "https://www.pngmet.gov.pg/climate/drought-monitoring/"
+      },
+      {
+        "id": "PNG-WF-00000000-001",
+        "title": "Lou Island bushfire emergency response",
+        "month": "2026-10",
+        "location": "Lou Island, Manus Province",
+        "stage": "impact",
+        "themes": [
+          "fire"
+        ],
+        "source": "NBC PNG",
+        "link": "https://www.nbc.com.pg/post/41537/png-fire-service-deploys-firefighters-to-combat-manus-bushfire"
+      },
+      {
+        "id": "PNG-WF-20261017-001",
+        "title": "Bushfires destroying homes amid water crisis",
+        "month": "2026-10",
+        "location": "Sialum, Morobe Province",
+        "stage": "impact",
+        "themes": [
+          "fire"
+        ],
+        "source": "The National",
+        "link": "https://www.thenational.com.pg/bushfires-destroy-73-homes-in-sialum-amid-water-crisis/"
+      },
+      {
+        "id": "PNG-DR-00000000-005",
+        "title": "Drought-related mass fish mortality",
+        "month": "2026-10",
+        "location": "Chambri Lake, Wosera-Gawi District, East Sepik Province",
+        "stage": "impact",
+        "themes": [
+          "fishkill",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-WF-00000000-002",
+        "title": "Bushfire under prolonged dry conditions",
+        "month": "2026-10",
+        "location": "Chimbu Province",
+        "stage": "impact",
+        "themes": [
+          "fire",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-DR-00000000-006",
+        "title": "Drought-related river depletion and unsafe water access",
+        "month": "2026-10",
+        "location": "Tanobuibuina Village, Basilaki Island, Milne Bay Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Post-Courier",
+        "link": "https://www.postcourier.com.pg/el-nino-dry-conditions-force-basilaki-island-families-to-dig-for-water/"
+      },
+      {
+        "id": "PNG-WF-00000000-003",
+        "title": "Bushfire impacts on homes, food gardens and vegetation",
+        "month": "2026-10",
+        "location": "Oksapmin, Telefomin District, Sandaun Province",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "fire"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-DR-20261028-001",
+        "title": "North Fly drought-relief supplies delivered by river",
+        "month": "2026-10",
+        "location": "Aiambak, North Fly District, Western Province",
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "Post-Courier",
+        "link": "https://www.postcourier.com.pg/first-shipment-of-north-fly-el-nino-relief-supplies-arrives-in-aiambak/"
+      },
+      {
+        "id": "PNG-DR-00000000-007",
+        "title": "Drought / water and food shortage",
+        "month": "2026-10",
+        "location": "Markham District, Morobe Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "food",
+          "drought"
+        ],
+        "source": "The National",
+        "link": "https://www.thenational.com.pg/severe-water-food-shortage-hit-markham-villages/"
+      },
+      {
+        "id": "PNG-DR-00000000-008",
+        "title": "Drought-related school disruption",
+        "month": "2026-10",
+        "location": "Madang Province and other affected areas",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-DR-00000000-009",
+        "title": "Drought threatening agricultural programme",
+        "month": "2026-10",
+        "location": "Wau, Morobe Province",
+        "stage": "watch",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-UNK-00000000-001",
+        "title": "Low river levels disrupting food and water access",
+        "month": "2026-10",
+        "location": "Kiunga, North Fly District, Western Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "food",
+          "drought"
+        ],
+        "source": "The National",
+        "link": "https://www.thenational.com.pg/fly-river-runs-low-kiunga-shops-run-empty-say-officials/"
+      },
+      {
+        "id": "PNG-DR-20261000-001",
+        "title": "North Fly drought-relief supplies delivered by air and river",
+        "month": "2026-10",
+        "location": "Aiambak and Tabubil, North Fly District, Western Province",
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "Post-Courier",
+        "link": "https://www.postcourier.com.pg/north-fly-receives-223-tonnes-of-el-nino-relief-supplies-by-air-and-river/"
+      },
+      {
+        "id": "PNG-DR-00000000-010",
+        "title": "Drought relief supply distribution",
+        "month": "2026-10",
+        "location": "Kiunga, Western Province",
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "The National",
+        "link": "https://www.thenational.com.pg/kiunga-gets-relief-supplies/"
+      },
+      {
+        "id": "PNG-DR-00000000-011",
+        "title": "Drought impacts on population and livelihoods",
+        "month": "2026-10",
+        "location": "Menyamya District, Morobe Province",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "The National",
+        "link": "https://globalincidenttracker.com/incident/menyamya-drought-hits-120-000-persons-the-national-364039"
+      },
+      {
+        "id": "PNG-DR-20261000-002",
+        "title": "Ok Tedi drought-relief airlift",
+        "month": "2026-10",
+        "location": "Tabubil, North Fly District, Western Province",
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "Post-Courier",
+        "link": "https://www.postcourier.com.pg/ok-tedi-airlifts-relief-supplies-for-north-fly-district-2/"
+      },
+      {
+        "id": "PNG-20261022-DRF-001",
+        "title": "Australia drought-response assistance package",
+        "month": "2026-10",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "PNG Haus Bung",
+        "link": "https://pnghausbung.com/australia-supporting-png-s-el-nino-response-efforts/"
+      },
+      {
+        "id": "PNG-DR-20260901-001",
+        "title": "Drought Watch status",
+        "month": "2026-09",
+        "location": "East New Britain Provincem, East Sepik",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Papua New Guinea National Weather Service",
+        "link": "https://www.pngmet.gov.pg"
+      },
+      {
+        "id": "PNG-DR-20260904-001",
+        "title": "El Nino / disaster assessment",
+        "month": "2026-09",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "The National article shared in monitoring chat",
+        "link": null
+      },
+      {
+        "id": "PNG-DR-20260909-001",
+        "title": "Goilala drought impacts",
+        "month": "2026-09",
+        "location": "Goilala, Central Province",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "CARE International",
+        "link": null
+      },
+      {
+        "id": "PNG-DR-20260909-002",
+        "title": "School disruption due to drought",
+        "month": "2026-09",
+        "location": "Highlands Provinces",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "CARE International",
+        "link": null
+      },
+      {
+        "id": "PNG-DR-20260909-003",
+        "title": "Gender and protection risks from drought",
+        "month": "2026-09",
+        "location": "Highlands Provinces",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "CARE International",
+        "link": null
+      },
+      {
+        "id": "PNG-DR-20260909-004",
+        "title": "River transport disruption due to low water levels",
+        "month": "2026-09",
+        "location": "East Sepik Province",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "CARE International",
+        "link": null
+      },
+      {
+        "id": "PNG-DR-20260909-005",
+        "title": "El Niño drought impacts",
+        "month": "2026-09",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "CARE International",
+        "link": "https://reliefweb.int/attachments/37366887-c89d-48d4-afea-e5840bfcc340/2026.09.09%20CARE%20Pacific%20%26%20Timor-Leste%20El%20Nino%20Impacts%20-%20Sitrep%20%231%20%28EXTERNAL%29%20%281%29.pdf"
+      },
+      {
+        "id": "PNG-DR-20260921-001",
+        "title": "District drought relief funding",
+        "month": "2026-09",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "One PNG / PNG Facts",
+        "link": "https://www.onepng.com/2026/09/png-districts-to-receive-k25m-for-el.html"
+      },
+      {
+        "id": "PNG-DR-20260922-001",
+        "title": "Drought / water shortage",
+        "month": "2026-09",
+        "location": "Aibom",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-DR-20260922-002",
+        "title": "Drought / schools",
+        "month": "2026-09",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "The National article shared in monitoring chat",
+        "link": null
+      },
+      {
+        "id": "PNG-DR-20260926-001",
+        "title": "Drought / water supply",
+        "month": "2026-09",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-DR-20260926-002",
+        "title": "Drought",
+        "month": "2026-09",
+        "location": "Bougainville, Central, Hela, Manus, Milne Bay, Morobe and Southern Highlands",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-DR-20260926-003",
+        "title": "Drought",
+        "month": "2026-09",
+        "location": "Chimbu, East New Britain, East Sepik, Eastern Highlands, Enga, Jiwaka, Madang, New Ireland, Northern (Oro), West New Britain, Sandaun and Western Highlands",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "PNG NWS September drought update, shared",
+        "link": null
+      },
+      {
+        "id": "PNG-DR-20260926-004",
+        "title": "Drought",
+        "month": "2026-09",
+        "location": "NCD, Gulf and Western",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-DR-20260929-001",
+        "title": "Drought relief financing and logistics",
+        "month": "2026-09",
+        "location": "Western Province",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "NBC PNG",
+        "link": "https://www.nbc.com.pg/post/40471/fly-river-provincial-government-commits-k25m-for-el-nino-drought-relief"
+      },
+      {
+        "id": "PNG-FR-20260821-001",
+        "title": "Frost",
+        "month": "2026-08",
+        "location": "Sirunki",
+        "stage": "impact",
+        "themes": [
+          "food"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-DR-20260825-001",
+        "title": "El Niño relief funding directive",
+        "month": "2026-08",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "Department of Finance PNG",
+        "link": "https://www.finance.gov.pg/wp-content/uploads/2026/08/FI-03-of-2026-on-El-Nino-relief-efforts-to-Provinces-Districts.pdf"
+      },
+      {
+        "id": "PNG-DR-20260825-002",
+        "title": "National drought response funding release",
+        "month": "2026-08",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "Papua New Guinea Today",
+        "link": "https://news.pngfacts.com/2026/08/drought-emergency-png-government.html"
+      },
+      {
+        "id": "PNG-DR-00000000-002",
+        "title": "El Niño drought emergency funding and response activation",
+        "month": "2026-08",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "Papua New Guinea Today",
+        "link": "https://news.pngfacts.com/2026/08/drought-emergency-png-government.html"
+      },
+      {
+        "id": "PNG-DR-20260619-001",
+        "title": "Ecosystem impacts from El Nino",
+        "month": "2026-06",
+        "location": "Mt Wilhelm region",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Research Update",
+        "link": null
+      },
+      {
+        "id": "PNG-DR-20260619-002",
+        "title": "El Nino / drought outlook",
+        "month": "2026-06",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-DR-20260616-001",
+        "title": "El Nino / food and water security",
+        "month": "2026-06",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "food",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-FIS-20260624-001",
+        "title": "El Niño-related tuna migration and fisheries disruption risk",
+        "month": "2026-06",
+        "location": "Papua New Guinea EEZ and inland aquaculture areas",
+        "stage": "watch",
+        "themes": [
+          "fisheries"
+        ],
+        "source": "PINA",
+        "link": null
+      },
+      {
+        "id": "PNG-DR-20260625-001",
+        "title": "Drought",
+        "month": "2026-06",
+        "location": "Central, Chimbu, Enga, Hela, Manus, Western Highlands, Eastern Highlands and Southern Highlands",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-DR-20260625-002",
+        "title": "Drought",
+        "month": "2026-06",
+        "location": "National Capital District",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PNG-DR-00000000-001",
+        "title": "El Niño drought impacts on atoll agriculture and food security",
+        "month": "2026-06",
+        "location": "Ware Island, Simsimla Island, Yegum, Yanab and Budibudi, Milne Bay Province",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "PNG Haus Bung",
+        "link": "https://pnghauslain.com/milne-bay-agri-division-responds-to-drought-threat-amid-el-nino-conditions/"
+      },
+      {
+        "id": "PNG-DR-20260627-001",
+        "title": "El Nino / water conservation",
+        "month": "2026-06",
+        "location": "Sirinumu Dam",
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "PNG Power advisory shared in monitoring chat",
+        "link": null
+      }
+    ],
+    "PW": [
+      {
+        "id": "PLW-DR-20261001-001",
+        "title": "El Niño drought preparedness and water-security measures",
+        "month": "2026-10",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "islandtimes.org",
+        "link": "https://islandtimes.org/palau-enters-drought-as-el-nino-brings-prolonged-dry-conditions/"
+      },
+      {
+        "id": "PLW-DR-20261008-001",
+        "title": "Drought monitoring update",
+        "month": "2026-10",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PLW-DR-20260814-001",
+        "title": "Drought declaration and water shortage watch",
+        "month": "2026-08",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Palau NEMO advisory:",
+        "link": "https://m.facebook.com/story.php?story_fbid=pfbid0UWwbLgZPUbMSY8qT88kTt6Biibem91Z2aNvAuRCi17PWYLzyxgYu3fj2Cbzvmb52l&id=100064520810087&mibextid=wwXIfr"
+      },
+      {
+        "id": "PLW-DR-20260817-001",
+        "title": "Drought / water shortage",
+        "month": "2026-08",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Island Times News",
+        "link": "https://islandtimes.org/palau-enters-drought-as-el-nino-brings-prolonged-dry-conditions/"
+      },
+      {
+        "id": "PLW-DR-20260818-001",
+        "title": "Drought and reduced rainfall impacts",
+        "month": "2026-08",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "islandtimes.org",
+        "link": "https://islandtimes.org/palau-enters-drought-as-el-nino-brings-prolonged-dry-conditions/"
+      },
+      {
+        "id": "PLW-DR-20260818-002",
+        "title": "Public water-supply pressure from drought",
+        "month": "2026-08",
+        "location": "Koror and Airai",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "islandtimes.org",
+        "link": "https://islandtimes.org/palau-enters-drought-as-el-nino-brings-prolonged-dry-conditions/"
+      },
+      {
+        "id": "PLW-DR-20260818-003",
+        "title": "Coastal and environmental drought impacts",
+        "month": "2026-08",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "drought"
+        ],
+        "source": "islandtimes.org",
+        "link": "https://islandtimes.org/palau-enters-drought-as-el-nino-brings-prolonged-dry-conditions/"
+      },
+      {
+        "id": "PLW-DR-20260420-001",
+        "title": "Drought response",
+        "month": "2026-04",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "PLW-DR-20260427-001",
+        "title": "Stage 1 Water Shortage Watch / drought response activation",
+        "month": "2026-04",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "CONVEN / Palau NEMO",
+        "link": "https://conven.org/micronesia/news/palau-nec-activates-stage-1-of-nations-drought-action-plan-water-shortage-watch/"
+      },
+      {
+        "id": "PLW-DR-20260400-001",
+        "title": "Drought-related water restrictions",
+        "month": "2026-04",
+        "location": "Ngaraard and Ngerchelong",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "CONVEN / Palau NEMO / PPUC",
+        "link": "https://conven.org/micronesia/news/palau-nec-activates-stage-1-of-nations-drought-action-plan-water-shortage-watch/"
+      },
+      {
+        "id": "PLW-DR-00000000-001",
+        "title": "Severe drought-related water shortage",
+        "month": "2026-04",
+        "location": "Hatohobei",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "CONVEN / Palau NEMO / PPUC",
+        "link": "https://conven.org/micronesia/news/palau-nec-activates-stage-1-of-nations-drought-action-plan-water-shortage-watch/"
+      },
+      {
+        "id": "PLW-DR-20260427-002",
+        "title": "Declining reservoir levels",
+        "month": "2026-04",
+        "location": "Ngerimel Dam, Airai and Koror",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "CONVEN / Palau NEMO / PPUC",
+        "link": "https://conven.org/micronesia/news/palau-nec-activates-stage-1-of-nations-drought-action-plan-water-shortage-watch/"
+      }
+    ],
+    "SB": [
+      {
+        "id": "SLB-20261117-WAT-001",
+        "title": "Drought water-relief operation and restoration of essential services",
+        "month": "2026-11",
+        "location": "Gizo, Noro, Nila and Simbo, Western Province",
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "SIBC Online / Australian Government / Solomon Islands NDMO",
+        "link": "https://www.facebook.com/"
+      },
+      {
+        "id": "SLB-20261117-WAT-002",
+        "title": "WASH infrastructure and materials support",
+        "month": "2026-11",
+        "location": "Lipe, Maina, Ngawa and Nola, Temotu Province",
+        "stage": "response",
+        "themes": [
+          "water"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "SLB-20261117-WAT-003",
+        "title": "WASH construction-material delivery",
+        "month": "2026-11",
+        "location": "Pileni, Temotu Province",
+        "stage": "response",
+        "themes": [
+          "water"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "SLB-HAB-20261008-001",
+        "title": "Mass fish mortality / marine ecosystem disturbance",
+        "month": "2026-10",
+        "location": "Dokoso Conservation Area, Vangunu Island, Marovo, Western Province",
+        "stage": "impact",
+        "themes": [
+          "fishkill",
+          "marine"
+        ],
+        "source": "SIBC News",
+        "link": "https://www.sibconline.com.sb/mass-fish-deaths-raise-concern-in-dokoso-conservation-area/"
+      },
+      {
+        "id": "SLB-DR-20261015-001",
+        "title": "School closure due to drought",
+        "month": "2026-10",
+        "location": "Moli mainland and Moli Island, Choiseul Province",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "The Island Sun",
+        "link": "https://theislandsun.com.sb/moli-schools-close-as-severe-prolonged-dry-season-continues/"
+      },
+      {
+        "id": "SLB-DR-20261018-001",
+        "title": "Drought relief, water security and humanitarian response mission",
+        "month": "2026-10",
+        "location": "Bellona Island and Rennell Island, Rennell and Bellona Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Solomon Islands Ministry of Environment",
+        "link": "https://m.facebook.com/story.php?story_fbid=pfbid0GaUfq2SEj6nEtGYPzwrTPXeujEkcQ1p23Fut3qnavWYaYvQSvMAyeGFXfXdCY5ABl&id=100089221368809&mibextid=wwXIfr"
+      },
+      {
+        "id": "SLB-OW-00000000-001",
+        "title": "Reported El Niño-related decline in tuna catches",
+        "month": "2026-10",
+        "location": "Solomon Islands waters; specific fishing locations not reported",
+        "stage": "impact",
+        "themes": [
+          "fisheries"
+        ],
+        "source": "FijiGlobalNews",
+        "link": null
+      },
+      {
+        "id": "SLB-DR-20261019-001",
+        "title": "Diarrhoea outbreak linked to water shortages",
+        "month": "2026-10",
+        "location": "Gizo Town, Western Province",
+        "stage": "impact",
+        "themes": [
+          "health",
+          "drought"
+        ],
+        "source": "Solomon Star News",
+        "link": "https://www.solomonstarnews.com/diarrhoea-outbreak-scare-for-gizo/"
+      },
+      {
+        "id": "SLB-DR-20261019-002",
+        "title": "El Niño water shortage",
+        "month": "2026-10",
+        "location": "Gizo Town, Western Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "The Island Sun",
+        "link": "https://theislandsun.com.sb/gizo-hardest-hit-by-el-nino-veo/"
+      },
+      {
+        "id": "SLB-DR-20261020-001",
+        "title": "National meteorological drought warning",
+        "month": "2026-10",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Solomon Islands Meteorological Service",
+        "link": "http://www.met.gov.sb"
+      },
+      {
+        "id": "SLB-DR-20261020-002",
+        "title": "National meteorological drought warning",
+        "month": "2026-10",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Solomon Star News / Solomon Islands Meteorological Service",
+        "link": "https://www.solomonstarnews.com/gizo-turns-to-kolombangara-for-water/"
+      },
+      {
+        "id": "SLB-DR-00000000-001",
+        "title": "El Niño water shortage and off-island water collection",
+        "month": "2026-10",
+        "location": "Gizo Town and Kolombangara, Western Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Solomon Star News",
+        "link": "https://www.solomonstarnews.com/gizo-turns-to-kolombangara-for-water/"
+      },
+      {
+        "id": "SLB-DR-00000000-002",
+        "title": "El Niño water shortage and emergency water response",
+        "month": "2026-10",
+        "location": "Gizo Town, Western Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "The Island Sun",
+        "link": "https://theislandsun.com.sb/gizo-hardest-hit-by-el-nino-veo/"
+      },
+      {
+        "id": "SLB-DR-20261020-003",
+        "title": "National drought impacts and response activation",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Solomon Islands NDMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "SLB-HAB-00000000-001",
+        "title": "Localised mass fish mortality",
+        "month": "2026-10",
+        "location": "Zaira Village, Western Province",
+        "stage": "impact",
+        "themes": [
+          "fishkill"
+        ],
+        "source": "Solomon Islands NDMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "SLB-UNK-00000000-001",
+        "title": "Hospital water shortage and reduced services",
+        "month": "2026-10",
+        "location": "Gizo Hospital, Western Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "health"
+        ],
+        "source": "Solomon Islands NDMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "SLB-DR-00000000-003",
+        "title": "Safe drinking-water shortage and relief mobilisation",
+        "month": "2026-10",
+        "location": "Ontong Java Islands, Malaita Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Solomon Islands NDMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "SLB-DR-00000000-004",
+        "title": "Water shortage and diarrhoeal illness",
+        "month": "2026-10",
+        "location": "Jones Adventist College, Vella La Vella, Western Province",
+        "stage": "impact",
+        "themes": [
+          "health",
+          "drought"
+        ],
+        "source": "Solomon Islands NDMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "SLB-DR-00000000-005",
+        "title": "School water crisis and reduced operations",
+        "month": "2026-10",
+        "location": "Gizo Community High and Primary School, Western Province",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Solomon Islands NDMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "SLB-DR-00000000-006",
+        "title": "Township water shortage and service disruption",
+        "month": "2026-10",
+        "location": "Kirakira, Makira-Ulawa Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Solomon Islands NDMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "SLB-DR-00000000-007",
+        "title": "Critical water shortage and reduced public services",
+        "month": "2026-10",
+        "location": "Taro, Choiseul Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Solomon Islands NDMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "SLB-DR-20260900-001",
+        "title": "Severe drought-related water shortage",
+        "month": "2026-10",
+        "location": "Wagina Island, South Choiseul",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "SLB-DR-00000000-008",
+        "title": "El Niño impact on community water-supply dam",
+        "month": "2026-10",
+        "location": "Buri, Ranongga Island, Western Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "SLB-DR-20260909-001",
+        "title": "Drought contingency plan activation",
+        "month": "2026-09",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "CARE International",
+        "link": null
+      },
+      {
+        "id": "SLB-DR-20260909-002",
+        "title": "Water shortage risk",
+        "month": "2026-09",
+        "location": "Taro, Munda and Auki",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "CARE International",
+        "link": null
+      },
+      {
+        "id": "SLB-DR-20260909-003",
+        "title": "Water shortage risk",
+        "month": "2026-09",
+        "location": "Honiara, Henderson, Kirakira, Tingoa and Lata",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "CARE International",
+        "link": null
+      },
+      {
+        "id": "SLB-DR-20260928-001",
+        "title": "Drought / water supply",
+        "month": "2026-09",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "SLB-DR-20260801-001",
+        "title": "Severe school and community water shortage",
+        "month": "2026-08",
+        "location": "Dala Community High School, Gela, Central Province",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Solomon Islands NDMO/NEOC",
+        "link": null
+      },
+      {
+        "id": "SLB-DR-20260703-001",
+        "title": "El Nino / water security",
+        "month": "2026-07",
+        "location": "Honiara, Auki, Noro and Tulagi",
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "SLB-DR-20260703-002",
+        "title": "Water conservation advisory",
+        "month": "2026-07",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "SLB-FIS-20260701-001",
+        "title": "El Niño-related change in tuna-fishing activity",
+        "month": "2026-07",
+        "location": "Solomon Islands EEZ",
+        "stage": "impact",
+        "themes": [
+          "fisheries"
+        ],
+        "source": "PINA / Pacific Islands Forum Fisheries Agency Trade and…",
+        "link": "https://pina.com.fj/2026/10/12/strong-el-nino-expected-to-disrupt-pacific-tuna-fisheries-into-2027/"
+      },
+      {
+        "id": "SLB-DR-20260619-001",
+        "title": "Drought response activation",
+        "month": "2026-06",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "The Island Sun, Drought response activated",
+        "link": "https://www.facebook.com/share/p/19fBsv8frs/"
+      },
+      {
+        "id": "SLB-DR-20260416-001",
+        "title": "Emergency medical deployment supporting drought-affected communities",
+        "month": "2026-04",
+        "location": "Western Province",
+        "stage": "impact",
+        "themes": [
+          "health",
+          "drought"
+        ],
+        "source": "WHO Western Pacific",
+        "link": "https://www.who.int/westernpacific/about/how-we-work/pacific-support/news/detail/16-04-2026-solmat-emergency-medical-team-deployed-to-western-province-amid-growing-health-needs"
+      }
+    ],
+    "TK": [
+      {
+        "id": "TKL-UNK-00000000-003",
+        "title": "Above-normal rainfall and rainwater-storage response",
+        "month": "2026-11",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "flood"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "TKL-UNK-00000000-002",
+        "title": "Household rainwater-harvesting improvements",
+        "month": "2026-09",
+        "location": "Fakaofo",
+        "stage": "response",
+        "themes": [
+          "water"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "TKL-UNK-00000000-001",
+        "title": "Rainwater-storage infrastructure improvement",
+        "month": "2026-08",
+        "location": "Tialeniu School, Fenuafala, Fakaofo",
+        "stage": "response",
+        "themes": [
+          "water"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "TKL-DR-20260709-001",
+        "title": "Elevated drought risk under El Niño",
+        "month": "2026-07",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "earthpulsenow.com",
+        "link": "https://earthpulsenow.com/el-nino/tokelau"
+      }
+    ],
+    "TO": [
+      {
+        "id": "TON-DR-20261001-001",
+        "title": "Drought and water shortages",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Pacific 2026/27 El Niño Readiness Stocktake",
+        "link": null
+      },
+      {
+        "id": "TON-DR-20261006-001",
+        "title": "Agricultural drought impacts",
+        "month": "2026-10",
+        "location": "Ha'apai",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "matangitonga.to",
+        "link": "https://matangitonga.to/2026/10/06/population-migration-haapai-likely-agricultural-drought-reaches-point-no-return"
+      },
+      {
+        "id": "TON-DR-20261006-002",
+        "title": "Population migration and relocation concerns",
+        "month": "2026-10",
+        "location": "Ha'apai",
+        "stage": "watch",
+        "themes": [
+          "drought"
+        ],
+        "source": "matangitonga.to",
+        "link": "https://matangitonga.to/2026/10/06/population-migration-haapai-likely-agricultural-drought-reaches-point-no-return"
+      },
+      {
+        "id": "TON-DR-20261009-001",
+        "title": "National drought declaration",
+        "month": "2026-10",
+        "location": "Tongatapu, Niuatoputapu, Ha'apai and 'Eua; Vava'u; Niuafo'ou",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "RNZ Pacific via Pacific Scoop",
+        "link": "https://pacific.scoop.co.nz/2026/10/drought-declared-in-parts-of-tonga-as-el-nino-intensifies/"
+      },
+      {
+        "id": "TON-DR-20261009-002",
+        "title": "Water shortages and drought response",
+        "month": "2026-10",
+        "location": "Ha'apai, Tongatapu, Niuatoputapu and 'Eua",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "pacific.scoop.co.nz",
+        "link": "https://pacific.scoop.co.nz/2026/10/drought-declared-in-parts-of-tonga-as-el-nino-intensifies/"
+      },
+      {
+        "id": "TON-DR-20261014-001",
+        "title": "Livestock losses due to drought",
+        "month": "2026-10",
+        "location": "Ha'apai",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "talanoaotonga.to",
+        "link": "https://talanoaotonga.to/tonga-drought-monitoring-needs-rethink-says-former-agricultural-minister/"
+      },
+      {
+        "id": "TON-DR-00000000-003",
+        "title": "Prolonged national drought conditions",
+        "month": "2026-10",
+        "location": "Tongatapu, ʻEua, Haʻapai, Niuatoputapu, Vavaʻu and Niuafoʻou",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Matangi Tonga / Tonga Meteorological Services",
+        "link": "https://matangitonga.to/2026/10/30/tonga-faces-prolonged-drought-conditions"
+      },
+      {
+        "id": "TON-DR-20261013-001",
+        "title": "Drought-related water shortages and response operations",
+        "month": "2026-10",
+        "location": "Ha'apai, Niuafo'ou, Foa, Lifuka, Vava'u, 'Eua and Tongatapu",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Matangi Tonga",
+        "link": "https://matangitonga.to/2026/11/05/tonga-warned-conserve-water-el-ni-o-drought-intensifies"
+      },
+      {
+        "id": "TON-DR-00000000-001",
+        "title": "Severe drought affecting rainwater-dependent communities",
+        "month": "2026-09",
+        "location": "Niuatoputapu, Niuas",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "TON-DR-20260909-001",
+        "title": "Population exposed to drought conditions",
+        "month": "2026-09",
+        "location": "Drought-declared regions of Tonga",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "CARE International",
+        "link": null
+      },
+      {
+        "id": "TON-DR-00000000-002",
+        "title": "Drought-response water storage installation",
+        "month": "2026-09",
+        "location": "Vava'u Side School / evacuation centre, Vava'u",
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "TON-DR-20260919-001",
+        "title": "Drought insurance payout (Fifth)",
+        "month": "2026-09",
+        "location": "'Eua",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "PCRIC",
+        "link": "https://pcric.org/pcric-delivers-fifth-drought-payout-to-tonga-highlighting-the-importance-of-pre-arranged-finance-amid-el-nino-season/"
+      },
+      {
+        "id": "TON-DR-20260923-001",
+        "title": "Hydrological drought warning",
+        "month": "2026-09",
+        "location": "Nuku'alofa Greater Urban Area water-supply production field, Tongatapu",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Tonga Ministry of Lands",
+        "link": null
+      },
+      {
+        "id": "TON-DR-20260820-001",
+        "title": "Agricultural and livestock stress from drought",
+        "month": "2026-08",
+        "location": "Ha'apai, Tongatapu, 'Eua, Niuatoputapu, Vava'u and Niuafo'ou",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "Tonga Meteorological Service drought outlook",
+        "link": null
+      },
+      {
+        "id": "TON-DR-20260825-001",
+        "title": "Drought insurance payout (Fourth)",
+        "month": "2026-08",
+        "location": "Tongatapu and 'Eua",
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "PCRIC",
+        "link": "https://pcric.org/fourth-drought-payout-for-tonga-under-gssp-supported-policy/"
+      },
+      {
+        "id": "TON-DR-20260706-001",
+        "title": "Drought insurance payout (Second)",
+        "month": "2026-07",
+        "location": "Niua island group",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "PCRIC",
+        "link": "https://pcric.org/tonga-receives-second-drought-payout-under-early-action-trigger/"
+      },
+      {
+        "id": "TON-DR-20260727-001",
+        "title": "Drought insurance payout (Third)",
+        "month": "2026-07",
+        "location": "Ha'apai and Tongatapu",
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "PCRIC",
+        "link": "https://pcric.org/tonga-receives-third-pcric-drought-payout-to-strengthen-early-preparedness/"
+      },
+      {
+        "id": "TON-DR-20260619-001",
+        "title": "El Niño declaration",
+        "month": "2026-06",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "CARE International",
+        "link": null
+      },
+      {
+        "id": "TON-DR-20260623-001",
+        "title": "Drought",
+        "month": "2026-06",
+        "location": "Haapai Group",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "WhatsApp monitoring chat",
+        "link": null
+      },
+      {
+        "id": "TON-DR-20260619-002",
+        "title": "Severe hydrological drought",
+        "month": "2026-06",
+        "location": "Hihifo village water-supply area, western Tongatapu",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Tonga Ministry of Lands",
+        "link": null
+      },
+      {
+        "id": "TON-DR-20260401-001",
+        "title": "Drought insurance payout (First)",
+        "month": "2026-04",
+        "location": "Niuas (Niuatoputapu and Niuafo'ou island group)",
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "PCRIC",
+        "link": "https://pcric.org/pcric-makes-first-payout-under-tongas-drought-policy/"
+      }
+    ],
+    "TV": [
+      {
+        "id": "TUV-DR-20251001-001",
+        "title": "Long-term rainfall deficit / seriously dry conditions",
+        "month": "2026-10",
+        "location": "Niulakita",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Tuvalu Meteorological Service",
+        "link": "https://tuvmet.tv"
+      },
+      {
+        "id": "TUV-DR-20260930-001",
+        "title": "Water scarcity and drought preparedness actions",
+        "month": "2026-09",
+        "location": "Funafuti (Nui, Nukufetau, Fakaifou and Vaiaku communities)",
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "gem.spc.int",
+        "link": "https://gem.spc.int/updates/blog/dynamic-story/2026/09/four-funafuti-communities-built-their-own-water-backup-just-as"
+      },
+      {
+        "id": "TUV-CI-20260821-001",
+        "title": "Coastal inundation and sea-level impacts",
+        "month": "2026-08",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "flood"
+        ],
+        "source": "tuvmet.tv",
+        "link": "https://tuvmet.tv/document/climate-outlook/declare-impact-strong-el-nino-tuvalu"
+      },
+      {
+        "id": "TUV-CB-20260821-001",
+        "title": "Coral bleaching and marine ecosystem stress",
+        "month": "2026-08",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "marine"
+        ],
+        "source": "tuvmet.tv",
+        "link": "https://tuvmet.tv/document/climate-outlook/declare-impact-strong-el-nino-tuvalu"
+      },
+      {
+        "id": "TUV-DR-20260828-001",
+        "title": "Drought conditions affecting water security",
+        "month": "2026-08",
+        "location": "Niulakita",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "tuvmet.tv",
+        "link": "https://tuvmet.tv/sites/default/files/documents/EAR%20WATCH_August%202026.pdf"
+      },
+      {
+        "id": "TUV-DR-20260828-002",
+        "title": "Dry conditions affecting water security",
+        "month": "2026-08",
+        "location": "Nukulaelae",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "tuvmet.tv",
+        "link": "https://tuvmet.tv/sites/default/files/documents/EAR%20WATCH_August%202026.pdf"
+      },
+      {
+        "id": "TUV-HR-20260701-001",
+        "title": "Very wet rainfall conditions",
+        "month": "2026-07",
+        "location": "Funafuti",
+        "stage": "watch",
+        "themes": [
+          "flood"
+        ],
+        "source": "Tuvalu Meteorological Service",
+        "link": "https://tuvmet.tv"
+      },
+      {
+        "id": "TUV-HR-20260701-002",
+        "title": "Very wet rainfall conditions",
+        "month": "2026-07",
+        "location": "Nanumea",
+        "stage": "watch",
+        "themes": [
+          "flood"
+        ],
+        "source": "Tuvalu Meteorological Service",
+        "link": "https://tuvmet.tv"
+      }
+    ],
+    "VU": [
+      {
+        "id": "VUT-DEN-20261001-001",
+        "title": "Dengue",
+        "month": "2026-10",
+        "location": "Tanna, Tafea",
+        "stage": "impact",
+        "themes": [
+          "health"
+        ],
+        "source": "Vanuatu Ministry of Health",
+        "link": null
+      },
+      {
+        "id": "VUT-DR-20261002-001",
+        "title": "Drought and El Nino",
+        "month": "2026-10",
+        "location": "Torba and parts of Sanma, Penama and Malampa",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Vanuatu Ministry of Health situation map",
+        "link": null
+      },
+      {
+        "id": "VUT-DEN-20261002-001",
+        "title": "Dengue serotype 1 outbreak",
+        "month": "2026-10",
+        "location": "Malekula Island, Malampa Province",
+        "stage": "impact",
+        "themes": [
+          "health"
+        ],
+        "source": "Vanuatu Ministry of Health / Malampa Provincial Health /…",
+        "link": "https://www.spc.int/phd/epidemics/"
+      },
+      {
+        "id": "VUT-DR-20261029-001",
+        "title": "Provincial drought-response EOC activation",
+        "month": "2026-10",
+        "location": "Tafea Province",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Tafea Provincial Government",
+        "link": "https://m.facebook.com/story.php?story_fbid=pfbid026ZNj7TubMWvK967EjsnsnvfAGtHq1cEEJwKsfWBLYnoaVUSqoHJayrrh58T7h4Acl&id=100084689414417"
+      },
+      {
+        "id": "VUT-VOL-20260901-001",
+        "title": "Volcanic ashfall + drought",
+        "month": "2026-09",
+        "location": "Ambae and North Pentecost, Penama",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "VUT-AWD-20260901-001",
+        "title": "Watery diarrhoea",
+        "month": "2026-09",
+        "location": "Tanna, Tafea",
+        "stage": "impact",
+        "themes": [
+          "health"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "VUT-VOL-20260901-002",
+        "title": "Volcanic ashfall and drought impacts",
+        "month": "2026-09",
+        "location": "Ambae and North Pentecost",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "VUT-AWD-20260909-001",
+        "title": "Diarrhoea outbreak",
+        "month": "2026-09",
+        "location": "Tanna, Tafea Province",
+        "stage": "impact",
+        "themes": [
+          "health"
+        ],
+        "source": "CARE International",
+        "link": null
+      },
+      {
+        "id": "VUT-DR-20260917-001",
+        "title": "Water shortages and drought impacts",
+        "month": "2026-09",
+        "location": "North Ambae, Penama",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "VUT-DR-20260918-001",
+        "title": "Water security and El Niño impacts",
+        "month": "2026-09",
+        "location": "Santo",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "VUT-DR-20260922-001",
+        "title": "Drought pressure on farmers and water supplies",
+        "month": "2026-09",
+        "location": "Rural Vanuatu",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "dailypost.vu",
+        "link": "https://www.dailypost.vu/news/el-ni-o-puts-growing-pressure-on-rural-farmers-and-water-supplies/article_870a2c4e-f129-5c09-a6fb-6452a69e3e40.html"
+      },
+      {
+        "id": "VUT-AWD-20260920-001",
+        "title": "Watery diarrhoea / Rotavirus",
+        "month": "2026-09",
+        "location": "Santo, Sanma",
+        "stage": "impact",
+        "themes": [
+          "health"
+        ],
+        "source": "Vanuatu Ministry of Health",
+        "link": null
+      },
+      {
+        "id": "VUT-DEN-20260927-001",
+        "title": "Dengue",
+        "month": "2026-09",
+        "location": "Efate, Shefa",
+        "stage": "impact",
+        "themes": [
+          "health"
+        ],
+        "source": "Vanuatu Ministry of Health",
+        "link": null
+      },
+      {
+        "id": "VUT-DEN-20260927-002",
+        "title": "Dengue",
+        "month": "2026-09",
+        "location": "Santo, Sanma",
+        "stage": "impact",
+        "themes": [
+          "health"
+        ],
+        "source": "Vanuatu Ministry of Health",
+        "link": null
+      },
+      {
+        "id": "VUT-AWD-20260927-001",
+        "title": "Watery diarrhoea / Rotavirus",
+        "month": "2026-09",
+        "location": "Tanna and Aneityum, Tafea",
+        "stage": "impact",
+        "themes": [
+          "health"
+        ],
+        "source": "Vanuatu Ministry of Health",
+        "link": null
+      },
+      {
+        "id": "VUT-DR-20260831-001",
+        "title": "Food security impacts from El Niño, drought and extreme weather",
+        "month": "2026-08",
+        "location": "Eratap, Teouma and Teouma River Basin, Efate Island",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "National Indigenous Times",
+        "link": "https://nit.com.au/31-08-2026/26193/vanuatus-food-security-under-immense-pressure-from-climate-change-events-following-recent-declaration-of-el-nino"
+      },
+      {
+        "id": "VUT-VOL-20260825-001",
+        "title": "Volcanic ashfall and drought compounding impacts",
+        "month": "2026-08",
+        "location": "Ambae",
+        "stage": "impact",
+        "themes": [
+          "drought"
+        ],
+        "source": "CARE International",
+        "link": null
+      },
+      {
+        "id": "VUT-WF-20260701-001",
+        "title": "El Nino / bushfire risk",
+        "month": "2026-07",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "fire"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "VUT-DR-20260721-001",
+        "title": "Drought",
+        "month": "2026-07",
+        "location": "Parts of Vanuatu",
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "VUT-DR-20260722-001",
+        "title": "El Nino / food impacts",
+        "month": "2026-07",
+        "location": "Pentecost Island, Penama",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "VUT-DR-20260728-001",
+        "title": "El Nino / drought and water security",
+        "month": "2026-07",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "WhatsApp monitoring chat",
+        "link": null
+      },
+      {
+        "id": "VUT-DR-20260618-001",
+        "title": "El Nino / unusually low sea level",
+        "month": "2026-06",
+        "location": "Lenakel Wharf, Tanna, Tafea",
+        "stage": "watch",
+        "themes": [
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "VUT-DR-20260618-002",
+        "title": "El Nino awareness campaign",
+        "month": "2026-06",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "VUT-DR-20260620-001",
+        "title": "El Nino / water security",
+        "month": "2026-06",
+        "location": "Remote communities in northern Vanuatu",
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "VUT-DR-20260620-002",
+        "title": "El Nino / agriculture preparedness",
+        "month": "2026-06",
+        "location": "South Efate, Shefa",
+        "stage": "response",
+        "themes": [
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "VUT-DR-20260625-001",
+        "title": "Drought / water availability",
+        "month": "2026-06",
+        "location": "Shefa Province",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      }
+    ],
+    "WF": [
+      {
+        "id": "WLF-DR-20260830-001",
+        "title": "Agricultural drought impacts",
+        "month": "2026-08",
+        "location": "Wallis",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "la1ere.franceinfo.fr",
+        "link": "https://la1ere.franceinfo.fr/wallisfutuna/wallis/el-nino-la-secheresse-des-sols-se-fait-sentir-dans-les-plantations-1733747.html"
+      },
+      {
+        "id": "WLF-DR-20260830-002",
+        "title": "Agricultural drought impacts",
+        "month": "2026-08",
+        "location": "Futuna",
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "la1ere.franceinfo.fr",
+        "link": "https://la1ere.franceinfo.fr/wallisfutuna/wallis/el-nino-la-secheresse-des-sols-se-fait-sentir-dans-les-plantations-1733747.html"
+      },
+      {
+        "id": "WLF-DR-20260619-001",
+        "title": "Rainfall deficit and drought conditions",
+        "month": "2026-06",
+        "location": "Wallis and Futuna",
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "meteo.wf",
+        "link": "https://meteo.wf/fr/actualites/el-nino-quels-impacts-pour-wallis-et-futuna"
+      }
+    ],
+    "WS": [
+      {
+        "id": "WSM-DEN-20250101-001",
+        "title": "Dengue outbreak, DENV-1 and DENV-2",
+        "month": "2026-10",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "health"
+        ],
+        "source": "Samoa Ministry of Health / PPHSN",
+        "link": "https://www.spc.int/phd/epidemics/"
+      },
+      {
+        "id": "WSM-DR-20260811-001",
+        "title": "El Niño drought and cyclone advisory",
+        "month": "2026-08",
+        "location": null,
+        "stage": "watch",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Samoa Newshub",
+        "link": "https://samoanewshub.com/2026/08/12/mnre-warns-samoa-of-drought-and-cyclone-risks-as-el-nino-persists/"
+      },
+      {
+        "id": "WSM-DR-20260812-001",
+        "title": "Water-security and drought preparedness response",
+        "month": "2026-08",
+        "location": null,
+        "stage": "response",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "samoanewshub.com",
+        "link": "https://samoanewshub.com/2026/08/12/mnre-warns-samoa-of-drought-and-cyclone-risks-as-el-nino-persists/"
+      },
+      {
+        "id": "WSM-DR-20260812-002",
+        "title": "Crop and food-production stress",
+        "month": "2026-08",
+        "location": "Upolu and Savai'i",
+        "stage": "watch",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "samoanewshub.com",
+        "link": "https://samoanewshub.com/2026/08/12/mnre-warns-samoa-of-drought-and-cyclone-risks-as-el-nino-persists/"
+      },
+      {
+        "id": "WSM-DR-20260821-001",
+        "title": "Livestock impacts and agricultural stress",
+        "month": "2026-08",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "food",
+          "drought"
+        ],
+        "source": "Samoa Ministry of Agriculture advisory shared through…",
+        "link": null
+      },
+      {
+        "id": "WSM-WF-20260821-001",
+        "title": "Bushfire activity under dry conditions",
+        "month": "2026-08",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "fire",
+          "drought"
+        ],
+        "source": "Samoa monitoring network",
+        "link": null
+      },
+      {
+        "id": "WSM-WF-20260818-001",
+        "title": "Bush / forest fires",
+        "month": "2026-08",
+        "location": "Samalaeulu and Falealupo",
+        "stage": "response",
+        "themes": [
+          "fire"
+        ],
+        "source": "Monitoring network",
+        "link": null,
+        "unverified": true
+      },
+      {
+        "id": "WSM-DR-20260709-001",
+        "title": "El Niño declaration",
+        "month": "2026-07",
+        "location": null,
+        "stage": "impact",
+        "themes": [
+          "water",
+          "drought"
+        ],
+        "source": "Samoa monitoring network",
+        "link": "http://www.mnre.gov.ws"
+      }
+    ]
+  }
+}
