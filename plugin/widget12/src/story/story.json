@@ -42,7 +42,7 @@
             { "label": "3-month SOI", "value": "−21.7" }
           ],
           "notes": [
-            "September 2026 · 4 of 4 El Niño criteria met",
+            "4 of 4 El Niño criteria met",
             "Adapted from the former BOM ENSO Outlook criteria (not an official BOM status)"
           ],
           "layers": []
@@ -120,8 +120,8 @@
             "label": "El Niño"
           },
           "notes": [
-            "Oct 2026 – Mar 2027 · El Niño in 6 of 6 months · Niño3.4 +2.3 to +3.7 °C",
-            "BOM ACCESS-S2 (3 Oct 2026) and NOAA CPC RONI (Sep 2026) · Issued 8 Oct 2026"
+            "Dec 2026 – Apr 2027 · El Niño in 5 of 5 months · Niño3.4 +1.6 to +3.5 °C",
+            "BOM ACCESS-S2 (14 Nov 2026) and NOAA CPC RONI (Nov 2026) · Issued 19 Nov 2026"
           ],
           "layers": []
         },
