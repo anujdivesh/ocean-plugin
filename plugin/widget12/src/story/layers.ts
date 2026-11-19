@@ -489,6 +489,14 @@ export const STORY_LAYERS: StoryLayer[] = [
       ),
     ],
   },
+  // Impact: countries under a state of emergency (public/drought.json).
+  {
+    id: "state-of-emergency",
+    group: "impact",
+    kind: "eez",
+    title: "State of Emergency",
+    layerKey: "emergency",
+  },
   // Impact: EEZs shaded by drought status (public/drought.json).
   {
     id: "drought-meteorological",
