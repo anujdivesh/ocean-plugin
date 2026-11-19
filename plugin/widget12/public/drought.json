@@ -11,7 +11,8 @@
       ],
       "countries": {
         "FJ": "emergency",
-        "TO": "emergency"
+        "TO": "emergency",
+        "MH": "emergency"
       }
     },
     "meteorological": {
